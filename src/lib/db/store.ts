@@ -269,8 +269,8 @@ export class InkloomStore {
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     const filtered = state.approved_claims.filter((c) => {
-      if (c.organisation_id !== orgId) return false;
-      if (brandId && c.brand_id !== brandId) return false;
+      if (!this.matchOrg(c.organisation_id, orgId)) return false;
+      if (brandId && !this.matchBrand(c.brand_id, brandId)) return false;
       if (options?.status && c.status !== options.status) return false;
       if (options?.expiringOnly) {
         if (!c.expires_at) return false;
@@ -432,6 +432,26 @@ export class InkloomStore {
   // Submissions & Workflows
   // --------------------------------------------------------------------------
 
+  private static matchOrg(targetId: string, queryId?: string): boolean {
+    if (!queryId) return true;
+    return (
+      targetId === queryId ||
+      (queryId === 'org_uideas_digital' && targetId === SEED_IDS.ORGANISATION_UIDEAS) ||
+      (queryId === SEED_IDS.ORGANISATION_UIDEAS && targetId === 'org_uideas_digital')
+    );
+  }
+
+  private static matchBrand(targetId: string, queryId?: string): boolean {
+    if (!queryId) return true;
+    return (
+      targetId === queryId ||
+      (queryId === 'brand_apex' && targetId === SEED_IDS.BRAND_APEX) ||
+      (queryId === SEED_IDS.BRAND_APEX && targetId === 'brand_apex') ||
+      (queryId === 'brand_zenith' && targetId === SEED_IDS.BRAND_ZENITH) ||
+      (queryId === SEED_IDS.BRAND_ZENITH && targetId === 'brand_zenith')
+    );
+  }
+
   public static getSubmissions(
     orgId: string,
     brandId?: string,
@@ -439,8 +459,8 @@ export class InkloomStore {
   ): SubmissionWithDetails[] {
     const state = loadState();
     const subs = state.submissions.filter((s) => {
-      if (s.organisation_id !== orgId) return false;
-      if (brandId && s.brand_id !== brandId) return false;
+      if (!this.matchOrg(s.organisation_id, orgId)) return false;
+      if (brandId && !this.matchBrand(s.brand_id, brandId)) return false;
       if (options?.status && s.status !== options.status) return false;
       if (options?.creatorId && s.creator_id !== options.creatorId) return false;
       return true;
