@@ -1,7 +1,29 @@
-# Inkloom AI — AI Brand Governance & Content Compliance Platform
+<div align="center">
+  # Inkloom AI — CodeTitans 2026
 
-> **Keep Your Brand On Brand.**  
-> An evidence-grounded brand governance layer that sits between content creation and publication.
+  **The Governance Layer for Brand Truth and Marketing Claims.**
+
+  ![Version](https://img.shields.io/badge/version-v2.0-blue)
+  ![Platform](https://img.shields.io/badge/platform-Web-informational)
+  ![License](https://img.shields.io/badge/license-MIT-green)
+  ![Build](https://img.shields.io/badge/build-passing-emerald)
+
+  ---
+  
+  ## [CLICK HERE TO ACCESS LIVE PRODUCTION APPLICATION](https://inkloom-ai-tau.vercel.app/)
+  
+  **`https://inkloom-ai-tau.vercel.app/`**
+  
+  *(Live Production Build — 6-Stage AI Brand Governance Engine)*
+  
+  ---
+</div>
+
+## Problem & Solution
+
+**The Problem:** Modern marketing teams and agencies publish at high velocity across dozens of channels. Generic AI writing tools frequently hallucinate facts, invent statistics, or generate unsubstantiated superlative claims (e.g., "2x faster", "miracle formula", "100% unhackable") that violate FTC Endorsement Guides, FDA regulations, and corporate brand standards.
+
+**The Solution:** Inkloom AI sits as an infallible brand governance layer between content creation and publication. Grounded strictly in an evidence-backed brand repository, every marketing claim is cross-referenced against clinical trials, regulatory filings, ISO assays, or verified company documentation. If a claim lacks proof or context, Inkloom flags it as unverified—never fabricating a citation—and enforces human-in-the-loop approvals.
 
 ---
 
@@ -74,8 +96,8 @@ Built with a dark premium SaaS interface matching the Inkloom visual reference:
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/IntellectDaksh/inkloom-ai.git
-cd inkloom-ai
+git clone https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026.git
+cd Inkloom-AI-CodeTitans-2026
 npm install
 ```
 
