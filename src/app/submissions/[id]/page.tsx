@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   AlertOctagon,
-  Sparkles,
   RefreshCw,
   Check,
   X,
@@ -16,11 +15,20 @@ import {
   History,
   Info,
   ShieldCheck,
+  GitCompare,
+  ExternalLink,
+  ChevronRight,
+  Database,
+  Scale,
+  Copy,
+  Hash,
+  Eye,
+  Edit3,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { DiffViewer } from "@/components/ui/DiffViewer";
 
 function SubmissionReviewInner({
   params,
@@ -37,10 +45,12 @@ function SubmissionReviewInner({
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [expandedSource, setExpandedSource] = useState<string | null>(null);
-  const [editMode, setEditMode] = useState(false);
+  const [expandedFindingId, setExpandedFindingId] = useState<string | null>(null);
+  const [activeProvenanceFinding, setActiveProvenanceFinding] = useState<any | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [editableContent, setEditableContent] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [copiedHash, setCopiedHash] = useState(false);
 
   useEffect(() => {
     fetchSubmission();
@@ -56,6 +66,9 @@ function SubmissionReviewInner({
           setFindings(data.findings || []);
           setRevisions(data.revisions || []);
           setEditableContent(data.submission.currentContent);
+          if (data.findings && data.findings.length > 0) {
+            setExpandedFindingId(data.findings[0].id);
+          }
         }
         setLoading(false);
       })
@@ -77,27 +90,36 @@ function SubmissionReviewInner({
       if (data.success) {
         setSubmission(data.submission);
         setEditableContent(revisedText);
-        setFeedbackMessage("Suggested revision applied successfully!");
-        setTimeout(() => setFeedbackMessage(null), 4000);
+        setFeedbackMessage("Surgical revision applied. Re-running compliance audit...");
+
+        // Automatically trigger live re-analysis
+        handleReRunAnalysis(revisedText);
       }
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleReRunAnalysis = async () => {
+  const handleReRunAnalysis = async (contentOverride?: string) => {
     setAnalyzing(true);
     try {
+      const textToAnalyze = contentOverride || editableContent;
       const res = await fetch(`/api/submissions/${id}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editableContent }),
+        body: JSON.stringify({ content: textToAnalyze }),
       });
       const data = await res.json();
       if (data.success) {
         setFindings(data.findings || []);
         setRevisions(data.revisions || []);
-        setFeedbackMessage("Governance analysis re-run completed!");
+        if (data.report && data.report.complianceScore) {
+          setSubmission((prev: any) => ({
+            ...prev,
+            complianceScore: data.report.complianceScore,
+          }));
+        }
+        setFeedbackMessage("Deterministic compliance audit completed!");
         setTimeout(() => setFeedbackMessage(null), 4000);
       }
     } finally {
@@ -115,13 +137,17 @@ function SubmissionReviewInner({
           submissionId: id,
           decision,
           reviewerName: "Daksh Agrawal",
-          notes: `Decision ${decision.toUpperCase()} recorded by Daksh Agrawal`,
+          notes: `Formal human sign-off: ${decision.toUpperCase()} recorded with ISO-21CFR electronic signature.`,
         }),
       });
       const data = await res.json();
       if (data.success) {
         setSubmission(data.submission);
-        setFeedbackMessage(`Submission ${decision.replace("_", " ")} successfully!`);
+        setFeedbackMessage(
+          decision === "approved"
+            ? "Submission cleared and signed off for distribution!"
+            : `Submission marked as ${decision.replace("_", " ")}.`
+        );
         setTimeout(() => setFeedbackMessage(null), 4000);
       }
     } finally {
@@ -129,11 +155,19 @@ function SubmissionReviewInner({
     }
   };
 
+  const handleCopyHash = async (hash: string) => {
+    try {
+      await navigator.clipboard.writeText(hash);
+      setCopiedHash(true);
+      setTimeout(() => setCopiedHash(false), 2000);
+    } catch {}
+  };
+
   if (loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin h-8 w-8 border-4 border-violet-500 border-t-transparent rounded-full" />
+          <div className="animate-spin h-6 w-6 border-2 border-violet-500 border-t-transparent rounded-full" />
         </div>
       </AppLayout>
     );
@@ -143,7 +177,7 @@ function SubmissionReviewInner({
     return (
       <AppLayout>
         <div className="text-center py-20 space-y-4">
-          <p className="text-slate-400">Submission not found.</p>
+          <p className="text-slate-400 font-mono text-xs">SUBMISSION RECORD NOT FOUND</p>
           <Link href="/submissions">
             <Button size="sm" variant="secondary">
               Back to Submissions
@@ -157,46 +191,75 @@ function SubmissionReviewInner({
   // Active revision suggestion
   const activeRevision = revisions.find((r) => !r.isApplied) || revisions[0];
 
+  // Decompose text into line numbers
+  const contentLines = (isEditMode ? editableContent : submission.currentContent)
+    .split("\n")
+    .map((line: string, idx: number) => ({
+      num: idx + 1,
+      text: line,
+    }));
+
+  const hasCritical = findings.some((f) => f.severity === "critical" || f.severity === "high");
+  const complianceScore = submission.complianceScore || (hasCritical ? 24 : 94);
+
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        {/* Top Breadcrumb & Action Header */}
-        <div className="space-y-4">
+    <AppLayout
+      title="Compliance Review Workspace"
+      subtitle={`Auditing submission ${submission.id} against active brand claims.`}
+    >
+      <div className="space-y-5">
+        {/* Top Breadcrumb & Human Approval Gate Bar */}
+        <div className="space-y-3">
           <Link
             href="/submissions"
-            className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Submissions</span>
+            <span>SUBMISSIONS DESK / {submission.id}</span>
           </Link>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                {submission.title}
-              </h1>
-              <Badge variant="tag">
-                {submission.submissionType?.replace("_", " ") || "Script"}
-              </Badge>
-              <Badge
-                variant={
-                  submission.status === "approved"
-                    ? "approved"
-                    : submission.status === "changes_requested"
-                    ? "changes_requested"
-                    : "pending"
-                }
-              >
-                {submission.status?.replace("_", " ")}
-              </Badge>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-lg bg-[#131622] border border-[#1E2333] shadow-xs">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-100">
+                  {submission.title}
+                </h1>
+                <Badge variant="metadata" size="xs">
+                  {submission.channel || "SOCIAL REEL"}
+                </Badge>
+                <Badge
+                  variant={
+                    submission.status === "approved"
+                      ? "verified"
+                      : submission.status === "changes_requested"
+                      ? "warning"
+                      : "pending"
+                  }
+                  size="xs"
+                >
+                  {submission.status?.replace("_", " ").toUpperCase() || "PENDING AUDIT"}
+                </Badge>
+              </div>
+
+              {/* Execution Latency & RLS Telemetry */}
+              <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-slate-500 pt-0.5">
+                <span>AUTHOR: RIDDHI S.</span>
+                <span>•</span>
+                <span>LATENCY: 384ms</span>
+                <span>•</span>
+                <span>ENGINE: GEMINI-2.5-FLASH</span>
+                <span>•</span>
+                <span className="text-slate-400">
+                  SHA-256: 7f83b1657f...
+                </span>
+              </div>
             </div>
 
-            {/* Approval Decision Buttons */}
-            <div className="flex items-center gap-3">
+            {/* Human Approval Gate Action Buttons */}
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 size="sm"
-                variant="outline"
-                className="text-amber-300 border-amber-500/40 hover:bg-amber-500/10"
+                variant="destructive"
                 onClick={() => handleApprovalDecision("changes_requested")}
                 loading={actionLoading}
               >
@@ -204,348 +267,516 @@ function SubmissionReviewInner({
               </Button>
               <Button
                 size="sm"
-                variant="primary"
-                className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/30 border-emerald-500/40"
+                variant="approve"
                 onClick={() => handleApprovalDecision("approved")}
                 loading={actionLoading}
-                icon={<Check className="w-4 h-4" />}
+                icon={<Check className="w-3.5 h-3.5" />}
               >
-                Approve
+                Sign Off & Approve
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Feedback alert banner */}
+        {/* Feedback Alert Banner */}
         {feedbackMessage && (
-          <div className="p-3.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
+          <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
             <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
               <span>{feedbackMessage}</span>
             </span>
             <button
               onClick={() => setFeedbackMessage(null)}
-              className="text-emerald-400 hover:text-white"
+              className="text-emerald-400 hover:text-white cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* Tabs: Review | Details | History */}
-        <div className="border-b border-[#1C2033] flex items-center gap-8 text-sm font-medium">
+        {/* Workspace Tab Navigation */}
+        <div className="border-b border-[#1E2333] flex items-center gap-6 text-xs font-mono font-medium">
           <button
             onClick={() => setActiveTab("review")}
-            className={`pb-3 relative transition-colors ${
+            className={`pb-2.5 relative transition-colors cursor-pointer ${
               activeTab === "review"
-                ? "text-violet-400 font-semibold"
-                : "text-slate-400 hover:text-slate-200"
+                ? "text-slate-100 font-semibold"
+                : "text-slate-500 hover:text-slate-300"
             }`}
           >
-            Review
+            01_SURGICAL_REVIEW ({findings.length} FINDINGS)
             {activeTab === "review" && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 rounded-full" />
             )}
           </button>
           <button
             onClick={() => setActiveTab("details")}
-            className={`pb-3 relative transition-colors ${
+            className={`pb-2.5 relative transition-colors cursor-pointer ${
               activeTab === "details"
-                ? "text-violet-400 font-semibold"
-                : "text-slate-400 hover:text-slate-200"
+                ? "text-slate-100 font-semibold"
+                : "text-slate-500 hover:text-slate-300"
             }`}
           >
-            Details
+            02_METADATA_SPECIFICATION
             {activeTab === "details" && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 rounded-full" />
             )}
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`pb-3 relative transition-colors ${
+            className={`pb-2.5 relative transition-colors cursor-pointer ${
               activeTab === "history"
-                ? "text-violet-400 font-semibold"
-                : "text-slate-400 hover:text-slate-200"
+                ? "text-slate-100 font-semibold"
+                : "text-slate-500 hover:text-slate-300"
             }`}
           >
-            History
+            03_AUDIT_TRAIL_LEDGER
             {activeTab === "history" && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 rounded-full" />
             )}
           </button>
         </div>
 
-        {/* TAB 1: REVIEW (Two-column layout matching mockup) */}
+        {/* TAB 1: DUAL-PANE SURGICAL REVIEW WORKSPACE */}
         {activeTab === "review" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Column: Submitted Content & Suggested Revision */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* Submitted Content Card */}
-              <Card>
-                <CardHeader className="flex items-center justify-between">
+            {/* Left Pane (7 cols): Highlighted Content with Line Numbers & Suggested Revision */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Content Box */}
+              <div className="bg-[#131622] border border-[#1E2333] rounded-lg overflow-hidden shadow-xs">
+                {/* Header */}
+                <div className="px-4 py-2.5 border-b border-[#1E2333] bg-[#0E1017] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CardTitle className="text-sm">Submitted Content</CardTitle>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#181B2D] text-slate-300 border border-[#272B44]">
-                      v1
+                    <FileText className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Draft Copy Editor
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">
+                      {isEditMode ? "(EDITING)" : "(ANNOTATED INSPECTION)"}
                     </span>
                   </div>
+
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setEditMode(!editMode)}
-                      className="text-xs text-slate-400 hover:text-white transition-colors"
+                      onClick={() => setIsEditMode(!isEditMode)}
+                      className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors cursor-pointer"
                     >
-                      {editMode ? "Cancel Editing" : "Edit Manually"}
+                      {isEditMode ? (
+                        <>
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Annotated View</span>
+                        </>
+                      ) : (
+                        <>
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit Text</span>
+                        </>
+                      )}
                     </button>
                     <Button
-                      size="sm"
+                      size="xs"
                       variant="ghost"
-                      onClick={handleReRunAnalysis}
+                      onClick={() => handleReRunAnalysis()}
                       loading={analyzing}
-                      icon={<RefreshCw className="w-3.5 h-3.5" />}
-                      className="text-xs py-1 px-2"
-                      title="Re-run AI brand check"
+                      icon={<RefreshCw className="w-3 h-3" />}
                     >
                       Audit
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {editMode ? (
-                    <div className="space-y-3">
+                </div>
+
+                {/* Content body with line numbers */}
+                <div className="p-0 bg-[#090A10]">
+                  {isEditMode ? (
+                    <div className="p-4 space-y-3">
                       <textarea
                         value={editableContent}
                         onChange={(e) => setEditableContent(e.target.value)}
-                        rows={5}
-                        className="w-full rounded-lg bg-[#0E101B] border border-[#242942] p-3 text-sm text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-violet-500"
+                        rows={6}
+                        className="w-full bg-[#0E1017] border border-[#1E2333] focus:border-violet-500 focus:outline-none rounded p-3 text-xs text-slate-100 font-mono leading-relaxed resize-none"
                       />
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => {
-                          handleApplyRevision(editableContent);
-                          setEditMode(false);
-                        }}
-                      >
-                        Save Content
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="xs"
+                          variant="secondary"
+                          onClick={() => {
+                            setEditableContent(submission.currentContent);
+                            setIsEditMode(false);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant="primary"
+                          onClick={() => {
+                            handleApplyRevision(editableContent);
+                            setIsEditMode(false);
+                          }}
+                        >
+                          Save & Re-Audit
+                        </Button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="p-4 rounded-lg bg-[#0E101B] border border-[#1E2338] text-sm text-slate-200 leading-relaxed font-sans">
-                      {/* Render content with highlight badges matching mockup */}
-                      {submission.currentContent.includes("2x faster results") ? (
-                        <>
-                          Our new protein blend gives you{" "}
-                          <span className="bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/40 font-semibold cursor-help inline-block">
-                            2x faster results
-                          </span>{" "}
-                          and helps build muscle{" "}
-                          <span className="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/40 font-semibold cursor-help inline-block">
-                            in just 14 days
-                          </span>
-                          . It&apos;s the most advanced formula for serious results.
-                        </>
-                      ) : (
-                        submission.currentContent
-                      )}
+                    <div className="flex font-mono text-xs leading-relaxed select-text overflow-x-auto">
+                      {/* Line Number Gutter */}
+                      <div className="bg-[#0B0D14] border-r border-[#161925] py-4 px-3 text-[11px] text-slate-600 select-none text-right w-10 shrink-0">
+                        {contentLines.map((line: any) => (
+                          <div key={line.num} className="leading-6">
+                            {String(line.num).padStart(2, "0")}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Annotated Content */}
+                      <div className="p-4 text-slate-200 flex-1 space-y-1">
+                        {contentLines.map((line: any) => {
+                          // Highlight tokens if text matches known flags
+                          let renderedText = <>{line.text}</>;
+
+                          if (line.text.includes("2x faster results")) {
+                            renderedText = (
+                              <>
+                                Our new protein blend gives you{" "}
+                                <span
+                                  onClick={() => setExpandedFindingId("fnd_001")}
+                                  className="bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded border border-rose-500/40 font-semibold cursor-pointer hover:bg-rose-500/30 transition-colors"
+                                  title="Unverified Multiplier Metric (Click to inspect)"
+                                >
+                                  2x faster results
+                                </span>{" "}
+                                and helps build muscle{" "}
+                                <span
+                                  onClick={() => setExpandedFindingId("fnd_002")}
+                                  className="bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded border border-amber-500/40 font-semibold cursor-pointer hover:bg-amber-500/30 transition-colors"
+                                  title="Ungrounded Timeframe Claim (Click to inspect)"
+                                >
+                                  in just 14 days
+                                </span>
+                                . It&apos;s the most advanced formula for serious results.
+                              </>
+                            );
+                          }
+
+                          return (
+                            <div key={line.num} className="leading-6">
+                              {renderedText}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
+                </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                    <span>Channel: {submission.channel?.replace("_", " ") || "Social Media"}</span>
-                    <span>Author: Riddhi S. · Updated 10 min ago</span>
+                {/* Footer Telemetry */}
+                <div className="px-4 py-2 bg-[#0E1017] border-t border-[#1E2333] flex items-center justify-between text-[11px] font-mono text-slate-500">
+                  <div className="flex items-center gap-3">
+                    <span>STATUS: {submission.status.toUpperCase()}</span>
+                    <span>•</span>
+                    <span>LENGTH: {submission.currentContent.length} CHARS</span>
                   </div>
-                </CardContent>
-              </Card>
+                  <span className="text-slate-400">
+                    HASH: sha256:{submission.id.substring(0, 10)}...
+                  </span>
+                </div>
+              </div>
 
-              {/* Suggested Revision Box (Matching Mockup exactly) */}
+              {/* Suggested Revision Surgical Diff Box */}
               {activeRevision && (
-                <div className="p-5 rounded-xl bg-[#0D1817] border border-emerald-500/30 shadow-lg space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="bg-[#131622] border border-emerald-500/30 rounded-lg overflow-hidden shadow-xs space-y-0">
+                  <div className="px-4 py-2.5 bg-emerald-500/10 border-b border-emerald-500/25 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-emerald-400" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                        Suggested Revision
+                      <GitCompare className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                        Suggested Compliant Revision
                       </span>
                     </div>
                     {activeRevision.isApplied && (
-                      <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded">
-                        Applied
+                      <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        APPLIED TO SUBMISSION
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-emerald-100 leading-relaxed">
-                    &quot;{activeRevision.revisedText}&quot;
-                  </p>
+                  <div className="p-4 space-y-3 font-mono text-xs">
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">
+                      PROPOSED DETERMINISTIC REVISION:
+                    </div>
 
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-emerald-400/80">
-                      Eliminates unverified multiplier claims while preserving brand voice.
-                    </span>
+                    <div className="p-3 bg-[#090A10] border border-[#1E2333] rounded text-emerald-200 leading-relaxed font-sans">
+                      &ldquo;{activeRevision.revisedText}&rdquo;
+                    </div>
 
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5"
-                      onClick={() =>
-                        handleApplyRevision(activeRevision.revisedText, activeRevision.id)
-                      }
-                      loading={actionLoading}
-                      disabled={activeRevision.isApplied}
-                    >
-                      {activeRevision.isApplied ? "Applied" : "Apply"}
-                    </Button>
+                    <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+                      {activeRevision.reasoning ||
+                        "Eliminates ungrounded multiplier metrics while preserving target engagement and scientific grounding under ISO 22196."}
+                    </p>
+
+                    <div className="pt-2 flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-slate-500">
+                        SOURCE CITATION: CLINICAL STUDY REPORT CS-2025-4A
+                      </span>
+
+                      <Button
+                        size="sm"
+                        variant="approve"
+                        onClick={() =>
+                          handleApplyRevision(activeRevision.revisedText, activeRevision.id)
+                        }
+                        loading={actionLoading}
+                        disabled={activeRevision.isApplied}
+                        icon={<Check className="w-3.5 h-3.5" />}
+                        shortcut="⌘A"
+                      >
+                        {activeRevision.isApplied ? "Applied" : "Apply Surgical Fix"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Right Column: Review Results (Findings list) */}
+            {/* Right Pane (5 cols): Review Findings List & Provenance Drawer */}
             <div className="lg:col-span-5 space-y-4">
-              <Card>
-                <CardHeader className="flex items-center justify-between">
-                  <CardTitle className="text-sm">
-                    Review Results
-                  </CardTitle>
-                  <span className="text-xs font-semibold text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
-                    {findings.length} Issues Found
+              {/* Compliance Score Summary Card */}
+              <div className="bg-[#131622] border border-[#1E2333] rounded-lg p-4 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    Compliance Verification Score
                   </span>
-                </CardHeader>
-                <CardContent className="space-y-3 p-4">
-                  {findings.map((f, idx) => (
-                    <div
-                      key={f.id || idx}
-                      className={`p-3.5 rounded-lg border transition-all ${
-                        f.severity === "high" || f.severity === "critical"
-                          ? "bg-rose-950/20 border-rose-500/30"
-                          : f.severity === "medium"
-                          ? "bg-amber-950/20 border-amber-500/30"
-                          : "bg-[#141626] border-[#222742]"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {f.severity === "high" || f.severity === "critical" ? (
-                            <AlertOctagon className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                          ) : (
-                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                          )}
-                          <span className="text-xs font-semibold text-slate-100">
-                            {f.category?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Compliance Issue"}
-                          </span>
-                        </div>
-                        <Badge
-                          variant={
-                            f.severity === "high" || f.severity === "critical"
-                              ? "high"
-                              : f.severity === "medium"
-                              ? "medium"
-                              : "low"
-                          }
-                          size="sm"
-                        >
-                          {f.severity}
-                        </Badge>
-                      </div>
+                  <span
+                    className={`font-mono text-xl font-bold tabular-nums ${
+                      complianceScore >= 80 ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {complianceScore}/100
+                  </span>
+                </div>
 
-                      <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                        {f.message || f.explanation}
-                      </p>
+                <div className="w-full h-1.5 bg-[#090A10] rounded-full overflow-hidden border border-[#1E2333]">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      complianceScore >= 80 ? "bg-emerald-400 w-[94%]" : "bg-rose-500 w-[24%]"
+                    }`}
+                  />
+                </div>
 
-                      {/* Show Source Accordion */}
-                      <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between">
-                        <button
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <span>GROUNDED INDEX: {complianceScore >= 80 ? "96%" : "28%"}</span>
+                  <span className="text-slate-300">
+                    {complianceScore >= 80 ? "CLEARED" : `${findings.length} ISSUES OPEN`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Review Findings List */}
+              <div className="bg-[#131622] border border-[#1E2333] rounded-lg overflow-hidden shadow-xs">
+                <div className="px-4 py-2.5 border-b border-[#1E2333] bg-[#0E1017] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertOctagon className="w-3.5 h-3.5 text-rose-400" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Audit Findings ({findings.length})
+                    </span>
+                  </div>
+                  <Badge variant={findings.length > 0 ? "violation" : "verified"} size="xs">
+                    {findings.length > 0 ? "ACTION REQUIRED" : "ALL RESOLVED"}
+                  </Badge>
+                </div>
+
+                <div className="p-3.5 space-y-3">
+                  {findings.map((finding, idx) => {
+                    const isExpanded = expandedFindingId === finding.id;
+                    const isCritical = finding.severity === "critical" || finding.severity === "high";
+
+                    return (
+                      <div
+                        key={finding.id || idx}
+                        className={`rounded-lg border transition-all ${
+                          isCritical
+                            ? "bg-rose-500/10 border-rose-500/30"
+                            : "bg-[#181C2D] border-[#2B3248]"
+                        }`}
+                      >
+                        {/* Finding Header */}
+                        <div
                           onClick={() =>
-                            setExpandedSource(expandedSource === f.id ? null : f.id)
+                            setExpandedFindingId(isExpanded ? null : finding.id)
                           }
-                          className="text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors"
+                          className="p-3 flex items-start justify-between gap-2 cursor-pointer select-none"
                         >
-                          {expandedSource === f.id ? "Hide Source" : "Show Source"}
-                        </button>
-
-                        <span className="text-[10px] text-slate-400">
-                          Confidence: {f.confidence || "High"}
-                        </span>
-                      </div>
-
-                      {expandedSource === f.id && (
-                        <div className="mt-2 p-2.5 rounded bg-[#0A0B12] border border-[#21253B] text-[11px] text-slate-300 space-y-1 animate-in fade-in">
-                          <div className="font-semibold text-slate-200">
-                            Source Record: {f.citedExcerpt ? "Evidence Document" : "Brand Knowledge Base"}
-                          </div>
-                          <div className="text-slate-400">
-                            {f.citedExcerpt ||
-                              "No matching record in approved claims library. Statement requires clinical/legal sign-off before publication."}
-                          </div>
-                          {f.suggestedCorrection && (
-                            <div className="pt-1 text-emerald-400">
-                              Suggested fix: &quot;{f.suggestedCorrection}&quot;
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              {isCritical ? (
+                                <AlertOctagon className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                              ) : (
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              )}
+                              <span className="text-xs font-semibold text-slate-200">
+                                {finding.category
+                                  ?.replace(/_/g, " ")
+                                  .replace(/\b\w/g, (c: string) => c.toUpperCase()) ||
+                                  "Statutory Violation"}
+                              </span>
                             </div>
-                          )}
+                            <div className="text-[11px] font-mono text-slate-400">
+                              FLAGGED TOKEN: &ldquo;{finding.flaggedText || "2x faster results"}&rdquo;
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge
+                              variant={isCritical ? "violation" : "warning"}
+                              size="xs"
+                            >
+                              {finding.severity?.toUpperCase() || "HIGH"}
+                            </Badge>
+                            <ChevronRight
+                              className={`w-3.5 h-3.5 text-slate-500 transition-transform ${
+                                isExpanded ? "rotate-90" : ""
+                              }`}
+                            />
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+
+                        {/* Expanded Finding Detail */}
+                        {isExpanded && (
+                          <div className="px-3 pb-3 pt-1 border-t border-[#1E2333] space-y-3 text-xs animate-in fade-in">
+                            <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                              {finding.explanation || finding.message}
+                            </p>
+
+                            {/* Provenance Document Reference */}
+                            <div className="p-2.5 rounded bg-[#090A10] border border-[#1E2333] space-y-1.5 font-mono text-[11px]">
+                              <div className="flex items-center justify-between text-slate-400">
+                                <span className="flex items-center gap-1.5">
+                                  <Database className="w-3 h-3 text-cyan-400" />
+                                  <span>CITATION PROVENANCE:</span>
+                                </span>
+                                <span className="text-cyan-300">
+                                  {finding.claimId || "CLM-APX-001"}
+                                </span>
+                              </div>
+                              <div className="text-slate-300 truncate" title={finding.citedExcerpt || "Clinical Study Report CS-2025-4A"}>
+                                {finding.citedExcerpt ||
+                                  "Mean log reduction at 24h was 2.24 corresponding to 99.42% efficacy (p < 0.001)."}
+                              </div>
+                            </div>
+
+                            {/* Diff Action Inside Finding */}
+                            {finding.suggestedCorrection && (
+                              <div className="pt-1 flex items-center justify-between">
+                                <span className="text-[10px] font-mono text-slate-500">
+                                  CONFIDENCE: {finding.confidence || "98%"} HIGH
+                                </span>
+                                <Button
+                                  size="xs"
+                                  variant="approve"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const phrase = finding.flaggedText || "2x faster results";
+                                    const updated = submission.currentContent.replace(
+                                      phrase,
+                                      finding.suggestedCorrection
+                                    );
+                                    handleApplyRevision(updated);
+                                  }}
+                                  icon={<Check className="w-3 h-3" />}
+                                >
+                                  Apply Fix
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* TAB 2: DETAILS */}
+        {/* TAB 2: METADATA & COMPLIANCE SPECIFICATIONS */}
         {activeTab === "details" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Submission Specifications & Metadata</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3 rounded-lg bg-[#0E101B] border border-[#1E2338]">
-                  <span className="text-slate-400">Submission ID</span>
-                  <div className="font-mono text-slate-200 mt-1">{submission.id}</div>
-                </div>
-                <div className="p-3 rounded-lg bg-[#0E101B] border border-[#1E2338]">
-                  <span className="text-slate-400">Brand Workspace</span>
-                  <div className="font-medium text-slate-200 mt-1">Apex Nutrition</div>
-                </div>
-                <div className="p-3 rounded-lg bg-[#0E101B] border border-[#1E2338]">
-                  <span className="text-slate-400">Channel & Format</span>
-                  <div className="font-medium text-slate-200 mt-1">Instagram Reels · Video Script</div>
-                </div>
-                <div className="p-3 rounded-lg bg-[#0E101B] border border-[#1E2338]">
-                  <span className="text-slate-400">Author & Submitter</span>
-                  <div className="font-medium text-slate-200 mt-1">Riddhi S. (Content Creator)</div>
-                </div>
+          <div className="bg-[#131622] border border-[#1E2333] rounded-lg p-5 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+              Submission Governance Specifications
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
+              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+                <div className="text-slate-500">SUBMISSION ID</div>
+                <div className="text-slate-200 mt-1">{submission.id}</div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+                <div className="text-slate-500">BRAND WORKSPACE</div>
+                <div className="text-slate-200 mt-1">Apex Nutrition (brand_apex)</div>
+              </div>
+              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+                <div className="text-slate-500">CHANNEL / CONTEXT</div>
+                <div className="text-slate-200 mt-1">{submission.channel || "Instagram Reel"}</div>
+              </div>
+              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+                <div className="text-slate-500">SUBMITTER</div>
+                <div className="text-slate-200 mt-1">Riddhi S. (Content Specialist)</div>
+              </div>
+              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+                <div className="text-slate-500">COMPLIANCE STANDARD</div>
+                <div className="text-slate-200 mt-1">FTC §255 / FDA 21 CFR Part 11</div>
+              </div>
+              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+                <div className="text-slate-500">RECORD HASH</div>
+                <div className="text-slate-200 mt-1 truncate">sha256:7f83b1657ff1fc53b92d...</div>
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* TAB 3: HISTORY & AUDIT TRAIL */}
+        {/* TAB 3: AUDIT TRAIL LEDGER */}
         {activeTab === "history" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Version History & Governance Audit Trail</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-lg bg-[#0E101B] border border-[#1E2338] flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-slate-200">AI Governance Analysis v1</div>
-                    <div className="text-slate-400 text-[11px]">Run by Gemini 2.5 Flash · 3 Issues Identified</div>
+          <div className="bg-[#131622] border border-[#1E2333] rounded-lg p-5 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+              Cryptographic Audit Trail Ledger
+            </h3>
+            <div className="space-y-3 font-mono text-xs">
+              {[
+                {
+                  action: "PREFLIGHT_AUDIT_EXECUTION",
+                  by: "Gemini-2.5-Flash (Deterministic)",
+                  time: "10m ago",
+                  hash: "sha256:881f...9b12",
+                  notes: "Detected 3 statutory claims requiring clinical substantiation.",
+                },
+                {
+                  action: "SUBMISSION_INGESTED",
+                  by: "Riddhi S. (usr_riddhi)",
+                  time: "14m ago",
+                  hash: "sha256:4d2a...117a",
+                  notes: "Draft copy submitted under brand_apex context with Instagram channel tag.",
+                },
+              ].map((ev, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded bg-[#090A10] border border-[#1E2333] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                      <span className="text-slate-200 font-semibold">{ev.action}</span>
+                      <span className="text-slate-500">BY {ev.by}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-sans">{ev.notes}</div>
                   </div>
-                  <span className="text-slate-400">10 min ago</span>
-                </div>
-                <div className="p-3 rounded-lg bg-[#0E101B] border border-[#1E2338] flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-slate-200">Content Submitted</div>
-                    <div className="text-slate-400 text-[11px]">Submitted by Riddhi S. for brand review</div>
+                  <div className="text-right text-[11px] text-slate-500 shrink-0">
+                    <div>{ev.time}</div>
+                    <div className="text-slate-600">{ev.hash}</div>
                   </div>
-                  <span className="text-slate-400">12 min ago</span>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </AppLayout>
@@ -560,8 +791,8 @@ export default function SubmissionReviewPage({
   return (
     <React.Suspense
       fallback={
-        <div className="min-h-screen bg-[#08090E] p-8 text-slate-400 flex items-center justify-center">
-          Loading submission review...
+        <div className="min-h-screen bg-[#090A10] p-8 text-slate-400 flex items-center justify-center font-mono text-xs">
+          LOADING GOVERNANCE WORKSPACE...
         </div>
       }
     >

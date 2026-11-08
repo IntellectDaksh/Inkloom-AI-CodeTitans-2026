@@ -1,64 +1,174 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #f5f3ff;
-  --color-brand-100: #ede9fe;
-  --color-brand-200: #ddd6fe;
-  --color-brand-300: #c4b5fd;
-  --color-brand-400: #a78bfa;
-  --color-brand-500: #8b5cf6;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-800: #5b21b6;
-  --color-brand-900: #4c1d95;
-  --color-dark-bg: #090a0f;
-  --color-dark-surface: #0f111a;
-  --color-dark-card: #131522;
-  --color-dark-card-hover: #181b2c;
-  --color-dark-border: #202436;
-  --color-dark-border-hover: #2e344e;
+  /* Carbon Surface Hierarchy */
+  --color-canvas: #090a10;
+  --color-frame: #0e1017;
+  --color-panel: #131622;
+  --color-panel-hover: #171b2b;
+  --color-panel-elevated: #181c2d;
+
+  /* Hairline Borders */
+  --color-border-subtle: #161925;
+  --color-border-default: #1e2333;
+  --color-border-strong: #2b3248;
+  --color-border-focus: #7c3aed;
+
+  /* Typography */
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+
+  /* Semantic Compliance Accents */
+  --color-semantic-emerald: #10b981;
+  --color-semantic-amber: #f59e0b;
+  --color-semantic-rose: #f43f5e;
+  --color-semantic-cyan: #06b6d4;
+  --color-brand-violet: #7c3aed;
+  --color-brand-violet-hover: #6d28d9;
+
+  /* Backward compatibility tokens */
+  --color-carbon-bg: #090a10;
+  --color-carbon-surface: #0e1017;
+  --color-carbon-elevated: #131622;
+  --color-carbon-border: #1e2333;
+  --color-carbon-border-hover: #2b3248;
+  --color-carbon-text-primary: #f1f5f9;
+  --color-carbon-text-secondary: #94a3b8;
+  --color-carbon-text-muted: #64748b;
+  --color-dark-bg: #090a10;
+  --color-dark-surface: #0e1017;
+  --color-dark-card: #131622;
+  --color-dark-card-hover: #171b2b;
+  --color-dark-border: #1e2333;
+  --color-dark-border-hover: #2b3248;
 }
 
 :root {
-  --background: #090a0f;
-  --foreground: #f8fafc;
+  --background: #090a10;
+  --foreground: #f1f5f9;
+  --bg-primary: #090a10;
+  --bg-surface: #0e1017;
+  --bg-elevated: #131622;
+  --border-subtle: #161925;
+  --border-default: #1e2333;
+  --border-hover: #2b3248;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  color-scheme: dark;
 }
 
 body {
-  background-color: #090a0f;
-  color: #f8fafc;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #090a10;
+  color: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   min-height: 100vh;
   overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
+/* Micro-precision Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1e2333 transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #090a0f;
+  background: #090a10;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #202436;
-  border-radius: 9999px;
+  background: #1e2333;
+  border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #2e344e;
+  background: #2b3248;
 }
 
-/* Glow effects */
-.glow-subtle {
-  box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.15);
+/* Tactile Keycaps (kbd) */
+kbd,
+.kbd,
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: #94a3b8;
+  background: #161925;
+  border: 1px solid #2b3248;
+  border-bottom: 2px solid #161925;
+  border-radius: 4px;
+  padding: 2px 5px;
+  letter-spacing: 0.04em;
+  user-select: none;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
 }
 
-.glow-primary {
-  box-shadow: 0 0 25px rgba(139, 92, 246, 0.35);
+/* Hair-line Border Utilities */
+.border-hairline {
+  border: 1px solid #1e2333;
 }
 
-.glass-panel {
-  background: rgba(19, 21, 34, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(45, 52, 78, 0.5);
+.border-hairline-t {
+  border-top: 1px solid #1e2333;
+}
+
+.border-hairline-b {
+  border-bottom: 1px solid #1e2333;
+}
+
+.border-hairline-l {
+  border-left: 1px solid #1e2333;
+}
+
+.border-hairline-r {
+  border-right: 1px solid #1e2333;
+}
+
+/* Carbon Surface Classes */
+.carbon-card {
+  background-color: #131622;
+  border: 1px solid #1e2333;
+}
+
+.carbon-card-interactive {
+  background-color: #131622;
+  border: 1px solid #1e2333;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.carbon-card-interactive:hover {
+  border-color: #2b3248;
+  background-color: #171b2b;
+}
+
+.carbon-elevated {
+  background-color: #181c2d;
+  border: 1px solid #2b3248;
+}
+
+/* High-Craft Tactile Bevel */
+.linear-bevel {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.linear-bevel-violet {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+}
+
+.inset-highlight {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
 }

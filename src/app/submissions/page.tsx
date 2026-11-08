@@ -11,9 +11,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   ChevronRight,
+  ShieldCheck,
+  ArrowRight,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
@@ -47,49 +48,57 @@ export default function SubmissionsHistoryPage() {
   });
 
   return (
-    <AppLayout>
+    <AppLayout
+      title="Submissions Desk"
+      subtitle="Complete ledger of all draft marketing communications and their deterministic audit histories."
+    >
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Submission History
-            </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Browse, audit, and inspect all draft communications and their version histories.
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
+                Submissions Audit Desk
+              </h1>
+              <Badge variant="verified" size="xs">
+                {submissions.length} RECORDS
+              </Badge>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Every piece of content evaluated against clinical trial evidence and brand compliance guardrails.
             </p>
           </div>
 
           <Link href="/submissions/new">
-            <Button size="md" variant="primary" icon={<Plus className="w-4 h-4" />}>
-              Submit New Draft
+            <Button size="sm" variant="primary" icon={<Plus className="w-3.5 h-3.5" />} shortcut="N">
+              Audit New Draft
             </Button>
           </Link>
         </div>
 
         {/* Filter bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 rounded-xl bg-[#111320] border border-[#1F2338]">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div className="p-3 bg-[#131622] border border-[#1E2333] rounded-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs">
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="Search submissions by title or content..."
+              placeholder="Search by title, phrasing, or author..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#0B0C14] border border-[#232840] rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+              className="w-full bg-[#090A10] border border-[#1E2333] focus:border-violet-500 focus:outline-none rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono placeholder:text-slate-600 transition-colors"
             />
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center bg-[#090A10] border border-[#1E2333] rounded p-0.5 text-xs font-mono font-medium overflow-x-auto">
             {["all", "submitted", "under_review", "approved", "changes_requested"].map(
               (st) => (
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium capitalize shrink-0 transition-colors ${
+                  className={`px-2.5 py-1 rounded transition-all cursor-pointer capitalize shrink-0 ${
                     statusFilter === st
-                      ? "bg-violet-600 text-white"
-                      : "bg-[#181B2D] text-slate-400 hover:text-white"
+                      ? "bg-[#181C2D] text-slate-100 font-semibold shadow-xs"
+                      : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   {st.replace("_", " ")}
@@ -100,89 +109,95 @@ export default function SubmissionsHistoryPage() {
         </div>
 
         {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#0E101B] border-b border-[#1C2033] text-slate-400 font-medium">
-                  <tr>
-                    <th className="px-5 py-3">Content Title</th>
-                    <th className="px-4 py-3">Type</th>
-                    <th className="px-4 py-3">Channel</th>
-                    <th className="px-4 py-3">Author</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1C2033]">
-                  {filtered.map((sub) => (
-                    <tr
-                      key={sub.id}
-                      className="hover:bg-[#151728]/40 transition-colors"
-                    >
-                      <td className="px-5 py-3.5 font-medium text-slate-100">
-                        <Link
-                          href={`/submissions/${sub.id}`}
-                          className="hover:text-violet-300 transition-colors flex items-center gap-2"
-                        >
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              sub.status === "approved"
-                                ? "bg-emerald-500"
-                                : sub.status === "changes_requested"
-                                ? "bg-amber-500"
-                                : "bg-rose-500"
-                            }`}
-                          ></span>
-                          <span>{sub.title}</span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <Badge variant="tag">
-                          {sub.submission_type?.replace("_", " ") || "Draft"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3.5 text-slate-300">
-                        {((sub.metadata as any)?.channel || sub.channel || "Social").replace("_", " ")}
-                      </td>
-                      <td className="px-4 py-3.5 text-slate-300">
-                        {sub.creator?.full_name || sub.authorName || "Team Member"}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <Badge
-                          variant={
+        <div className="bg-[#131622] border border-[#1E2333] rounded-lg overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#090A10] border-b border-[#1E2333] text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
+                <tr>
+                  <th className="px-4 py-3">Content Title</th>
+                  <th className="px-3 py-3">Format</th>
+                  <th className="px-3 py-3">Channel Context</th>
+                  <th className="px-3 py-3">Author</th>
+                  <th className="px-3 py-3">Governance Status</th>
+                  <th className="px-4 py-3 text-right">Audit Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1A1D2B]">
+                {filtered.map((sub) => (
+                  <tr
+                    key={sub.id}
+                    className="hover:bg-[#171B2B] transition-colors group"
+                  >
+                    <td className="px-4 py-3.5 font-medium text-slate-100">
+                      <Link
+                        href={`/submissions/${sub.id}`}
+                        className="hover:text-violet-300 transition-colors flex items-center gap-2 max-w-sm truncate"
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                             sub.status === "approved"
-                              ? "approved"
+                              ? "bg-emerald-400"
                               : sub.status === "changes_requested"
-                              ? "changes_requested"
-                              : "pending"
-                          }
-                        >
-                          {sub.status?.replace("_", " ")}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <Link href={`/submissions/${sub.id}`}>
-                          <Button size="sm" variant="secondary" className="text-xs py-1 px-2.5">
-                            Review &rarr;
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                              ? "bg-amber-400"
+                              : "bg-rose-400"
+                          }`}
+                        />
+                        <span className="truncate">{sub.title}</span>
+                      </Link>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <Badge variant="tag" size="xs">
+                        {sub.submission_type?.replace("_", " ") || "Draft"}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-3.5 text-slate-300 font-mono text-[11px]">
+                      <span className="px-1.5 py-0.5 rounded bg-[#090A10] border border-[#1E2333] text-slate-300">
+                        {((sub.metadata as any)?.channel || sub.channel || "Social").replace("_", " ")}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3.5 text-slate-300">
+                      {sub.creator?.full_name || sub.authorName || "Riddhi S."}
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <Badge
+                        variant={
+                          sub.status === "approved"
+                            ? "verified"
+                            : sub.status === "changes_requested"
+                            ? "warning"
+                            : "violation"
+                        }
+                        size="xs"
+                      >
+                        {sub.status?.replace("_", " ").toUpperCase() || "PENDING"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <Link href={`/submissions/${sub.id}`}>
+                        <Button size="xs" variant="secondary">
+                          Inspect &rarr;
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
 
-                  {filtered.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="text-center py-10 text-slate-400">
-                        No submissions found matching criteria.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-10 text-slate-500 font-mono text-xs">
+                      NO SUBMISSIONS FOUND MATCHING ACTIVE FILTER
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="px-4 py-2.5 bg-[#090A10] border-t border-[#1E2333] flex items-center justify-between text-[11px] font-mono text-slate-500">
+            <span>TOTAL: {filtered.length} OF {submissions.length} SUBMISSIONS</span>
+            <span className="text-emerald-400">ORGANIZATION: UIDEAS DIGITAL / APEX NUTRITION</span>
+          </div>
+        </div>
       </div>
     </AppLayout>
   );
