@@ -3,10 +3,13 @@
   <p><strong>Pre-publication brand governance and marketing claim verification layer.</strong></p>
 
   <p>
-    <a href="https://inkloom-ai-tau.vercel.app"><img src="https://img.shields.io/badge/Live_App-inkloom--ai--tau.vercel.app-white?style=flat-square&logo=vercel" alt="Live App" /></a>
-    <a href="https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"><img src="https://img.shields.io/badge/Build-Passing-10B981?style=flat-square" alt="Build" /></a>
-    <a href="https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"><img src="https://img.shields.io/badge/Tests-58%2F58_Passing-10B981?style=flat-square" alt="Tests" /></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License" /></a>
+    🚀 <strong>Live Deployed Application:</strong> <a href="https://inkloom-ai-tau.vercel.app"><strong>https://inkloom-ai-tau.vercel.app</strong></a>
+  </p>
+
+  <p>
+    <a href="https://inkloom-ai-tau.vercel.app"><img src="https://img.shields.io/badge/Deployed_Website-inkloom--ai--tau.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Deployed Website" /></a>
+    <a href="https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"><img src="https://img.shields.io/badge/Tests-58%2F58_Passing-10B981?style=for-the-badge" alt="Tests" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" /></a>
   </p>
 </div>
 
