@@ -458,12 +458,6 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             {/* Left 7 Columns: Editorial Headline & Value Propositions */}
             <div className="lg:col-span-7 space-y-8 text-left">
-              {/* Tagline Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-mono text-[#B5B5B5]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>The Pre-Publication Governance Layer for Brand Truth &amp; Marketing Claims</span>
-              </div>
-
               {/* Dominant Headline (52–64px) */}
               <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white leading-[1.1]">
                 Check the Claim. Show the Source. Keep People in Control.

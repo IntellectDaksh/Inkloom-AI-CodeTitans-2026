@@ -114,6 +114,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Impeccable Browser Surface Theming */
+::selection {
+  background-color: #333333;
+  color: #FFFFFF;
+}
+
+input,
+textarea {
+  caret-color: #FFFFFF;
+}
+
+:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
 /* Swiss Tabular Numerals (Reserved for Metrics and Data) */
 .tabular-nums,
 [data-tabular-nums="true"] {
