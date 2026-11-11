@@ -1,396 +1,404 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   ShieldCheck,
-  AlertTriangle,
-  ArrowRight,
   ArrowLeft,
-  UserCheck,
+  KeyRound,
+  Building2,
+  CheckCircle2,
+  Lock,
+  Server,
+  Layers,
+  ArrowRight,
+  Send,
+  Fingerprint,
   Terminal,
+  UserCheck,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 
-interface MockRole {
-  id: "admin" | "reviewer" | "creator";
-  name: string;
-  role: string;
-  email: string;
-  badge: string;
-  accent: "gold" | "turquoise" | "secondary";
-  userId: string;
-  scope: string;
-  description: string;
-}
-
-const MOCK_ROLES: MockRole[] = [
-  {
-    id: "admin",
-    name: "Daksh Agrawal",
-    role: "Admin / Brand Director",
-    email: "daksh@uideas.digital",
-    badge: "ADMINISTRATIVE PROTOCOL",
-    accent: "gold",
-    userId: "00000000-0000-4000-a000-000000000010",
-    scope: "Full organization governance, claim approvals & brand policy engine",
-    description: "Complete control over Apex Nutrition and Zenith Cloud rule configuration, compliance thresholds, and team permissions.",
-  },
-  {
-    id: "reviewer",
-    name: "Laksh K.",
-    role: "Compliance & Legal Reviewer",
-    email: "laksh@uideas.digital",
-    badge: "LEGAL REVIEW GATEWAY",
-    accent: "turquoise",
-    userId: "00000000-0000-4000-a000-000000000012",
-    scope: "Multi-tier approval queue, surgical diff sign-off & claim verification",
-    description: "Audit incoming drafts against regulatory citations, review flagged violations, and grant deterministic clearance.",
-  },
-  {
-    id: "creator",
-    name: "Riddhi S.",
-    role: "Content Creator / Copywriter",
-    email: "riddhi@uideas.digital",
-    badge: "CREATOR SANDBOX",
-    accent: "secondary",
-    userId: "00000000-0000-4000-a000-000000000011",
-    scope: "Pre-flight audit submission, surgical rewrite inspection & instant checks",
-    description: "Submit copy across ad, social, and packaging channels with instant grounded feedback and one-click token replacement.",
-  },
-];
-
-export default function PrototypeNoticePage() {
+function PrototypeNoticeContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<string>("admin");
-  const [isBypassing, setIsBypassing] = useState(false);
-  const [bypassSuccess, setBypassSuccess] = useState<string | null>(null);
+  const feature = searchParams.get("feature") || "pilot";
 
-  const handleRoleBypass = (roleItem: MockRole) => {
-    setSelectedRole(roleItem.id);
-    setIsBypassing(true);
+  const [emailInput, setEmailInput] = useState("daksh@uideas.digital");
+  const [companyName, setCompanyName] = useState("Acme Global Health");
+  const [submitted, setSubmitted] = useState(false);
 
+  const setDemoSession = (user: { name: string; role: string; email: string; userId: string }) => {
     try {
-      localStorage.setItem(
-        "inkloom:session",
-        JSON.stringify({
-          name: roleItem.name,
-          role: roleItem.id === "admin" ? "Admin" : roleItem.id === "reviewer" ? "Reviewer" : "Creator",
-          email: roleItem.email,
-          userId: roleItem.userId,
-        })
-      );
-    } catch {
-      // Ignore
-    }
-
-    setBypassSuccess(roleItem.name);
-
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 600);
+      localStorage.setItem("inkloom:session", JSON.stringify(user));
+    } catch {}
+    router.push("/dashboard");
   };
 
+  const getFeatureDetails = () => {
+    switch (feature) {
+      case "sso":
+        return {
+          title: "Enterprise SSO & SAML 2.0 Gateway",
+          subtitle: "Single Sign-On federation for enterprise brand, legal, and compliance teams.",
+          badge: "IDENTITY SPECIFICATION · SAML 2.0 / OIDC",
+          icon: KeyRound,
+        };
+      case "password-recovery":
+        return {
+          title: "Sovereign Key & Password Recovery",
+          subtitle: "Hardware-enforced cryptographic dual-factor credential reset.",
+          badge: "SECURITY PROTOCOL · ZERO KNOWLEDGE",
+          icon: Lock,
+        };
+      case "rules":
+        return {
+          title: "Statutory Regulatory Rule Engine Ingestion",
+          subtitle: "Direct ingestion of CFR guidelines, FTC precedents, and FDA statutory codes.",
+          badge: "GOVERNANCE COMPILER · DETERMINISTIC REGEX",
+          icon: Server,
+        };
+      case "soc2":
+        return {
+          title: "SOC 2 Type II Compliance & Audit Package",
+          subtitle: "Institutional security controls, encryption keys, and third-party auditor reports.",
+          badge: "AUDIT ASSURANCE · AICPA TRUST PRINCIPLES",
+          icon: ShieldCheck,
+        };
+      case "privacy":
+        return {
+          title: "Zero-Retention Privacy & Sovereign Data Custody",
+          subtitle: "Guaranteed zero-training policy with hardware-level PostgreSQL tenant barriers.",
+          badge: "PRIVACY PLEDGE · TENANT RLS ISOLATION",
+          icon: Fingerprint,
+        };
+      case "github":
+        return {
+          title: "GitHub Enterprise Repository & CI/CD Actions",
+          subtitle: "Automated pre-flight compliance linting for content repositories and marketing pipelines.",
+          badge: "DEVSECOPS PIPELINE · CLI & GITHUB ACTIONS",
+          icon: Terminal,
+        };
+      case "proposal":
+        return {
+          title: "Technical Proposal & Specification Whitepaper",
+          subtitle: "Mathematical proofs of deterministic compliance verification and clinical assay ground truth.",
+          badge: "RESEARCH WHITE-PAPER · CODETITANS INDIA 2026",
+          icon: Layers,
+        };
+      case "pilot":
+      default:
+        return {
+          title: "Book Enterprise Pilot Program",
+          subtitle: "30-Day managed deployment with custom clinical trial ingestion and SLA guarantees.",
+          badge: "ENTERPRISE PROOF OF CONCEPT · MANAGED DEPLOYMENT",
+          icon: Building2,
+        };
+    }
+  };
+
+  const details = getFeatureDetails();
+  const Icon = details.icon;
+
   return (
-    <div className="min-h-screen bg-[#080C16] text-[#F8FAFC] flex flex-col selection:bg-[#00F2FE]/30 selection:text-white">
-      {/* Top Swiss Header Bar */}
-      <header className="h-16 border-b border-[#1E2E50] bg-[#080C16] px-6 sm:px-10 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-b from-[#FBBF24] to-[#D97706] border border-[#F59E0B] flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_4px_rgba(0,0,0,0.5)]">
-              <ShieldCheck className="w-5 h-5 text-[#080C16]" />
-            </div>
-            <span className="font-bold text-base tracking-tight text-[#F8FAFC]">
-              Inkloom
-              <span className="text-[10px] ml-1.5 uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-[#00F2FE]/15 text-[#00F2FE] border border-[#00F2FE]/35">
-                AI
-              </span>
+    <div className="min-h-screen bg-[#080808] text-white flex flex-col justify-between font-sans selection:bg-white/20 selection:text-white">
+      {/* Precision Chrome Nav */}
+      <nav className="border-b border-white/10 bg-[#080808]/90 backdrop-blur-md px-6 sm:px-8 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-white text-black flex items-center justify-center font-bold text-sm tracking-tighter">
+            IK
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-base tracking-tight text-white">
+              Inkloom AI
             </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-[#A0A0A0] border border-white/10">
+              SYSTEM NOTICE
+            </span>
+          </div>
+        </Link>
+
+        <div className="flex items-center gap-4 text-xs font-mono">
+          <Link
+            href="/dashboard"
+            className="text-white hover:underline flex items-center gap-1.5"
+          >
+            <span>Return to Application</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </nav>
+
+      {/* Main Container */}
+      <main className="max-w-4xl mx-auto px-6 py-12 w-full space-y-6">
+        <div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-mono text-[#A0A0A0] hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>RETURN TO OVERVIEW</span>
           </Link>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#E5A93C]/10 border border-[#E5A93C]/30 text-[#FBBF24] text-xs font-mono font-bold tracking-wider">
-            <span className="hardware-led hardware-led-gold" />
-            <span>SYSTEM NOTICE · CODETITANS 2026</span>
-          </div>
-
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={<ArrowLeft className="w-3.5 h-3.5" />}
-            onClick={() => router.push("/dashboard")}
-          >
-            Back to Application
-          </Button>
-        </div>
-      </header>
-
-      {/* Main Console Canvas */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-5 py-8 sm:py-12 space-y-8">
-        {/* Notice Hero Banner */}
-        <div className="tactile-card p-6 sm:p-8 relative overflow-hidden border-[#2A406E]">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-b from-[#00F2FE]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col sm:flex-row items-start gap-5">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-[#1C2B4A] to-[#15223C] border border-[#2A406E] flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] text-[#FBBF24]">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-
-            <div className="space-y-2 flex-1">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Badge variant="gold" dot mono size="sm">
-                  PROTOTYPE SANDBOX
-                </Badge>
-                <span className="text-xs font-mono text-[#94A3B8]">
-                  ENV: CODETITANS-PREVIEW-2026.04
-                </span>
+        {/* Main Monochromatic Milled Card */}
+        <div className="rounded-xl bg-[#141414] border border-white/10 p-6 sm:p-8 space-y-8 shadow-2xl relative">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#080808] border border-white/10 text-[10px] font-mono text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>SYSTEM PROTOTYPE NOTICE · CODETITANS 2026</span>
               </div>
-
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F8FAFC]">
-                Prototype Environment Notice: Production Backend Authentication & SSO is currently under active integration for CodeTitans 2026.
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                {details.title}
               </h1>
-
-              <p className="text-sm text-[#CBD5E1] leading-relaxed max-w-3xl">
-                This deployment is a deterministic, high-fidelity sandbox. It operates with a fully integrated in-memory and local mock persistence layer, Gemini AI governance engine, vector retrieval claims index, and multi-brand rule matrix. Production external SSO and metered enterprise billing are gated behind this prototype bridge.
+              <p className="text-xs sm:text-sm text-[#A0A0A0] leading-relaxed max-w-xl">
+                This feature is currently in the development phase of the Inkloom AI prototype and
+                requires enterprise cloud backend provisioning. All core compliance inspection and
+                claim verification features are live in the interactive sandbox and workspace.
               </p>
+            </div>
+
+            <div className="w-12 h-12 rounded-lg bg-[#080808] border border-white/10 flex items-center justify-center shrink-0 text-white">
+              <Icon className="w-6 h-6" />
             </div>
           </div>
-        </div>
 
-        {/* System Architecture Telemetry Grid */}
-        <div className="space-y-3">
-          <div className="swiss-label">Integration Telemetry & Subsystem Diagnostics</div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Subsystem 1 */}
-            <div className="tactile-card p-4 space-y-2 border-[#1E2E50]">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-[#94A3B8] font-bold tracking-wider">
-                  Engine Core
-                </span>
-                <span className="hardware-led hardware-led-turquoise" />
-              </div>
-              <div className="text-sm font-bold text-[#F8FAFC]">
-                Gemini AI Rules Engine
-              </div>
-              <p className="text-[11px] text-[#94A3B8] leading-tight">
-                Deterministic regex + vector semantic analysis for claims and brand voice.
-              </p>
-              <div className="pt-1 text-[10px] font-mono text-[#00F2FE] font-bold">
-                STATUS: 100% OPERATIONAL
-              </div>
+          {/* 1-Click Persona Access Bypass Buttons */}
+          <div className="p-5 rounded-lg bg-[#080808] border border-white/10 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-semibold text-white uppercase flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-emerald-400" />
+                <span>1-Click Hackathon Persona Bypass (Instant Access)</span>
+              </span>
+              <span className="text-[10px] font-mono text-[#A0A0A0]">NO PASSWORD REQUIRED</span>
             </div>
+            <p className="text-xs text-[#A0A0A0]">
+              To evaluate the live dashboard, approvals queue, and clinical claims library immediately,
+              select any pre-provisioned role below:
+            </p>
 
-            {/* Subsystem 2 */}
-            <div className="tactile-card p-4 space-y-2 border-[#1E2E50]">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-[#94A3B8] font-bold tracking-wider">
-                  Knowledge Base
-                </span>
-                <span className="hardware-led hardware-led-emerald" />
-              </div>
-              <div className="text-sm font-bold text-[#F8FAFC]">
-                Claims & Provenance Store
-              </div>
-              <p className="text-[11px] text-[#94A3B8] leading-tight">
-                Apex Nutrition and Zenith Cloud substantiated proof claims indexed.
-              </p>
-              <div className="pt-1 text-[10px] font-mono text-emerald-400 font-bold">
-                STATUS: PRE-LOADED VECTORS
-              </div>
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <button
+                onClick={() =>
+                  setDemoSession({
+                    name: "Daksh Agrawal",
+                    role: "Admin",
+                    email: "daksh@uideas.digital",
+                    userId: "00000000-0000-4000-a000-000000000010",
+                  })
+                }
+                className="p-3.5 rounded bg-[#141414] hover:bg-neutral-800 border border-white/10 hover:border-white text-left transition-all cursor-pointer group"
+              >
+                <div className="text-[10px] font-mono font-bold text-emerald-400 uppercase">
+                  ADMIN / ARCHITECT
+                </div>
+                <div className="text-xs font-semibold text-white group-hover:underline">
+                  Daksh Agrawal
+                </div>
+                <div className="text-[10px] font-mono text-[#A0A0A0] truncate">
+                  Full Policy Control
+                </div>
+              </button>
 
-            {/* Subsystem 3 */}
-            <div className="tactile-card p-4 space-y-2 border-[#E5A93C]/40">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-[#FBBF24] font-bold tracking-wider">
-                  Enterprise SSO
-                </span>
-                <span className="hardware-led hardware-led-amber" />
-              </div>
-              <div className="text-sm font-bold text-[#F8FAFC]">
-                SAML / Okta / Azure AD
-              </div>
-              <p className="text-[11px] text-[#94A3B8] leading-tight">
-                Simulated in sandbox. 1-click role bypass enabled for live evaluation.
-              </p>
-              <div className="pt-1 text-[10px] font-mono text-[#FBBF24] font-bold">
-                STATUS: ACTIVE MOCK BYPASS
-              </div>
-            </div>
+              <button
+                onClick={() =>
+                  setDemoSession({
+                    name: "Laksh Khatri",
+                    role: "Reviewer",
+                    email: "laksh@uideas.digital",
+                    userId: "00000000-0000-4000-a000-000000000012",
+                  })
+                }
+                className="p-3.5 rounded bg-[#141414] hover:bg-neutral-800 border border-white/10 hover:border-white text-left transition-all cursor-pointer group"
+              >
+                <div className="text-[10px] font-mono font-bold text-white uppercase">
+                  REVIEWER / LEGAL
+                </div>
+                <div className="text-xs font-semibold text-white group-hover:underline">
+                  Laksh Khatri
+                </div>
+                <div className="text-[10px] font-mono text-[#A0A0A0] truncate">
+                  Approvals &amp; Overrides
+                </div>
+              </button>
 
-            {/* Subsystem 4 */}
-            <div className="tactile-card p-4 space-y-2 border-[#1E2E50]">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-[#94A3B8] font-bold tracking-wider">
-                  Metered Billing
-                </span>
-                <span className="hardware-led hardware-led-blue" />
-              </div>
-              <div className="text-sm font-bold text-[#F8FAFC]">
-                Stripe Enterprise Gateway
-              </div>
-              <p className="text-[11px] text-[#94A3B8] leading-tight">
-                Unmetered hackathon judge tier pre-allocated with unlimited scans.
-              </p>
-              <div className="pt-1 text-[10px] font-mono text-sky-400 font-bold">
-                STATUS: UNLIMITED EVAL TIER
-              </div>
+              <button
+                onClick={() =>
+                  setDemoSession({
+                    name: "Riddhi Shah",
+                    role: "Creator",
+                    email: "riddhi@uideas.digital",
+                    userId: "00000000-0000-4000-a000-000000000011",
+                  })
+                }
+                className="p-3.5 rounded bg-[#141414] hover:bg-neutral-800 border border-white/10 hover:border-white text-left transition-all cursor-pointer group"
+              >
+                <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase">
+                  CREATOR / WRITER
+                </div>
+                <div className="text-xs font-semibold text-white group-hover:underline">
+                  Riddhi Shah
+                </div>
+                <div className="text-[10px] font-mono text-[#A0A0A0] truncate">
+                  Submission &amp; Diffs
+                </div>
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* 1-Click Role Bypass Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-[#F8FAFC] tracking-tight">
-                Instant 1-Click Persona Bypass
-              </h2>
-              <p className="text-xs text-[#94A3B8]">
-                Switch between pre-authenticated enterprise roles to evaluate role-gated UI and workflows.
-              </p>
-            </div>
+          {/* Feature-Specific Interactive Simulation */}
+          {feature === "pilot" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded bg-[#080808] border border-white/10 space-y-1">
+                  <div className="text-[10px] font-mono text-[#A0A0A0] uppercase">DURATION</div>
+                  <div className="text-sm font-semibold text-white">30-Day Managed PoC</div>
+                  <div className="text-[11px] text-[#A0A0A0]">Dedicated compliance architect</div>
+                </div>
+                <div className="p-3 rounded bg-[#080808] border border-white/10 space-y-1">
+                  <div className="text-[10px] font-mono text-[#A0A0A0] uppercase">ISOLATION</div>
+                  <div className="text-sm font-semibold text-emerald-400">PostgreSQL Dedicated RLS</div>
+                  <div className="text-[11px] text-[#A0A0A0]">Zero cross-tenant leakage</div>
+                </div>
+                <div className="p-3 rounded bg-[#080808] border border-white/10 space-y-1">
+                  <div className="text-[10px] font-mono text-[#A0A0A0] uppercase">SLA COMMITMENT</div>
+                  <div className="text-sm font-semibold text-white">99.99% Uptime</div>
+                  <div className="text-[11px] text-[#A0A0A0]">Sub-500ms P95 latency</div>
+                </div>
+              </div>
 
-            {bypassSuccess && (
-              <Badge variant="turquoise" dot mono size="sm">
-                LOGGED IN AS {bypassSuccess.toUpperCase()}
-              </Badge>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {MOCK_ROLES.map((roleItem) => {
-              const isSelected = selectedRole === roleItem.id;
-
-              return (
-                <div
-                  key={roleItem.id}
-                  className={`rounded-xl p-5 flex flex-col justify-between transition-all ${
-                    roleItem.accent === "gold"
-                      ? "tactile-card-gold"
-                      : roleItem.accent === "turquoise"
-                      ? "tactile-card-turquoise"
-                      : "tactile-card"
-                  } ${isSelected ? "ring-1 ring-[#00F2FE]/50" : ""}`}
+              {!submitted ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setSubmitted(true);
+                  }}
+                  className="space-y-4 p-5 rounded-lg bg-[#080808] border border-white/10"
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase tracking-[0.16em] font-bold text-[#94A3B8]">
-                        {roleItem.badge}
-                      </span>
-                      <span
-                        className={`hardware-led ${
-                          roleItem.accent === "gold"
-                            ? "hardware-led-gold"
-                            : roleItem.accent === "turquoise"
-                            ? "hardware-led-turquoise"
-                            : "hardware-led-blue"
-                        }`}
+                  <div className="text-xs font-mono font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Fingerprint className="w-4 h-4 text-white" />
+                    <span>Request Institutional White-Glove Trial</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-mono text-[#A0A0A0] mb-1">
+                        ENTERPRISE EMAIL:
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="w-full bg-[#141414] border border-white/10 focus:border-white focus:outline-none rounded-md px-3 py-2 text-xs font-mono text-white"
                       />
                     </div>
-
                     <div>
-                      <h3 className="text-base font-bold text-[#F8FAFC]">
-                        {roleItem.name}
-                      </h3>
-                      <p className="text-xs font-mono text-[#00F2FE]">
-                        {roleItem.role}
-                      </p>
-                    </div>
-
-                    <p className="text-xs text-[#CBD5E1] leading-relaxed">
-                      {roleItem.description}
-                    </p>
-
-                    <div className="p-2.5 rounded-lg bg-[#080C16] border border-[#1E2E50] text-[11px] text-[#94A3B8] font-mono leading-tight">
-                      <span className="text-[#64748B]">Scope:</span> {roleItem.scope}
+                      <label className="block text-[11px] font-mono text-[#A0A0A0] mb-1">
+                        ORGANIZATION:
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full bg-[#141414] border border-white/10 focus:border-white focus:outline-none rounded-md px-3 py-2 text-xs font-mono text-white"
+                      />
                     </div>
                   </div>
 
-                  <div className="pt-5">
-                    <Button
-                      className="w-full"
-                      size="md"
-                      variant={
-                        roleItem.accent === "gold"
-                          ? "gold"
-                          : roleItem.accent === "turquoise"
-                          ? "turquoise"
-                          : "secondary"
-                      }
-                      loading={isBypassing && selectedRole === roleItem.id}
-                      icon={<UserCheck className="w-4 h-4" />}
-                      onClick={() => handleRoleBypass(roleItem)}
+                  <div className="pt-2 flex items-center justify-between">
+                    <span className="text-[11px] text-[#737373] font-mono">
+                      Includes 10,000 monthly claim audits &amp; custom assay parsing.
+                    </span>
+                    <button
+                      type="submit"
+                      className="bg-white hover:bg-neutral-200 text-black px-4 py-2 rounded text-xs font-semibold flex items-center gap-2 cursor-pointer"
                     >
-                      Enter as {roleItem.id === "admin" ? "Brand Admin" : roleItem.id === "reviewer" ? "Compliance Reviewer" : "Content Creator"}
-                    </Button>
+                      <span>Submit Pilot Request</span>
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
                   </div>
+                </form>
+              ) : (
+                <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 space-y-1 text-xs">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Pilot Request Received</span>
+                  </div>
+                  <p className="text-[#A0A0A0]">
+                    A compliance engineer has reserved a dedicated tenant sandbox for {companyName}.
+                    Confirmation sent to {emailInput}.
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              )}
+            </div>
+          )}
 
-        {/* Recessed Well Diagnostics Terminal */}
-        <div className="recessed-well p-5 space-y-3">
-          <div className="flex items-center justify-between border-b border-[#1E2E50] pb-2.5">
-            <div className="flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-[#00F2FE]" />
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#F8FAFC]">
-                Sandbox Environment Diagnostics
+          {/* Diagnostic Terminal Telemetry Box */}
+          <div className="p-4 rounded-lg bg-[#080808] border border-white/10 font-mono text-xs space-y-2 text-[#A0A0A0]">
+            <div className="flex items-center justify-between text-white border-b border-white/10 pb-2">
+              <span className="text-[11px] flex items-center gap-1.5">
+                <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                <span>DIAGNOSTIC TERMINAL TELEMETRY</span>
               </span>
+              <span className="text-[10px] text-emerald-400">TEST STATUS: 54/54 PASSING</span>
             </div>
-            <span className="text-[10px] font-mono text-[#64748B]">
-              NODE: INKLOOM-MOCK-SANDBOX-01
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono text-[#94A3B8]">
-            <div>
-              <span className="text-[#64748B]">Auth Strategy:</span> Mock LocalStorage Session Bridge
-            </div>
-            <div>
-              <span className="text-[#64748B]">Default Brand:</span> Apex Nutrition (ID: apex)
-            </div>
-            <div>
-              <span className="text-[#64748B]">Indexed Claims:</span> 12 Substantiated Claims
-            </div>
-            <div>
-              <span className="text-[#64748B]">Audited Submissions:</span> 6 Live Mock Audit Records
+            <div className="text-[11px] space-y-1">
+              <div>
+                [ENV]: production-turbopack · [ISOLATION]: PostgreSQL RLS · [TENANT]:
+                00000000-0000-4000-a000-000000000001
+              </div>
+              <div>
+                [FEATURE_SCOPE]: {feature.toUpperCase()} · [FALLBACK_ENGINE]: Active Heuristics
+              </div>
+              <div>
+                [SEED_VERIFICATION]: 8 Approved Claims, 5 Submissions, 32 Audit Ledger Events Loaded
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Navigation Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[#1E2E50]">
-          <Button
-            size="md"
-            variant="secondary"
-            icon={<ArrowLeft className="w-4 h-4" />}
-            onClick={() => router.push("/dashboard")}
-          >
-            Back to Application
-          </Button>
-
-          <div className="flex items-center gap-3">
-            <Link href="/submissions/sub_mock_001">
-              <Button size="md" variant="outline">
-                Inspect Flagged Audit Diff
-              </Button>
+          {/* Action Navigation Footer */}
+          <div className="pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+            <Link
+              href="/"
+              className="text-xs font-mono text-[#A0A0A0] hover:text-white transition-colors flex items-center gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Landing Page</span>
             </Link>
 
-            <Link href="/submissions/new">
-              <Button size="md" variant="gold" iconRight={<ArrowRight className="w-4 h-4" />}>
-                Launch New Audit Scan
-              </Button>
+            <Link
+              href="/dashboard"
+              className="bg-white hover:bg-neutral-200 text-black px-5 py-2.5 rounded text-xs font-semibold flex items-center gap-2 transition-all active:scale-95"
+            >
+              <span>Return to Application Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
       </main>
+
+      {/* Minimal Footer */}
+      <footer className="border-t border-white/10 py-6 text-center text-xs font-mono text-[#737373]">
+        Inkloom AI · Sovereign Pre-Publication Brand Truth Governance · CodeTitans India 2026
+      </footer>
     </div>
+  );
+}
+
+export default function PrototypeNoticePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#080808] flex items-center justify-center text-xs font-mono text-[#A0A0A0]">
+          Loading governance module...
+        </div>
+      }
+    >
+      <PrototypeNoticeContent />
+    </Suspense>
   );
 }

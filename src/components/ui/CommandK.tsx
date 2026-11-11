@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -17,8 +17,6 @@ import {
   ArrowRight,
   X,
   Info,
-  Scale,
-  Users,
 } from "lucide-react";
 
 export interface CommandItem {
@@ -104,24 +102,6 @@ const DEFAULT_COMMANDS: CommandItem[] = [
     description: "Issue breakdown, pass rates, and compliance trends",
     href: "/analytics",
     icon: BarChart3,
-  },
-  {
-    id: "nav-evaluations",
-    title: "Evaluation Benchmark Suite",
-    category: "Navigation",
-    description: "Empirical regulatory accuracy tests (FTC, Adidas, CNET cases)",
-    href: "/evaluations",
-    icon: Scale,
-    shortcut: "G E",
-  },
-  {
-    id: "nav-team",
-    title: "Team & Permissions (RBAC)",
-    category: "Navigation",
-    description: "Manage brand directors, reviewers, agency creators, and role permissions",
-    href: "/team",
-    icon: Users,
-    shortcut: "G T",
   },
   {
     id: "nav-settings",
@@ -213,7 +193,7 @@ export function CommandK({
   const isControlled = controlledIsOpen !== undefined;
   const isOpen = isControlled ? controlledIsOpen : internalIsOpen;
 
-  const handleClose = React.useCallback(() => {
+  const handleClose = useCallback(() => {
     if (isControlled && controlledOnClose) {
       controlledOnClose();
     } else {
@@ -326,13 +306,13 @@ export function CommandK({
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-xl bg-[#0D1527] border border-[#2A406E] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.15)] overflow-hidden flex flex-col max-h-[75vh] animate-in zoom-in-95 duration-120"
+        className="w-full max-w-xl bg-[#0C0C0C] border border-[#282828] rounded-lg shadow-[0_16px_48px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden flex flex-col max-h-[75vh] animate-in zoom-in-95 duration-120"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar (Recessed Milled Well) */}
-        <div className="p-3 bg-[#080C16] border-b border-[#1E2E50]">
-          <div className="flex items-center px-3.5 py-2.5 rounded-lg bg-[#080C16] border border-[#1E2E50] border-t-[#16223B] border-b-[#2A406E] shadow-[inset_0_2px_4px_rgba(0,0,0,0.7)] gap-3">
-            <Search className="w-4 h-4 text-[#00F2FE] shrink-0" />
+        <div className="p-3 bg-[#080808] border-b border-[#222222]">
+          <div className="flex items-center px-3.5 py-2 rounded bg-[#080808] border border-[#222222] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] gap-3">
+            <Search className="w-4 h-4 text-[#A0A0A0] shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -343,17 +323,17 @@ export function CommandK({
               }}
               onKeyDown={handleInputKeyDown}
               placeholder="Type a command, claim, or jump to section..."
-              className="flex-1 bg-transparent text-sm text-[#F8FAFC] placeholder-[#64748B] focus:outline-none font-medium"
+              className="flex-1 bg-transparent text-sm text-white placeholder-[#737373] focus:outline-none font-medium"
             />
             {query ? (
               <button
                 onClick={() => setQuery("")}
-                className="text-[#64748B] hover:text-[#F8FAFC] transition-colors p-1"
+                className="text-[#737373] hover:text-white transition-colors p-1"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <kbd className="text-[9px] text-[#CBD5E1] bg-[#152038] px-1.5 py-0.5 rounded border border-[#2A406E] font-mono shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+              <kbd className="text-[9px] text-[#A0A0A0] bg-[#141414] px-1.5 py-0.5 rounded border border-[#282828] font-mono">
                 ESC
               </kbd>
             )}
@@ -361,9 +341,9 @@ export function CommandK({
         </div>
 
         {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-3 bg-[#0D1527]">
+        <div className="flex-1 overflow-y-auto p-2 space-y-3 bg-[#0C0C0C]">
           {filteredCommands.length === 0 ? (
-            <div className="py-12 text-center text-xs text-[#64748B] font-mono">
+            <div className="py-12 text-center text-xs text-[#737373] font-mono">
               No results found for &ldquo;{query}&rdquo;
             </div>
           ) : (
@@ -373,7 +353,7 @@ export function CommandK({
 
               return (
                 <div key={cat} className="space-y-1">
-                  <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#94A3B8]">
+                  <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#737373]">
                     {cat}
                   </div>
                   {catItems.map((item) => {
@@ -386,28 +366,28 @@ export function CommandK({
                         key={item.id}
                         onClick={() => handleExecute(item)}
                         onMouseEnter={() => setSelectedIndex(thisIndex)}
-                        className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs cursor-pointer transition-all duration-100 ${
+                        className={`flex items-center justify-between px-3 py-2 rounded text-xs cursor-pointer transition-all duration-100 ${
                           isSelected
-                            ? "bg-[#152038] text-[#F8FAFC] border border-[#2A406E] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_4px_rgba(0,0,0,0.4)]"
-                            : "text-[#CBD5E1] hover:text-[#F8FAFC] hover:bg-[#152038]/60 border border-transparent"
+                            ? "bg-[#141414] text-white border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                            : "text-[#EFEFEF] hover:text-white hover:bg-[#111111] border border-transparent"
                         }`}
                       >
                         <div className="flex items-center gap-3 truncate">
                           <div
-                            className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 border ${
+                            className={`w-7 h-7 rounded flex items-center justify-center shrink-0 border ${
                               isSelected
-                                ? "bg-[#1A2846] border-[#3B5A96] text-[#00F2FE]"
-                                : "bg-[#080C16] border-[#1E2E50] text-[#64748B]"
+                                ? "bg-[#181818] border-[#333333] text-white"
+                                : "bg-[#080808] border-[#222222] text-[#737373]"
                             }`}
                           >
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                           <div className="truncate">
-                            <div className="font-semibold truncate text-[#F8FAFC]">
+                            <div className="font-semibold truncate text-white">
                               {item.title}
                             </div>
                             {item.description && (
-                              <div className="text-[11px] text-[#94A3B8] truncate">
+                              <div className="text-[11px] text-[#A0A0A0] truncate">
                                 {item.description}
                               </div>
                             )}
@@ -416,11 +396,11 @@ export function CommandK({
 
                         <div className="flex items-center gap-1.5 shrink-0 ml-3">
                           {item.shortcut ? (
-                            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#080C16] border border-[#2A406E] text-[#CBD5E1] font-mono">
+                            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#080808] border border-[#222222] text-[#A0A0A0] font-mono">
                               {item.shortcut}
                             </kbd>
                           ) : isSelected ? (
-                            <ArrowRight className="w-3.5 h-3.5 text-[#00F2FE]" />
+                            <ArrowRight className="w-3.5 h-3.5 text-white" />
                           ) : null}
                         </div>
                       </div>
@@ -433,19 +413,19 @@ export function CommandK({
         </div>
 
         {/* Tactile Keycap Footer */}
-        <div className="px-4 py-2.5 bg-[#080C16] border-t border-[#1E2E50] flex items-center justify-between text-[11px] text-[#64748B]">
+        <div className="px-4 py-2 bg-[#080808] border-t border-[#222222] flex items-center justify-between text-[11px] text-[#737373]">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#152038] border border-[#2A406E] text-[#CBD5E1]">
+              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-[#EFEFEF]">
                 ↑
               </kbd>
-              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#152038] border border-[#2A406E] text-[#CBD5E1]">
+              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-[#EFEFEF]">
                 ↓
               </kbd>
               <span>navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#152038] border border-[#2A406E] text-[#CBD5E1]">
+              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-[#EFEFEF]">
                 ↵
               </kbd>
               <span>select</span>
@@ -453,7 +433,7 @@ export function CommandK({
           </div>
 
           <span className="flex items-center gap-1">
-            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#152038] border border-[#2A406E] text-[#CBD5E1]">
+            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-[#EFEFEF]">
               ESC
             </kbd>
             <span>close</span>

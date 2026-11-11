@@ -373,7 +373,7 @@ export default function LandingPage() {
               Sectors
             </a>
             <Link href="/evaluations" className="hover:text-white transition-colors">
-              Benchmarks
+              Evaluations &amp; Benchmarks
             </Link>
             <Link href="/knowledge-base/claims" className="hover:text-white transition-colors">
               Claims Library
@@ -1489,6 +1489,11 @@ export default function LandingPage() {
                 <li>
                   <Link href="/analytics" className="hover:text-white transition-colors">
                     Governance Analytics
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/evaluations" className="hover:text-white transition-colors">
+                    Evaluations &amp; Benchmarks
                   </Link>
                 </li>
                 <li>
