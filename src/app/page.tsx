@@ -5,39 +5,24 @@ import Link from "next/link";
 import {
   ShieldCheck,
   CheckCircle2,
-  AlertTriangle,
   AlertOctagon,
   ArrowRight,
   Database,
   FileCheck2,
   Lock,
-  GitBranch,
-  Layers,
   ChevronRight,
   Scale,
   GitCompare,
-  Fingerprint,
   FileSearch,
-  ExternalLink,
   RotateCcw,
   Check,
   Copy,
-  Info,
   Server,
   FileText,
-  Clock,
-  Sparkles,
   Sliders,
   Cpu,
-  BookOpen,
   ArrowUpRight,
-  Terminal,
-  Activity,
-  Award,
   Zap,
-  Building,
-  Users,
-  Compass,
 } from "lucide-react";
 
 // Interactive Presets for the Live Audit Workbench
@@ -263,7 +248,6 @@ export default function LandingPage() {
   const [selectedPresetId, setSelectedPresetId] = useState<string>("clinical-nutrition");
   const [currentText, setCurrentText] = useState<string>(PRESETS[0].rawText);
   const [isAuditing, setIsAuditing] = useState<boolean>(false);
-  const [auditStep, setAuditStep] = useState<number>(6);
   const [isDiffApplied, setIsDiffApplied] = useState<boolean>(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [copiedProvenance, setCopiedProvenance] = useState<boolean>(false);
@@ -272,42 +256,33 @@ export default function LandingPage() {
   const activeScore = isDiffApplied ? currentPreset.clearedScore : currentPreset.initialScore;
 
   const scrollToWorkbench = () => {
-    document.getElementById("workbench")?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("audit-workbench")?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleSelectPreset = (preset: Preset) => {
     setSelectedPresetId(preset.id);
     setCurrentText(preset.rawText);
     setIsDiffApplied(false);
-    triggerAudit(preset.rawText);
+    triggerAudit();
   };
 
-  const triggerAudit = (textToAudit: string) => {
+  const triggerAudit = () => {
     setIsAuditing(true);
-    setAuditStep(1);
-
-    const stepInterval = setInterval(() => {
-      setAuditStep((prev) => {
-        if (prev >= 6) {
-          clearInterval(stepInterval);
-          setIsAuditing(false);
-          return 6;
-        }
-        return prev + 1;
-      });
-    }, 70);
+    setTimeout(() => {
+      setIsAuditing(false);
+    }, 420);
   };
 
   const handleApplyDiff = () => {
     setCurrentText(currentPreset.correctedText);
     setIsDiffApplied(true);
-    triggerAudit(currentPreset.correctedText);
+    triggerAudit();
   };
 
   const handleResetSandbox = () => {
     setCurrentText(currentPreset.rawText);
     setIsDiffApplied(false);
-    triggerAudit(currentPreset.rawText);
+    triggerAudit();
   };
 
   const handleCopyProvenance = async () => {
@@ -327,44 +302,40 @@ export default function LandingPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
         e.preventDefault();
-        triggerAudit(currentText);
+        triggerAudit();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentText]);
-
-  // Circular gauge meter constants
-  const circumference = 2 * Math.PI * 40;
-  const strokeDashoffset = circumference - (activeScore / 100) * circumference;
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#080808] text-[#FFFFFF] font-sans selection:bg-white/20 selection:text-white">
       {/* 1. PRECISION NAVIGATION BAR */}
-      <nav className="border-b border-white/10 bg-[#080808]/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 h-16 flex items-center justify-between">
+      <nav className="border-b border-white/[0.08] bg-[#080808]/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 h-18 flex items-center justify-between">
           {/* Brand Logo & Mark */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded bg-white text-black flex items-center justify-center font-bold text-sm tracking-tighter">
+          <Link href="/" className="flex items-center gap-3.5 group">
+            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold text-sm tracking-tight shadow-sm">
               IK
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <span className="font-semibold text-base tracking-tight text-white">
                 Inkloom AI
               </span>
-              <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-white/5 text-[#A0A0A0] border border-white/10">
+              <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-[#A0A0A0] border border-white/[0.08]">
                 GOVERNANCE OS
               </span>
             </div>
           </Link>
 
           {/* Primary Nav Links */}
-          <div className="hidden lg:flex items-center gap-8 text-xs font-mono text-[#A0A0A0]">
+          <div className="hidden lg:flex items-center gap-8 text-sm font-medium text-[#A0A0A0]">
             <button
               onClick={scrollToWorkbench}
               className="hover:text-white transition-colors cursor-pointer"
             >
-              Features
+              Workbench
             </button>
             <a href="#architecture" className="hover:text-white transition-colors">
               Architecture
@@ -380,23 +351,22 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Action Controls & Active Engine LED */}
-          <div className="flex items-center gap-3">
-            {/* Status Indicator: Active Engine LED */}
-            <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded bg-[#141414] border border-white/10 text-[11px] font-mono text-[#A0A0A0]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Engine Live: 54/54 Passing</span>
+          {/* Action Controls & Active Status Indicator */}
+          <div className="flex items-center gap-3.5">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-[#A0A0A0]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Zero-Tolerance Policy Active</span>
             </div>
 
             <Link
               href="/auth/login"
-              className="text-xs font-mono text-[#A0A0A0] hover:text-white transition-colors px-3 py-1.5"
+              className="text-sm font-medium text-[#A0A0A0] hover:text-white transition-colors px-3 py-1.5"
             >
               Sign In
             </Link>
             <Link
               href="/dashboard"
-              className="bg-white hover:bg-neutral-200 text-black text-xs font-semibold px-4 py-2 rounded transition-all active:scale-95 flex items-center gap-1.5"
+              className="h-10 px-4 rounded-lg bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all active:scale-95 flex items-center gap-2"
             >
               <span>Launch App</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -405,118 +375,105 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* 2. HERO SECTION — Swiss Typography Grid & Editorial Layout */}
-      <section className="relative py-24 sm:py-28 border-b border-white/10 overflow-hidden bg-[#080808]">
-        {/* Subtle Paper Grain / Hairline Grid Texture */}
-        <div
-          className="absolute inset-0 opacity-[0.025] pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, #FFFFFF 1px, transparent 0)`,
-            backgroundSize: "32px 32px",
-          }}
-        />
-
+      {/* 2. HERO SECTION — Dominant Typography & Clean Clearance Preview */}
+      <section className="relative py-28 sm:py-32 border-b border-white/[0.08] overflow-hidden bg-[#0A0A0A]">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             {/* Left 7 Columns: Editorial Headline & Value Propositions */}
-            <div className="lg:col-span-7 space-y-6 text-left">
+            <div className="lg:col-span-7 space-y-8 text-left">
               {/* Tagline Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141414] border border-white/10 text-xs font-mono text-[#A0A0A0]">
-                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-mono text-[#B5B5B5]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <span>The Pre-Publication Governance Layer for Brand Truth &amp; Marketing Claims</span>
               </div>
 
-              {/* Editorial Headline */}
-              <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white leading-[1.08]">
+              {/* Dominant Headline (52–64px) */}
+              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white leading-[1.1]">
                 Check the Claim. Show the Source. Keep People in Control.
               </h1>
 
-              {/* Value Subheading */}
-              <p className="text-base sm:text-lg text-[#A0A0A0] leading-relaxed max-w-2xl font-normal">
+              {/* Wider Supporting Copy (17–18px) */}
+              <p className="text-lg sm:text-xl text-[#B5B5B5] max-w-2xl leading-relaxed font-normal">
                 Preventing regulatory fines, deceptive superlatives, and brand liabilities before content
                 goes live. Inkloom audits marketing copy against verified clinical trials, SEC filings,
                 and legal registers with token-level diffing.
               </p>
 
-              {/* Primary CTAs */}
+              {/* Two Distinct 44px Buttons */}
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <button
                   onClick={scrollToWorkbench}
-                  className="bg-white hover:bg-neutral-200 text-black text-xs font-semibold px-5 py-3 rounded transition-all active:scale-95 flex items-center gap-2 cursor-pointer shadow-sm"
+                  className="h-11 px-6 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all active:scale-95 flex items-center gap-2.5 cursor-pointer shadow-lg shadow-white/5"
                 >
-                  <FileSearch className="w-4 h-4" />
+                  <FileSearch className="w-4 h-4 text-black" />
                   <span>Launch Live Audit Sandbox</span>
                 </button>
 
                 <Link
                   href="/dashboard"
-                  className="bg-[#141414] hover:bg-[#1C1C1C] text-white border border-white/10 hover:border-white/25 text-xs font-semibold px-5 py-3 rounded transition-all active:scale-95 flex items-center gap-2"
+                  className="h-11 px-6 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] text-white border border-white/[0.12] hover:border-white/30 text-sm font-semibold transition-all active:scale-95 flex items-center gap-2"
                 >
-                  <ShieldCheck className="w-4 h-4" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   <span>Enter App</span>
                 </Link>
 
                 <Link
                   href="/evaluations"
-                  className="text-xs font-mono text-[#A0A0A0] hover:text-white transition-colors flex items-center gap-1.5 px-3 py-3"
+                  className="text-sm font-medium text-[#A0A0A0] hover:text-white transition-colors flex items-center gap-1.5 px-3 py-2"
                 >
                   <span>Explore Benchmarks</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  <ArrowUpRight className="w-4 h-4" />
                 </Link>
-              </div>
-
-              {/* Live Counter / Trust Badge */}
-              <div className="pt-6 border-t border-white/10 flex flex-wrap items-center gap-6 text-xs font-mono text-[#A0A0A0]">
-                <div className="flex items-center gap-2 text-white font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>54/54 Automated Tests Passing</span>
-                </div>
-                <span className="text-white/20">•</span>
-                <div className="flex items-center gap-2 text-white font-medium">
-                  <Award className="w-4 h-4 text-white" />
-                  <span>100% Recall on Regulatory Violations</span>
-                </div>
-                <span className="text-white/20">•</span>
-                <div className="text-[#A0A0A0]">
-                  <span>P95 Latency: 420ms</span>
-                </div>
               </div>
             </div>
 
-            {/* Right 5 Columns: Milled Hardware Teaser Card */}
+            {/* Right 5 Columns: Polished Enterprise SaaS Clearance Preview */}
             <div className="lg:col-span-5">
-              <div className="rounded-xl bg-[#141414] border border-white/10 p-6 space-y-5 shadow-2xl relative">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-white" />
-                    <span className="text-xs font-mono font-semibold text-white">
-                      PRE-PUBLICATION COPILOT
+              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 sm:p-7 space-y-6 shadow-2xl backdrop-blur-sm relative">
+                {/* Clearance Header */}
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <FileCheck2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-white tracking-wide uppercase">
+                      Compliance Clearance Report
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                    RLS PROTECTED
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Cleared for Dissemination
                   </span>
                 </div>
 
-                <div className="space-y-3 font-mono text-xs">
-                  <div className="p-3 rounded bg-[#080808] border border-white/10 text-slate-300 space-y-1">
-                    <div className="text-[10px] text-[#A0A0A0] uppercase">Input Raw Copy:</div>
-                    <div className="text-rose-300 line-through">
-                      &quot;Guaranteed 100% zero-downtime SLA with military-grade unhackable encryption.&quot;
+                {/* Editorial Content Diff Cards */}
+                <div className="space-y-3.5">
+                  <div className="p-4 rounded-xl bg-[#0A0A0A] border border-rose-500/20 space-y-2">
+                    <div className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider flex items-center justify-between">
+                      <span>Flagged Draft Copy (Overpromising)</span>
+                      <span className="font-mono text-[10px] text-rose-300">FTC § 255.2</span>
                     </div>
+                    <p className="text-xs text-rose-200/90 leading-relaxed line-through">
+                      &quot;Guaranteed 100% zero-downtime SLA with military-grade unhackable encryption verified by ISO-27001.&quot;
+                    </p>
                   </div>
 
-                  <div className="p-3 rounded bg-[#080808] border border-white/10 text-emerald-300 space-y-1">
-                    <div className="text-[10px] text-emerald-400 uppercase">Surgical Revision (Grounded):</div>
-                    <div>
-                      &quot;Contractual 99.99% multi-region uptime SLA backed by SOC 2 Type II verified AES-256 encryption.&quot;
+                  <div className="p-4 rounded-xl bg-[#0A0A0A] border border-emerald-500/20 space-y-2">
+                    <div className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                      <span>Grounded Surgical Revision</span>
+                      <span className="font-mono text-[10px] text-emerald-300">NIST SP 800-53</span>
                     </div>
+                    <p className="text-xs text-emerald-100 leading-relaxed font-sans">
+                      &quot;Contractual 99.99% multi-region uptime SLA backed by SOC 2 Type II verified AES-256 encryption at rest and in transit.&quot;
+                    </p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs font-mono text-[#A0A0A0]">
-                  <span>Citation: NIST SP 800-53</span>
-                  <span className="text-white font-semibold">Audit Score: 98/100</span>
+                {/* Evidence & Score Strip */}
+                <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between text-xs text-[#A0A0A0]">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-3.5 h-3.5 text-white/70" />
+                    <span className="font-mono text-[11px] text-white/90">DOI: 10.1016/j.soc2.2024</span>
+                  </div>
+                  <span className="font-semibold text-white">Score: 98/100 · Verified</span>
                 </div>
               </div>
             </div>
@@ -524,39 +481,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. LIVE HERO AUDIT WORKBENCH (Interactive Playground) */}
-      <section id="workbench" className="py-24 border-b border-white/10 bg-[#080808] relative">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-8">
+      {/* 3. LIVE HERO AUDIT WORKBENCH (Enterprise SaaS Workspace) */}
+      <section id="audit-workbench" className="py-28 border-b border-white/[0.08] bg-[#080808] relative">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-10">
           {/* Section Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-white" />
-                <span className="text-xs font-mono uppercase tracking-widest text-[#A0A0A0]">
-                  INTERACTIVE HARDWARE TERMINAL
-                </span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/[0.08] pb-8">
+            <div className="space-y-3">
+              <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
+                Interactive Pre-Publication Sandbox
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
                 Live Content Audit Workbench
               </h2>
-              <p className="text-xs sm:text-sm text-[#A0A0A0] max-w-2xl font-normal">
+              <p className="text-base text-[#B5B5B5] max-w-2xl leading-relaxed">
                 Test how the deterministic 8-stage governance compiler dissects high-stakes marketing
-                copy, links clinical trials, and synthesizes word-level surgical diffs.
+                copy, links clinical trials, and synthesizes word-level surgical diffs in real time.
               </p>
             </div>
 
-            {/* Preset Selector Pills */}
-            <div className="flex flex-wrap items-center gap-2 bg-[#141414] p-1.5 rounded-lg border border-white/10">
+            {/* Clean Segmented Preset Selector */}
+            <div className="inline-flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-[#141414] border border-white/[0.08]">
               {PRESETS.map((p) => {
                 const isSelected = p.id === selectedPresetId;
                 return (
                   <button
                     key={p.id}
                     onClick={() => handleSelectPreset(p)}
-                    className={`px-3 py-1.5 text-xs font-mono rounded transition-all cursor-pointer ${
+                    className={`px-4 py-2 text-xs rounded-lg transition-all cursor-pointer ${
                       isSelected
                         ? "bg-white text-black font-semibold shadow-sm"
-                        : "text-[#A0A0A0] hover:text-white hover:bg-white/5"
+                        : "text-[#9E9E9E] hover:text-white hover:bg-white/[0.05] font-medium"
                     }`}
                   >
                     {p.name}
@@ -566,39 +520,36 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Audit Telemetry Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-[#141414] border border-white/10 font-mono text-xs">
-            <div>
-              <div className="text-[10px] text-[#A0A0A0] uppercase">COMPOSITE COMPLIANCE SCORE</div>
+          {/* Clean Telemetry & Score Status Strip */}
+          <div className="p-6 rounded-2xl bg-[#121212] border border-white/[0.08] flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
               <div
-                className={`text-xl font-bold tabular-nums mt-0.5 ${
+                className={`text-3xl sm:text-4xl font-bold tracking-tight ${
                   activeScore >= 80 ? "text-emerald-400" : "text-rose-400"
                 }`}
               >
-                {activeScore}/100{" "}
-                <span className="text-xs font-normal text-[#A0A0A0]">
-                  ({activeScore >= 80 ? "PASSED" : "FLAGGED"})
-                </span>
+                {activeScore}/100
+              </div>
+              <div className="border-l border-white/[0.1] pl-4 space-y-0.5">
+                <div className="text-sm font-semibold text-white">
+                  {activeScore >= 80 ? "Grounded · Cleared for Publication" : "18/100 · Critical Flags Detected"}
+                </div>
+                <div className="text-xs text-[#A0A0A0]">
+                  {isDiffApplied ? "All statutory claims substantiated against evidence" : "High-risk ungrounded claims must be revised"}
+                </div>
               </div>
             </div>
 
-            <div>
-              <div className="text-[10px] text-[#A0A0A0] uppercase">PIPELINE LATENCY</div>
-              <div className="text-xl font-bold tabular-nums text-white mt-0.5">
-                420ms <span className="text-xs font-normal text-[#A0A0A0]">(P95)</span>
+            <div className="flex flex-wrap items-center gap-6 text-xs text-[#A0A0A0] font-mono">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>420ms Latency</span>
               </div>
-            </div>
-
-            <div>
-              <div className="text-[10px] text-[#A0A0A0] uppercase">ACTIVE ENGINE MODEL</div>
-              <div className="text-xl font-bold text-white mt-0.5 truncate">
-                Gemini 2.5 Flash <span className="text-xs font-normal text-emerald-400">• Fallback Ready</span>
+              <div className="flex items-center gap-2">
+                <Cpu className="w-3.5 h-3.5 text-white/70" />
+                <span>Gemini 2.5 Flash + Deterministic Heuristics</span>
               </div>
-            </div>
-
-            <div>
-              <div className="text-[10px] text-[#A0A0A0] uppercase">TENANT ISOLATION</div>
-              <div className="text-xl font-bold text-white mt-0.5 flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <Lock className="w-3.5 h-3.5 text-emerald-400" />
                 <span>PostgreSQL RLS</span>
               </div>
@@ -607,27 +558,27 @@ export default function LandingPage() {
 
           {/* Main Workbench Grid Split (7-col sandbox / 5-col telemetry & findings) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left 7 Columns: Milled Text Well & Word-Level Surgical Diff */}
+            {/* Left 7 Columns: Readable Editor & Word-Level Surgical Diff */}
             <div className="lg:col-span-7 space-y-6">
-              {/* Milled Text Well */}
-              <div className="rounded-xl bg-[#141414] border border-white/10 p-5 space-y-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
+              {/* Clean Marketing Copy Editor */}
+              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 space-y-5 shadow-xl">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+                  <div className="flex items-center gap-2.5">
                     <FileText className="w-4 h-4 text-white" />
-                    <span className="text-xs font-mono font-semibold text-white uppercase">
+                    <span className="text-xs font-semibold text-white uppercase tracking-wider">
                       Editable Marketing Copy ({currentPreset.brand})
                     </span>
                   </div>
                   <button
                     onClick={handleResetSandbox}
-                    className="text-[11px] font-mono text-[#A0A0A0] hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                    className="text-xs text-[#A0A0A0] hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>Reset Copy</span>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Draft</span>
                   </button>
                 </div>
 
-                {/* Textarea */}
+                {/* Readable 15–16px Sans-Serif Textarea */}
                 <textarea
                   value={currentText}
                   onChange={(e) => {
@@ -635,93 +586,97 @@ export default function LandingPage() {
                     setIsDiffApplied(false);
                   }}
                   rows={4}
-                  className="w-full bg-[#080808] border border-white/10 focus:border-white focus:outline-none rounded-lg p-4 text-xs font-mono leading-relaxed text-white resize-none"
+                  className="w-full bg-[#0A0A0A] border border-white/[0.1] focus:border-white/40 focus:outline-none rounded-xl p-5 text-base text-white font-sans leading-relaxed resize-none transition-colors"
                   placeholder="Enter draft promotional content to audit..."
                 />
 
-                {/* Character Counter & Sandbox Action Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs font-mono text-[#A0A0A0]">
-                  <div className="flex items-center gap-3">
+                {/* Action Bar with Prominent 44px Button */}
+                <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                  <div className="flex items-center gap-3 text-xs font-mono text-[#888]">
                     <span>{currentText.length} CHARACTERS</span>
                     <span>•</span>
                     <span>{Math.ceil(currentText.length / 4)} TOKENS</span>
                   </div>
 
                   <button
-                    onClick={() => triggerAudit(currentText)}
+                    onClick={triggerAudit}
                     disabled={isAuditing}
-                    className="bg-white hover:bg-neutral-200 text-black text-xs font-semibold px-4 py-2 rounded transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                    className="h-11 px-6 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all active:scale-95 flex items-center gap-2.5 cursor-pointer shadow-md disabled:opacity-75"
                   >
                     {isAuditing ? (
                       <>
                         <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                        <span>Auditing Engine Running...</span>
+                        <span>Executing Audit...</span>
                       </>
                     ) : (
                       <>
-                        <span>Run Full Pre-Flight Audit</span>
-                        <kbd className="text-[10px] bg-black/10 px-1 py-0.5 rounded font-mono">⌘↵</kbd>
+                        <span>Execute Audit</span>
+                        <kbd className="text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-mono font-medium">⌘↵</kbd>
                       </>
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Word-Level Surgical Diff Box */}
-              <div className="rounded-xl bg-[#141414] border border-white/10 p-5 space-y-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <GitCompare className="w-4 h-4 text-white" />
-                    <span className="text-xs font-mono font-semibold text-white uppercase">
+              {/* Word-Level Surgical Diff Box (Open layout, no heavy nested boxes) */}
+              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 space-y-5 shadow-xl">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <GitCompare className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-white uppercase tracking-wider">
                       Word-Level Surgical Red-Line Diff
                     </span>
                   </div>
                   <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                       isDiffApplied
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                     }`}
                   >
-                    {isDiffApplied ? "Surgical Diff Applied" : "Pending Approval"}
+                    {isDiffApplied ? "Surgical Diff Applied" : "Pending Sign-off"}
                   </span>
                 </div>
 
-                <div className="space-y-3 font-mono text-xs">
+                <div className="space-y-4">
                   {/* Strikethrough Deletion in Red-Line */}
-                  <div className="p-3.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-300 space-y-1">
-                    <div className="text-[10px] text-rose-400 uppercase font-semibold flex items-center gap-1.5">
+                  <div className="p-4 rounded-xl bg-rose-500/[0.08] border border-rose-500/20 space-y-1.5">
+                    <div className="text-[11px] text-rose-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                      <span>Non-Compliant Original (Deletions):</span>
+                      <span>Original Non-Compliant Phrasing:</span>
                     </div>
-                    <p className="line-through leading-relaxed">{currentPreset.rawText}</p>
+                    <p className="text-sm sm:text-[15px] leading-relaxed text-rose-200 line-through">
+                      {currentPreset.rawText}
+                    </p>
                   </div>
 
                   {/* Approved Alternative in Green-Line */}
-                  <div className="p-3.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 space-y-1">
-                    <div className="text-[10px] text-emerald-400 uppercase font-semibold flex items-center gap-1.5">
+                  <div className="p-4 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 space-y-1.5">
+                    <div className="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span>Approved Clinical Substantiation (Additions):</span>
+                      <span>Substantiated Statutory Replacement:</span>
                     </div>
-                    <p className="leading-relaxed">{currentPreset.correctedText}</p>
+                    <p className="text-sm sm:text-[15px] leading-relaxed text-emerald-100 font-normal">
+                      {currentPreset.correctedText}
+                    </p>
                   </div>
 
-                  {/* Interactive "Apply Surgical Fix" Button */}
-                  <div className="pt-2 flex items-center justify-between">
-                    <span className="text-[11px] text-[#A0A0A0] font-sans">
+                  {/* Interactive Fix Controls */}
+                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <span className="text-xs text-[#A0A0A0]">
                       Automated replacement adheres to registered claim parameters without disrupting brand tone.
                     </span>
 
                     {!isDiffApplied ? (
                       <button
                         onClick={handleApplyDiff}
-                        className="bg-white hover:bg-neutral-200 text-black text-xs font-semibold px-4 py-2 rounded transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        className="h-11 px-5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs sm:text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm"
                       >
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-4 h-4 text-black" />
                         <span>Apply Surgical Fix (Score: {currentPreset.clearedScore}/100)</span>
                       </button>
                     ) : (
-                      <span className="text-xs text-emerald-400 font-mono font-semibold flex items-center gap-1.5">
+                      <span className="text-xs text-emerald-400 font-semibold flex items-center gap-2 shrink-0">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                         <span>Compliant Copy Synced to Sandbox</span>
                       </span>
@@ -731,61 +686,61 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right 5 Columns: Findings Cards List & Provenance Inspector Drawer */}
+            {/* Right 5 Columns: Clean Flagged Violations & Citation Drawer */}
             <div className="lg:col-span-5 space-y-6">
-              {/* Findings Cards List */}
-              <div className="rounded-xl bg-[#141414] border border-white/10 p-5 space-y-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
+              {/* Flagged Violations List */}
+              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 space-y-5 shadow-xl">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+                  <div className="flex items-center gap-2.5">
                     <AlertOctagon className="w-4 h-4 text-rose-400" />
-                    <span className="text-xs font-mono font-semibold text-white uppercase">
-                      Flagged Violations ({isDiffApplied ? 0 : currentPreset.detectedIssues.length})
+                    <span className="text-xs font-semibold text-white uppercase tracking-wider">
+                      Flagged Issues ({isDiffApplied ? 0 : currentPreset.detectedIssues.length})
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-[#A0A0A0]">
-                    {isDiffApplied ? "ZERO FINDINGS" : "ACTIVE REGULATORY FLAGS"}
+                  <span className="text-xs font-medium text-[#A0A0A0]">
+                    {isDiffApplied ? "0 Violations Remaining" : "Active Statutory Flags"}
                   </span>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   {!isDiffApplied ? (
                     currentPreset.detectedIssues.map((issue, idx) => (
                       <div
                         key={idx}
-                        className={`p-3.5 rounded-lg border text-xs space-y-1.5 transition-all ${
+                        className={`p-4 rounded-xl border space-y-2 transition-all ${
                           issue.severity === "critical"
-                            ? "bg-rose-500/10 border-rose-500/25 text-rose-200"
+                            ? "bg-rose-500/[0.06] border-rose-500/20 text-rose-200"
                             : issue.severity === "high"
-                            ? "bg-amber-500/10 border-amber-500/25 text-amber-200"
-                            : "bg-[#080808] border-white/10 text-[#A0A0A0]"
+                            ? "bg-amber-500/[0.06] border-amber-500/20 text-amber-200"
+                            : "bg-white/[0.02] border-white/[0.08] text-[#B5B5B5]"
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="font-semibold text-white">{issue.title}</div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="font-semibold text-white text-sm leading-snug">{issue.title}</div>
                           <span
-                            className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase border ${
+                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase border shrink-0 ${
                               issue.severity === "critical"
-                                ? "bg-rose-500/20 text-rose-300 border-rose-500/30"
-                                : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                ? "bg-rose-500/10 text-rose-300 border-rose-500/30"
+                                : "bg-amber-500/10 text-amber-300 border-amber-500/30"
                             }`}
                           >
                             {issue.severity}
                           </span>
                         </div>
-                        <p className="text-[11px] leading-relaxed text-[#A0A0A0]">{issue.description}</p>
-                        <div className="text-[10px] font-mono pt-1 flex items-center gap-1.5 text-white/80">
-                          <Scale className="w-3 h-3 text-[#A0A0A0]" />
-                          <span>STATUTORY RULE: {issue.regulation}</span>
+                        <p className="text-xs leading-relaxed text-[#B5B5B5]">{issue.description}</p>
+                        <div className="text-[11px] font-mono pt-1 flex items-center gap-1.5 text-white/80">
+                          <Scale className="w-3.5 h-3.5 text-[#A0A0A0]" />
+                          <span>STATUTE: {issue.regulation}</span>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <div className="p-5 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-3.5">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
                       <div>
-                        <div className="font-semibold text-white">All Statutory Violations Cleared</div>
-                        <p className="text-[11px] text-emerald-300/80 mt-0.5">
-                          Copy substantiated against certified clinical trial repository. Ready for human
+                        <div className="font-semibold text-white text-sm">All Statutory Violations Cleared</div>
+                        <p className="text-xs text-emerald-300/80 mt-1 leading-relaxed">
+                          Draft substantiated against certified clinical trial repository. Ready for human
                           reviewer sign-off.
                         </p>
                       </div>
@@ -794,85 +749,85 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Provenance Inspector Drawer Trigger */}
-              <div className="rounded-xl bg-[#141414] border border-white/10 p-5 space-y-4 shadow-xl">
+              {/* Clean Citation & Evidence Provenance Drawer */}
+              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 space-y-4 shadow-xl">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Database className="w-4 h-4 text-white" />
-                    <span className="text-xs font-mono font-semibold text-white uppercase">
+                  <div className="flex items-center gap-2.5">
+                    <Database className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-white uppercase tracking-wider">
                       Evidence Provenance Drawer
                     </span>
                   </div>
                   <button
                     onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                    className="text-xs font-mono text-white hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-medium text-white hover:text-emerald-400 flex items-center gap-1.5 cursor-pointer transition-colors"
                   >
-                    <span>{isDrawerOpen ? "Hide Citation Chain" : "Inspect Full Citation Chain"}</span>
+                    <span>{isDrawerOpen ? "Hide Citation Chain" : "Inspect Citation Chain"}</span>
                     <ChevronRight
                       className={`w-3.5 h-3.5 transition-transform ${isDrawerOpen ? "rotate-90" : ""}`}
                     />
                   </button>
                 </div>
 
-                {/* Primary Specs */}
-                <div className="p-3.5 bg-[#080808] border border-white/10 rounded-lg font-mono text-xs space-y-2">
+                {/* Primary Specs Grid */}
+                <div className="p-4 bg-[#0A0A0A] border border-white/[0.08] rounded-xl text-xs space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[#A0A0A0]">CLAIM CODE:</span>
-                    <span className="text-white font-semibold">{currentPreset.provenance.claimId}</span>
+                    <span className="text-[#888] font-mono text-[11px]">CLAIM CODE:</span>
+                    <span className="text-white font-medium">{currentPreset.provenance.claimId}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[#A0A0A0]">EVIDENCE DOC:</span>
-                    <span className="text-white truncate max-w-[200px]" title={currentPreset.provenance.evidenceDoc}>
+                    <span className="text-[#888] font-mono text-[11px]">EVIDENCE DOC:</span>
+                    <span className="text-white truncate max-w-[220px]" title={currentPreset.provenance.evidenceDoc}>
                       {currentPreset.provenance.evidenceDoc}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[#A0A0A0]">DOI REFERENCE:</span>
-                    <span className="text-white font-semibold">{currentPreset.provenance.doi}</span>
+                    <span className="text-[#888] font-mono text-[11px]">DOI REFERENCE:</span>
+                    <span className="text-white font-mono">{currentPreset.provenance.doi}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[#A0A0A0]">ASSAY STANDARD:</span>
+                    <span className="text-[#888] font-mono text-[11px]">ASSAY STANDARD:</span>
                     <span className="text-white">{currentPreset.provenance.assayStandard}</span>
                   </div>
                 </div>
 
-                {/* Expanded Provenance Inspector Modal/Drawer */}
+                {/* Expanded Provenance Inspector */}
                 {isDrawerOpen && (
-                  <div className="pt-3 border-t border-white/10 space-y-3 text-xs font-mono">
-                    <div className="text-[10px] text-[#A0A0A0] uppercase font-semibold">
+                  <div className="pt-4 border-t border-white/[0.08] space-y-3.5 text-xs">
+                    <div className="text-[11px] text-[#A0A0A0] uppercase font-semibold">
                       VERBATIM CLINICAL ASSAY EXCERPT:
                     </div>
-                    <div className="p-3 bg-[#080808] border border-white/10 rounded text-slate-300 italic font-sans leading-relaxed text-[11px]">
+                    <div className="p-3.5 bg-[#0A0A0A] border border-white/[0.08] rounded-xl text-slate-300 italic font-sans leading-relaxed text-xs">
                       &ldquo;{currentPreset.provenance.excerpt}&rdquo;
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px] text-[#A0A0A0]">
+                    <div className="grid grid-cols-2 gap-3 text-[11px] text-[#A0A0A0]">
                       <div>
                         <span>AUTHORIZED BY: </span>
-                        <span className="text-white">{currentPreset.provenance.owner}</span>
+                        <span className="text-white font-medium">{currentPreset.provenance.owner}</span>
                       </div>
                       <div>
                         <span>PERMITTED CHANNELS: </span>
-                        <span className="text-white">{currentPreset.provenance.permittedChannels}</span>
+                        <span className="text-white font-medium">{currentPreset.provenance.permittedChannels}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] text-[#A0A0A0] truncate max-w-[240px]">
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[10px] font-mono text-[#777] truncate max-w-[220px]">
                         SHA-256: {currentPreset.provenance.sha256}
                       </span>
                       <button
                         onClick={handleCopyProvenance}
-                        className="text-[11px] text-white hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-white hover:text-emerald-400 flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
                         {copiedProvenance ? (
                           <>
-                            <Check className="w-3 h-3 text-emerald-400" />
-                            <span className="text-emerald-400">Copied</span>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400 font-medium">Copied</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3 h-3" />
+                            <Copy className="w-3.5 h-3.5" />
                             <span>Copy Citation</span>
                           </>
                         )}
@@ -886,40 +841,40 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 4. "WHERE IT FITS" COMPETITIVE MATRIX TABLE (10 Evaluated Rows) */}
-      <section id="features" className="py-24 border-b border-white/10 bg-[#080808]">
+      {/* 4. "WHERE IT FITS" COMPETITIVE MATRIX TABLE */}
+      <section id="features" className="py-28 border-b border-white/[0.08] bg-[#080808]">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
           <div className="max-w-3xl space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#141414] border border-white/10 text-xs font-mono text-[#A0A0A0]">
-              <span>WHERE IT FITS IN YOUR ENTERPRISE STACK</span>
-            </div>
+            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
+              WHERE IT FITS IN YOUR ENTERPRISE STACK
+            </span>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
               Why Generic LLMs and Social Schedulers Fall Short
             </h2>
-            <p className="text-sm text-[#A0A0A0] leading-relaxed">
+            <p className="text-base text-[#B5B5B5] leading-relaxed">
               Standard consumer LLMs write creative fiction. Marketing schedulers organize calendar
               slots. Inkloom AI is the sovereign pre-flight governance compiler that eliminates statutory
               liabilities before publication.
             </p>
           </div>
 
-          {/* 10-Row Comprehensive Comparison Table */}
-          <div className="border border-white/10 rounded-xl overflow-hidden bg-[#141414] shadow-2xl">
+          {/* 10-Row Comparison Table */}
+          <div className="border border-white/[0.08] rounded-2xl overflow-hidden bg-[#121212] shadow-2xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-[#080808] border-b border-white/10 text-[11px] uppercase tracking-wider text-[#A0A0A0]">
+                <thead className="bg-[#0A0A0A] border-b border-white/[0.08] text-[11px] uppercase tracking-wider text-[#A0A0A0]">
                   <tr>
-                    <th className="px-5 py-4 w-1/5">Compliance Dimension</th>
-                    <th className="px-4 py-4 w-1/6 text-slate-400">ChatGPT / Claude</th>
-                    <th className="px-4 py-4 w-1/6 text-slate-400">Writer / Jasper</th>
-                    <th className="px-4 py-4 w-1/6 text-slate-400">Planable / Hootsuite</th>
-                    <th className="px-4 py-4 w-1/6 text-slate-400">Excel Spreadsheets</th>
-                    <th className="px-5 py-4 w-1/5 text-white bg-white/5 border-l border-white/10 font-bold">
+                    <th className="px-6 py-4 w-1/5">Compliance Dimension</th>
+                    <th className="px-5 py-4 w-1/6 text-slate-400">ChatGPT / Claude</th>
+                    <th className="px-5 py-4 w-1/6 text-slate-400">Writer / Jasper</th>
+                    <th className="px-5 py-4 w-1/6 text-slate-400">Planable / Hootsuite</th>
+                    <th className="px-5 py-4 w-1/6 text-slate-400">Excel Spreadsheets</th>
+                    <th className="px-6 py-4 w-1/5 text-white bg-white/[0.04] border-l border-white/[0.08] font-bold">
                       Inkloom AI
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/10 font-sans">
+                <tbody className="divide-y divide-white/[0.06] font-sans">
                   {[
                     {
                       dim: "1. Claim Ground Truth",
@@ -1003,23 +958,23 @@ export default function LandingPage() {
                     },
                   ].map((row, idx) => (
                     <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-5 py-3.5 font-mono font-medium text-white text-xs">
+                      <td className="px-6 py-4 font-mono font-medium text-white text-xs">
                         {row.dim}
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-[#A0A0A0]">
-                        <span className="text-rose-400 font-mono mr-1">[✕]</span> {row.chatgpt}
+                      <td className="px-5 py-4 text-xs text-[#A0A0A0]">
+                        <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.chatgpt}
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-[#A0A0A0]">
-                        <span className="text-rose-400 font-mono mr-1">[✕]</span> {row.writer}
+                      <td className="px-5 py-4 text-xs text-[#A0A0A0]">
+                        <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.writer}
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-[#A0A0A0]">
-                        <span className="text-rose-400 font-mono mr-1">[✕]</span> {row.planable}
+                      <td className="px-5 py-4 text-xs text-[#A0A0A0]">
+                        <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.planable}
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-[#A0A0A0]">
-                        <span className="text-rose-400 font-mono mr-1">[✕]</span> {row.excel}
+                      <td className="px-5 py-4 text-xs text-[#A0A0A0]">
+                        <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.excel}
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-white font-medium bg-white/5 border-l border-white/10">
-                        <span className="text-emerald-400 font-mono mr-1 font-bold">[✓]</span> {row.inkloom}
+                      <td className="px-6 py-4 text-xs text-white font-medium bg-white/[0.04] border-l border-white/[0.08]">
+                        <span className="text-emerald-400 font-mono mr-1.5 font-bold">[✓]</span> {row.inkloom}
                       </td>
                     </tr>
                   ))}
@@ -1030,28 +985,30 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 5. WHY THIS EXISTS: 4 LANDMARK REGULATORY DISASTERS (Case Studies) */}
-      <section className="py-24 border-b border-white/10 bg-[#080808]">
+      {/* 5. 4 LANDMARK REGULATORY DISASTERS (Editorial 2-Column Layout) */}
+      <section className="py-28 border-b border-white/[0.08] bg-[#080808]">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
           <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-rose-400 font-semibold">
+            <span className="text-xs font-semibold tracking-wider uppercase text-rose-400">
               PREVENTABLE BRAND CATASTROPHES
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
               Why This Exists: 4 Landmark Disasters Inkloom Prevents
             </h2>
-            <p className="text-sm text-[#A0A0A0] leading-relaxed">
+            <p className="text-base text-[#B5B5B5] leading-relaxed">
               When marketing claims bypass strict factual and tone verification, enterprises face
               multi-million dollar enforcement fines, viral reputational damage, and operational halts.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Minimal-Border Editorial Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {[
               {
                 caseNum: "CASE 01",
                 title: "FTC v. Teami Lifestyle (2020)",
-                cost: "$15.2M Order ($1M Cash Paid)",
+                costBadge: "$15.2M Settlement",
+                statuteBadge: "FTC Act § 5",
                 category: "Deceptive Health & Cancer Claims",
                 desc: "Promoted 'detox' teas claiming to treat cancer, unclog arteries, and cause substantial weight loss without competent clinical substantiation.",
                 rule: "FTC Act § 5 (Deceptive Practices) & 16 CFR § 255",
@@ -1061,8 +1018,9 @@ export default function LandingPage() {
               {
                 caseNum: "CASE 02",
                 title: "Adidas Boston Marathon (2017)",
-                cost: "Global Public Relations Crisis",
-                category: "Insensitive Marketing Automated Broadcast",
+                costBadge: "Global PR Crisis",
+                statuteBadge: "Context Sensitivity",
+                category: "Insensitive Automated Campaign Broadcast",
                 desc: "Dispatched automated promotional email with subject line: 'Congrats, you survived the Boston Marathon!', triggering massive public backlash 4 years after the fatal bombing.",
                 rule: "Brand Tone & Crisis Context Guidelines",
                 howInkloomPrevents:
@@ -1071,7 +1029,8 @@ export default function LandingPage() {
               {
                 caseNum: "CASE 03",
                 title: "CNET Financial AI Hallucination (2023)",
-                cost: "Editorial Overhaul & Institutional Discredit",
+                costBadge: "Institutional Audit Action",
+                statuteBadge: "SEC Rule 10b-5",
                 category: "AI Hallucination in Public Advice",
                 desc: "Generative AI published 77 financial guides with elementary mathematical errors in compound interest and certificate of deposit calculations.",
                 rule: "FTC Truth in Lending & SEC Factual Disclosure",
@@ -1081,7 +1040,8 @@ export default function LandingPage() {
               {
                 caseNum: "CASE 04",
                 title: "Gap Rebrand Rollback (2010)",
-                cost: "$100M+ Asset & Rollback Loss",
+                costBadge: "$100M+ Asset Write-down",
+                statuteBadge: "Asset Governance",
                 category: "Uncoordinated Brand Identity Distribution",
                 desc: "Replaced 20-year iconic blue box logo with unvetted Helvetica design without cross-departmental alignment, forcing rollback in 6 days.",
                 rule: "Two-Key Approval Gate & Asset Governance",
@@ -1091,27 +1051,40 @@ export default function LandingPage() {
             ].map((c) => (
               <div
                 key={c.caseNum}
-                className="rounded-xl bg-[#141414] border border-white/10 p-6 space-y-4 shadow-xl flex flex-col justify-between"
+                className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-8 space-y-6 shadow-xl flex flex-col justify-between transition-all"
               >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-rose-400">{c.caseNum}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 font-semibold">
-                      {c.cost}
-                    </span>
+                <div className="space-y-4">
+                  {/* Subtle Status Badges */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-mono font-semibold text-[#888]">{c.caseNum}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 font-medium">
+                        {c.costBadge}
+                      </span>
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/[0.05] text-[#A0A0A0] border border-white/[0.08] font-mono">
+                        {c.statuteBadge}
+                      </span>
+                    </div>
                   </div>
 
-                  <h3 className="text-lg font-bold text-white">{c.title}</h3>
-                  <div className="text-xs font-mono text-[#A0A0A0]">{c.category}</div>
-                  <p className="text-xs text-[#A0A0A0] leading-relaxed font-sans">{c.desc}</p>
+                  {/* Prominent 20–22px Case Title */}
+                  <h3 className="text-xl sm:text-[22px] font-semibold text-white tracking-tight">
+                    {c.title}
+                  </h3>
+                  <div className="text-xs font-medium text-emerald-400">{c.category}</div>
+
+                  {/* Readable 15px Summary Copy */}
+                  <p className="text-[15px] text-[#B5B5B5] leading-relaxed font-normal">
+                    {c.desc}
+                  </p>
                 </div>
 
-                <div className="pt-4 border-t border-white/10 space-y-2 font-mono text-[11px]">
-                  <div className="text-white/80">
-                    <span className="text-[#A0A0A0]">STATUTE:</span> {c.rule}
+                <div className="pt-5 border-t border-white/[0.08] space-y-2.5">
+                  <div className="text-xs text-[#A0A0A0]">
+                    <span className="font-semibold text-white">Governing Rule:</span> {c.rule}
                   </div>
-                  <div className="p-2.5 rounded bg-[#080808] border border-white/10 text-emerald-400">
-                    <span className="font-semibold text-white">INKLOOM REMEDY: </span>
+                  <div className="p-3.5 rounded-xl bg-[#0A0A0A] border border-white/[0.06] text-xs text-emerald-300 leading-relaxed">
+                    <span className="font-semibold text-white">Inkloom Remedy: </span>
                     {c.howInkloomPrevents}
                   </div>
                 </div>
@@ -1122,16 +1095,16 @@ export default function LandingPage() {
       </section>
 
       {/* 6. 8-STAGE GOVERNANCE ARCHITECTURE SECTION */}
-      <section id="architecture" className="py-24 border-b border-white/10 bg-[#080808]">
+      <section id="architecture" className="py-28 border-b border-white/[0.08] bg-[#080808]">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
           <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-white font-semibold">
+            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
               TECHNICAL ARCHITECTURE
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
               The 8-Stage Deterministic Governance Pipeline
             </h2>
-            <p className="text-sm text-[#A0A0A0] leading-relaxed">
+            <p className="text-base text-[#B5B5B5] leading-relaxed">
               Every content draft moves through an uncompromising multi-stage compiler that guarantees
               mathematical rigor, empirical substantiation, and zero hallucination risk.
             </p>
@@ -1192,17 +1165,17 @@ export default function LandingPage() {
               return (
                 <div
                   key={s.stage}
-                  className="rounded-xl bg-[#141414] border border-white/10 p-6 space-y-4 shadow-xl flex flex-col justify-between"
+                  className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-7 space-y-5 shadow-xl flex flex-col justify-between transition-all"
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-3.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-white">STAGE {s.stage}</span>
-                      <div className="w-8 h-8 rounded bg-[#080808] border border-white/10 flex items-center justify-center text-white">
-                        <Icon className="w-4 h-4" />
+                      <span className="text-xs font-mono font-bold text-emerald-400">STAGE {s.stage}</span>
+                      <div className="w-9 h-9 rounded-xl bg-[#0A0A0A] border border-white/[0.08] flex items-center justify-center text-white">
+                        <Icon className="w-4 h-4 text-white" />
                       </div>
                     </div>
-                    <h3 className="text-base font-bold text-white">{s.name}</h3>
-                    <p className="text-xs text-[#A0A0A0] leading-relaxed font-sans">{s.desc}</p>
+                    <h3 className="text-base font-semibold text-white leading-snug">{s.name}</h3>
+                    <p className="text-sm text-[#B5B5B5] leading-relaxed">{s.desc}</p>
                   </div>
                 </div>
               );
@@ -1212,16 +1185,16 @@ export default function LandingPage() {
       </section>
 
       {/* 7. REGULATED SECTORS & INDUSTRY PLAYBOOKS */}
-      <section id="sectors" className="py-24 border-b border-white/10 bg-[#080808]">
+      <section id="sectors" className="py-28 border-b border-white/[0.08] bg-[#080808]">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
           <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-[#A0A0A0] font-semibold">
+            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
               SECTOR ADAPTATION
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
               Regulated Sectors &amp; Industry Playbooks
             </h2>
-            <p className="text-sm text-[#A0A0A0] leading-relaxed">
+            <p className="text-base text-[#B5B5B5] leading-relaxed">
               Out-of-the-box regulatory rule engines tailored to the statutory scrutiny of high-liability
               verticals.
             </p>
@@ -1256,17 +1229,15 @@ export default function LandingPage() {
             ].map((p) => (
               <div
                 key={p.sector}
-                className="rounded-xl bg-[#141414] border border-white/10 p-6 space-y-4 shadow-xl flex flex-col justify-between"
+                className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-7 space-y-4 shadow-xl flex flex-col justify-between transition-all"
               >
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white border border-white/10">
-                      {p.badge}
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-white">{p.sector}</h3>
-                  <div className="text-[11px] font-mono text-emerald-400">{p.regs}</div>
-                  <p className="text-xs text-[#A0A0A0] leading-relaxed font-sans">{p.desc}</p>
+                  <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-white/[0.04] text-white border border-white/[0.08] inline-block">
+                    {p.badge}
+                  </span>
+                  <h3 className="text-base font-semibold text-white">{p.sector}</h3>
+                  <div className="text-xs font-mono text-emerald-400">{p.regs}</div>
+                  <p className="text-sm text-[#B5B5B5] leading-relaxed">{p.desc}</p>
                 </div>
               </div>
             ))}
@@ -1275,16 +1246,16 @@ export default function LandingPage() {
       </section>
 
       {/* 8. ENTERPRISE SECURITY & RESPONSIBLE AI */}
-      <section className="py-24 border-b border-white/10 bg-[#080808]">
+      <section className="py-28 border-b border-white/[0.08] bg-[#080808]">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
           <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-semibold">
+            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
               TRUST ARCHITECTURE
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
               Enterprise Security &amp; Responsible AI Safeguards
             </h2>
-            <p className="text-sm text-[#A0A0A0] leading-relaxed">
+            <p className="text-base text-[#B5B5B5] leading-relaxed">
               Engineered with institutional privacy guarantees so sensitive product formulas, clinical
               trials, and legal drafts never leave your cryptographic custody.
             </p>
@@ -1317,13 +1288,13 @@ export default function LandingPage() {
               return (
                 <div
                   key={sec.title}
-                  className="rounded-xl bg-[#141414] border border-white/10 p-6 space-y-3.5 shadow-xl"
+                  className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-7 space-y-4 shadow-xl transition-all"
                 >
-                  <div className="w-9 h-9 rounded bg-[#080808] border border-white/10 flex items-center justify-center text-white">
+                  <div className="w-10 h-10 rounded-xl bg-[#0A0A0A] border border-white/[0.08] flex items-center justify-center text-white">
                     <Icon className="w-4 h-4 text-emerald-400" />
                   </div>
-                  <h3 className="text-sm font-bold text-white">{sec.title}</h3>
-                  <p className="text-xs text-[#A0A0A0] leading-relaxed font-sans">{sec.desc}</p>
+                  <h3 className="text-base font-semibold text-white">{sec.title}</h3>
+                  <p className="text-sm text-[#B5B5B5] leading-relaxed">{sec.desc}</p>
                 </div>
               );
             })}
@@ -1331,78 +1302,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 9. TEAM & ACKNOWLEDGMENTS SECTION */}
-      <section className="py-24 border-b border-white/10 bg-[#080808]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-white font-semibold">
-              TEAM AGRAWALDAKSH008 · CODETITANS INDIA 2026
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              Built for Truth by Compliance Engineers
-            </h2>
-            <div className="text-xs font-mono font-bold text-emerald-400 tracking-wider">
-              &quot;CHECK THE CLAIM. SHOW THE SOURCE. KEEP PEOPLE IN CONTROL.&quot;
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                name: "Daksh Agrawal",
-                role: "Admin & Compliance Architect",
-                focus: "Deterministic Engine, RLS Isolation & Next.js Core",
-                email: "daksh@uideas.digital",
-              },
-              {
-                name: "Laksh Khatri",
-                role: "Lead Regulatory Reviewer",
-                focus: "Statutory Rules (FTC, FDA, MoCRA) & Override Gates",
-                email: "laksh@uideas.digital",
-              },
-              {
-                name: "Riddhi Shah",
-                role: "Senior Content Producer",
-                focus: "Creator Studio, Surgical Diffing & Workflow UX",
-                email: "riddhi@uideas.digital",
-              },
-              {
-                name: "Mansoor Rupawala",
-                role: "VP of Brand Governance",
-                focus: "Evidence Provenance, Cascade Engine & Trial Ingest",
-                email: "mansoor@uideas.digital",
-              },
-            ].map((m) => (
-              <div
-                key={m.name}
-                className="rounded-xl bg-[#141414] border border-white/10 p-6 space-y-3 shadow-xl"
-              >
-                <div className="w-10 h-10 rounded-full bg-white text-black font-bold flex items-center justify-center text-sm">
-                  {m.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">{m.name}</h3>
-                  <div className="text-xs font-mono text-emerald-400">{m.role}</div>
-                </div>
-                <p className="text-xs text-[#A0A0A0] leading-relaxed font-sans">{m.focus}</p>
-                <div className="text-[10px] font-mono text-[#737373]">{m.email}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 10. COMPLETE 4-COLUMN FOOTER WITH LIVE LINKS */}
-      <footer className="py-16 bg-[#080808] text-xs font-mono border-t border-white/10">
+      {/* 9. COMPLETE 4-COLUMN FOOTER WITH LIVE LINKS */}
+      <footer className="py-20 bg-[#080808] text-xs border-t border-white/[0.08]">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {/* Column 1: Product */}
-            <div className="space-y-3">
-              <div className="text-white font-bold uppercase tracking-wider text-[11px]">Product</div>
-              <ul className="space-y-2 text-[#A0A0A0]">
+            <div className="space-y-3.5">
+              <div className="text-white font-semibold uppercase tracking-wider text-xs">Product</div>
+              <ul className="space-y-2.5 text-[#A0A0A0]">
                 <li>
                   <Link href="/dashboard" className="hover:text-white transition-colors">
                     Overview Dashboard
@@ -1432,11 +1339,11 @@ export default function LandingPage() {
             </div>
 
             {/* Column 2: Knowledge Base */}
-            <div className="space-y-3">
-              <div className="text-white font-bold uppercase tracking-wider text-[11px]">
+            <div className="space-y-3.5">
+              <div className="text-white font-semibold uppercase tracking-wider text-xs">
                 Knowledge Base
               </div>
-              <ul className="space-y-2 text-[#A0A0A0]">
+              <ul className="space-y-2.5 text-[#A0A0A0]">
                 <li>
                   <Link href="/knowledge-base/claims" className="hover:text-white transition-colors">
                     Approved Claims Library
@@ -1466,11 +1373,11 @@ export default function LandingPage() {
             </div>
 
             {/* Column 3: Governance */}
-            <div className="space-y-3">
-              <div className="text-white font-bold uppercase tracking-wider text-[11px]">
+            <div className="space-y-3.5">
+              <div className="text-white font-semibold uppercase tracking-wider text-xs">
                 Governance
               </div>
-              <ul className="space-y-2 text-[#A0A0A0]">
+              <ul className="space-y-2.5 text-[#A0A0A0]">
                 <li>
                   <Link href="/prototype-notice?feature=rules" className="hover:text-white transition-colors">
                     Statutory Rule Engine
@@ -1496,20 +1403,15 @@ export default function LandingPage() {
                     Evaluations &amp; Benchmarks
                   </Link>
                 </li>
-                <li>
-                  <Link href="/team" className="hover:text-white transition-colors">
-                    Team &amp; Role Permissions
-                  </Link>
-                </li>
               </ul>
             </div>
 
             {/* Column 4: Legal & System */}
-            <div className="space-y-3">
-              <div className="text-white font-bold uppercase tracking-wider text-[11px]">
+            <div className="space-y-3.5">
+              <div className="text-white font-semibold uppercase tracking-wider text-xs">
                 Legal &amp; System
               </div>
-              <ul className="space-y-2 text-[#A0A0A0]">
+              <ul className="space-y-2.5 text-[#A0A0A0]">
                 <li>
                   <Link href="/prototype-notice?feature=soc2" className="hover:text-white transition-colors">
                     Security &amp; SOC-2
@@ -1539,12 +1441,12 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[#737373] text-[11px]">
+          <div className="pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-[#777] text-xs">
             <div>
-              &copy; 2026 Inkloom Technologies Inc. · CodeTitans India 2026 Submission
+              &copy; 2026 Inkloom Technologies Inc. · Enterprise Pre-Publication Governance
             </div>
-            <div>
-              Deterministic Pre-Publication Governance · 54/54 Automated Tests Passing
+            <div className="font-mono text-[11px]">
+              Deterministic Pre-Publication Governance · Zero-Tolerance Regulatory Engine
             </div>
           </div>
         </div>

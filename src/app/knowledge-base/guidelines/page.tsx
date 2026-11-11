@@ -162,13 +162,13 @@ export default function BrandGuidelinesPage() {
         <div className="space-y-6">
           {guidelines.map((g, idx) => (
             <div key={idx} className="tactile-card rounded-xl p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E2B4A] pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#303030] pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#00F2FE] px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/25">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#B5B5B5] px-2 py-0.5 rounded bg-[#191919] border border-[#303030]">
                       {g.category}
                     </span>
-                    <span className="text-slate-500 font-mono text-[11px]">RULE #{idx + 1}</span>
+                    <span className="text-[#858585] font-mono text-[11px]">RULE #{idx + 1}</span>
                   </div>
                   <h2 className="text-base font-bold text-white tracking-tight">{g.title}</h2>
                 </div>

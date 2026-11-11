@@ -7,6 +7,7 @@ import {
   Plus,
   Search,
   ArrowRight,
+  Menu,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { openCommandK } from "../ui/CommandK";
@@ -24,6 +25,7 @@ export interface HeaderProps {
   onBrandChange?: (brandId: string) => void;
   unreadNotifications?: number;
   onOpenCommandK?: () => void;
+  onToggleMobileMenu?: () => void;
 }
 
 const SAMPLE_NOTIFICATIONS = [
@@ -60,6 +62,7 @@ export function Header({
   currentBrand = "Apex Nutrition",
   unreadNotifications = 2,
   onOpenCommandK,
+  onToggleMobileMenu,
 }: HeaderProps) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(unreadNotifications);
@@ -77,26 +80,36 @@ export function Header({
   };
 
   return (
-    <header className="h-14 border-b border-[#222222] bg-[#080808] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Left: Breadcrumbs or Title */}
-      <div className="flex items-center gap-3 min-w-0">
+    <header className="h-14 sm:h-16 border-b border-[#282828] bg-[#0A0A0A] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20">
+      {/* Left: Mobile Menu Toggle + Breadcrumbs or Title Hierarchy */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Mobile Hamburger Menu Toggle Button */}
+        <button
+          type="button"
+          onClick={onToggleMobileMenu}
+          className="md:hidden p-2 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] border border-[#282828] text-white hover:text-white cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0 transition-colors"
+          aria-label="Open mobile navigation menu"
+        >
+          <Menu className="w-5 h-5 text-white" />
+        </button>
+
         {breadcrumbs && breadcrumbs.length > 0 ? (
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs font-mono">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
             {breadcrumbs.map((crumb, idx) => {
               const isLast = idx === breadcrumbs.length - 1;
               return (
                 <React.Fragment key={crumb.label}>
-                  {idx > 0 && <span className="text-[#444444] select-none">/</span>}
+                  {idx > 0 && <span className="text-[#555555] select-none">/</span>}
                   {crumb.href && !isLast ? (
                     <Link
                       href={crumb.href}
-                      className="text-[#A0A0A0] hover:text-white transition-colors"
+                      className="text-[#A0A0A0] hover:text-white transition-colors font-medium"
                     >
                       {crumb.label}
                     </Link>
                   ) : (
                     <span
-                      className={`font-semibold truncate ${
+                      className={`truncate font-medium ${
                         isLast ? "text-white" : "text-[#A0A0A0]"
                       }`}
                     >
@@ -109,43 +122,37 @@ export function Header({
           </nav>
         ) : title ? (
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-white tracking-tight truncate">
+            <h1 className="text-base font-semibold text-white tracking-tight truncate">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-[11px] text-[#A0A0A0] truncate">{subtitle}</p>
+              <p className="text-xs text-[#999999] truncate mt-0.5">{subtitle}</p>
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-[#737373] font-mono text-[10px] uppercase tracking-wider">
-              Brand:
-            </span>
-            <span className="px-2 py-0.5 rounded bg-[#0C0C0C] border border-[#222222] text-white font-medium flex items-center gap-2 text-xs">
-              <span className="status-diode status-diode-emerald" />
+          <div className="flex items-center gap-2.5 text-sm">
+            <span className="text-[#888888] font-medium">Brand:</span>
+            <span className="px-2.5 py-1 rounded-md bg-[#161616] border border-[#2E2E2E] text-white font-medium flex items-center gap-2 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               {currentBrand}
             </span>
           </div>
         )}
       </div>
 
-      {/* Center: CommandK Quick Switcher Button */}
+      {/* Center: Search / Command Trigger */}
       <div className="hidden md:flex items-center flex-1 max-w-sm mx-6">
         <button
           onClick={handleSearchClick}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded bg-[#0C0C0C] hover:bg-[#141414] border border-[#222222] hover:border-[#333333] text-xs text-[#A0A0A0] transition-all group cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+          className="w-full flex items-center justify-between px-3.5 py-2 rounded-md bg-[#141414] hover:bg-[#1A1A1A] border border-[#2E2E2E] hover:border-[#3E3E3E] text-sm text-[#A0A0A0] hover:text-white transition-colors cursor-pointer"
         >
-          <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-[#737373] group-hover:text-white" />
-            <span className="text-[#A0A0A0] group-hover:text-white">
-              Search or jump to...
-            </span>
+          <div className="flex items-center gap-2.5">
+            <Search className="w-4 h-4 text-[#888888]" />
+            <span className="text-sm">Search or jump to...</span>
           </div>
-          <div className="flex items-center gap-1">
-            <kbd className="text-[10px] text-[#EFEFEF] bg-[#141414] px-1.5 py-0.5 rounded border border-[#282828] font-mono">
-              Ctrl+K
-            </kbd>
-          </div>
+          <kbd className="text-xs text-[#A0A0A0] bg-[#1F1F1F] px-1.5 py-0.5 rounded border border-[#333333] font-sans">
+            Ctrl+K
+          </kbd>
         </button>
       </div>
 
@@ -154,28 +161,22 @@ export function Header({
         {/* Mobile Search trigger */}
         <button
           onClick={handleSearchClick}
-          className="md:hidden p-2 rounded bg-[#0C0C0C] hover:bg-[#141414] border border-[#222222] text-[#A0A0A0] hover:text-white cursor-pointer"
+          className="md:hidden p-2 rounded-md bg-[#141414] hover:bg-[#1A1A1A] border border-[#2E2E2E] text-[#A0A0A0] hover:text-white cursor-pointer"
           title="Search"
         >
-          <Search className="w-3.5 h-3.5 text-white" />
+          <Search className="w-4 h-4 text-white" />
         </button>
-
-        {/* Governance Guard Live Telemetry Diode */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-[#0C0C0C] border border-[#222222] text-[10px] font-mono font-bold text-[#EFEFEF] uppercase tracking-[0.2em]">
-          <span className="status-diode status-diode-emerald" />
-          <span>Governance Engine Active</span>
-        </div>
 
         {/* Notifications Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsNotifOpen(!isNotifOpen)}
-            className="relative p-2 rounded bg-[#0C0C0C] hover:bg-[#141414] border border-[#222222] hover:border-[#333333] text-[#A0A0A0] hover:text-white transition-colors cursor-pointer"
+            className="relative p-2.5 rounded-md bg-[#141414] hover:bg-[#1A1A1A] border border-[#2E2E2E] hover:border-[#383838] text-[#A0A0A0] hover:text-white transition-colors cursor-pointer"
             title="Notifications"
           >
-            <Bell className="w-3.5 h-3.5" />
+            <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-white ring-2 ring-[#080808]" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-white ring-2 ring-[#0A0A0A]" />
             )}
           </button>
 
@@ -185,14 +186,14 @@ export function Header({
                 className="fixed inset-0 z-40"
                 onClick={() => setIsNotifOpen(false)}
               />
-              <div className="absolute right-0 mt-2 w-80 sm:w-88 rounded-lg bg-[#0C0C0C] border border-[#282828] shadow-[0_12px_32px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-4 py-2.5 border-b border-[#222222] bg-[#111111] flex items-center justify-between">
+              <div className="absolute right-0 mt-2 w-80 sm:w-88 rounded-xl bg-[#141414] border border-[#303030] shadow-xl py-1 z-50 animate-in fade-in duration-100">
+                <div className="px-4 py-3 border-b border-[#262626] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white">
-                      Alerts
+                    <span className="text-sm font-semibold text-white">
+                      Notifications
                     </span>
                     {unreadCount > 0 && (
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#1C1C1C] text-white border border-[#333333]">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#222222] text-white border border-[#333333]">
                         {unreadCount} new
                       </span>
                     )}
@@ -200,41 +201,41 @@ export function Header({
                   {unreadCount > 0 && (
                     <button
                       onClick={handleClearNotifs}
-                      className="text-[10px] font-mono text-[#A0A0A0] hover:text-white transition-colors cursor-pointer uppercase tracking-wider"
+                      className="text-xs text-[#999999] hover:text-white transition-colors cursor-pointer"
                     >
-                      Clear all
+                      Mark all read
                     </button>
                   )}
                 </div>
 
-                <div className="divide-y divide-[#222222] max-h-72 overflow-y-auto bg-[#0C0C0C]">
+                <div className="divide-y divide-[#242424] max-h-72 overflow-y-auto">
                   {SAMPLE_NOTIFICATIONS.map((item) => (
                     <Link
                       key={item.id}
                       href={item.href}
                       onClick={() => setIsNotifOpen(false)}
-                      className="block p-3 hover:bg-[#141414] transition-colors group"
+                      className="block p-3.5 hover:bg-[#1A1A1A] transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="text-xs font-semibold text-white group-hover:text-white transition-colors">
+                        <div className="text-sm font-medium text-white">
                           {item.title}
                         </div>
-                        <span className="text-[10px] text-[#737373] shrink-0 font-mono">
+                        <span className="text-xs text-[#737373] shrink-0">
                           {item.time}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#A0A0A0] mt-1 leading-snug line-clamp-2">
+                      <p className="text-xs text-[#A0A0A0] mt-1 leading-relaxed line-clamp-2">
                         {item.message}
                       </p>
                     </Link>
                   ))}
                 </div>
 
-                <div className="p-2 border-t border-[#222222] bg-[#080808]">
+                <div className="p-2.5 border-t border-[#262626]">
                   <Link
                     href="/notifications"
                     onClick={() => setIsNotifOpen(false)}
-                    className="flex items-center justify-center gap-1.5 py-1 text-xs text-white hover:text-white/80 font-medium transition-colors"
+                    className="flex items-center justify-center gap-1.5 py-1 text-xs text-white hover:text-neutral-300 font-medium transition-colors"
                   >
                     <span>View all notifications</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -245,15 +246,16 @@ export function Header({
           )}
         </div>
 
-        {/* Quick Review / Audit Button (Monochromatic High-Contrast White) */}
+        {/* Quick Review / Audit Button */}
         <Link href="/submissions/new">
           <Button
             size="sm"
             variant="primary"
-            icon={<Plus className="w-3.5 h-3.5 stroke-[2.5]" />}
-            shortcut="N"
+            icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
+            className="min-h-[44px] px-3 sm:px-4 text-xs sm:text-sm"
           >
-            Review Content
+            <span className="hidden xs:inline sm:inline">Review Content</span>
+            <span className="xs:hidden sm:hidden">Review</span>
           </Button>
         </Link>
       </div>

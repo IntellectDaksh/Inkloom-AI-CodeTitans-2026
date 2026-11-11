@@ -40,6 +40,7 @@ export function AppLayout({
   });
 
   const [isCommandKOpen, setIsCommandKOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -54,18 +55,20 @@ export function AppLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-[#080808] text-white selection:bg-white/20 selection:text-white">
+    <div className="flex min-h-screen bg-[#080808] text-white selection:bg-white/20 selection:text-white overflow-x-hidden">
       {/* Global CommandK Quick Switcher Dialog */}
       <CommandK
         isOpen={isCommandKOpen}
         onClose={() => setIsCommandKOpen(false)}
       />
 
-      {/* Left Collapsible Enterprise Swiss Sidebar */}
+      {/* Left Collapsible Enterprise Swiss Sidebar & Mobile Drawer */}
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
         orgName={currentBrand}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Swiss Content Shell */}
@@ -78,10 +81,11 @@ export function AppLayout({
           onBrandChange={onBrandChange}
           unreadNotifications={unreadNotifications}
           onOpenCommandK={() => setIsCommandKOpen(true)}
+          onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
         />
 
         <main
-          className={`flex-1 p-6 sm:p-8 lg:p-10 w-full ${
+          className={`flex-1 p-4 sm:p-6 lg:p-10 w-full min-w-0 ${
             fullWidth ? "max-w-none" : "max-w-7xl mx-auto"
           } ${className}`}
         >

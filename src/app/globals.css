@@ -1,85 +1,109 @@
 @import "tailwindcss";
 
 @theme {
-  /* Strict Monochromatic Swiss Canvas Hierarchy */
-  --color-canvas-deep: #080808;
-  --color-canvas: #0C0C0C;
-  --color-canvas-elevated: #111111;
+  /* ========================================================================= */
+  /* INKLOOM AI DESIGN SYSTEM — SWISS MONOCHROMATIC PALETTE                    */
+  /* ========================================================================= */
+
+  /* Canvas & Surface Palette */
+  --color-canvas-deep: #0A0A0A;
+  --color-canvas: #0A0A0A;
+  --color-canvas-elevated: #141414;
+
+  --color-background: #0A0A0A;
+  --color-surface: #141414;
+  --color-surface-primary: #141414;
+  --color-surface-secondary: #191919;
+  --color-surface-elevated: #202020;
 
   /* Surfaces & Milled Wells */
-  --color-frame: #0C0C0C;
+  --color-frame: #0A0A0A;
   --color-panel: #141414;
-  --color-panel-hover: #181818;
-  --color-panel-elevated: #1C1C1C;
+  --color-panel-hover: #191919;
+  --color-panel-elevated: #202020;
 
-  /* Fine Hairline & Precision Inset Borders */
-  --color-border-subtle: #1C1C1C;
-  --color-border-default: #282828;
-  --color-border-strong: #333333;
-  --color-border-highlight: #444444;
+  /* Precision Hairline Borders */
+  --color-border-subtle: #242424;
+  --color-border-default: #303030;
+  --color-border-strong: #404040;
+  --color-border-highlight: #404040;
   --color-border-focus: #FFFFFF;
 
-  /* High-Contrast Foreground Typography */
+  /* Typography Contrast Hierarchy */
   --color-text-primary: #FFFFFF;
-  --color-text-secondary: #F8F8F8;
-  --color-text-neutral: #EFEFEF;
-  --color-text-muted: #A0A0A0;
-  --color-text-dim: #737373;
-  --color-text-hairline: #2E2E2E;
+  --color-text-secondary: #B5B5B5;
+  --color-text-neutral: #B5B5B5;
+  --color-text-muted: #858585;
+  --color-text-dim: #858585;
+  --color-text-hairline: #303030;
 
-  /* Functional Status Diodes & Accents Only */
+  /* Functional Status Accents ONLY (Success, Warning, Critical) */
   --color-status-emerald: #10B981;
-  --color-status-amber: #F59E0B;
-  --color-status-rose: #EF4444;
-  --color-status-cyan: #06B6D4;
+  --color-status-green: #10B981;
+  --color-status-success: #10B981;
 
-  /* Backward Compatibility Tokens */
-  --color-canvas-obsidian: #080808;
-  --color-carbon-bg: #080808;
-  --color-carbon-surface: #0C0C0C;
-  --color-carbon-elevated: #141414;
-  --color-carbon-border: #282828;
-  --color-carbon-border-hover: #333333;
-  --color-carbon-text-primary: #FFFFFF;
-  --color-carbon-text-secondary: #EFEFEF;
-  --color-carbon-text-muted: #A0A0A0;
-  --color-dark-bg: #080808;
-  --color-dark-surface: #0C0C0C;
-  --color-dark-card: #141414;
-  --color-dark-card-hover: #181818;
-  --color-dark-border: #282828;
-  --color-dark-border-hover: #333333;
-  --color-navy-deep: #080808;
-  --color-navy-carbon: #0C0C0C;
-  --color-navy-surface: #141414;
-  --color-navy-border: #282828;
-  --color-navy-border-hover: #333333;
+  --color-status-amber: #F59E0B;
+  --color-status-warning: #F59E0B;
+
+  --color-status-rose: #EF4444;
+  --color-status-red: #EF4444;
+  --color-status-critical: #EF4444;
+
+  /* Backward Compatibility Neutralization (Removing Blue/Cyan/Violet Accents) */
+  --color-status-cyan: #B5B5B5;
+  --color-semantic-cyan: #B5B5B5;
   --color-semantic-emerald: #10B981;
   --color-semantic-amber: #F59E0B;
   --color-semantic-rose: #EF4444;
-  --color-semantic-cyan: #06B6D4;
   --color-gold-500: #FFFFFF;
-  --color-turquoise-500: #06B6D4;
+  --color-turquoise-500: #FFFFFF;
+
+  --color-canvas-obsidian: #0A0A0A;
+  --color-carbon-bg: #0A0A0A;
+  --color-carbon-surface: #141414;
+  --color-carbon-elevated: #191919;
+  --color-carbon-border: #303030;
+  --color-carbon-border-hover: #404040;
+  --color-carbon-text-primary: #FFFFFF;
+  --color-carbon-text-secondary: #B5B5B5;
+  --color-carbon-text-muted: #858585;
+
+  --color-dark-bg: #0A0A0A;
+  --color-dark-surface: #141414;
+  --color-dark-card: #141414;
+  --color-dark-card-hover: #191919;
+  --color-dark-border: #303030;
+  --color-dark-border-hover: #404040;
+
+  --color-navy-deep: #0A0A0A;
+  --color-navy-carbon: #141414;
+  --color-navy-surface: #141414;
+  --color-navy-border: #303030;
+  --color-navy-border-hover: #404040;
 }
 
 :root {
-  --background: #080808;
+  --background: #0A0A0A;
   --foreground: #FFFFFF;
-  --bg-primary: #080808;
-  --bg-surface: #0C0C0C;
-  --bg-elevated: #141414;
-  --border-subtle: #1C1C1C;
-  --border-default: #282828;
-  --border-hover: #333333;
+  --bg-primary: #0A0A0A;
+  --bg-surface: #141414;
+  --bg-surface-secondary: #191919;
+  --bg-elevated: #202020;
+  --border-subtle: #242424;
+  --border-default: #303030;
+  --border-hover: #404040;
   --text-primary: #FFFFFF;
-  --text-secondary: #EFEFEF;
-  --text-muted: #A0A0A0;
+  --text-secondary: #B5B5B5;
+  --text-muted: #858585;
+  --status-green: #10B981;
+  --status-amber: #F59E0B;
+  --status-red: #EF4444;
   color-scheme: dark;
 }
 
-/* Base Body with Noise Grain Overlay */
+/* Base Body Configuration — Clean Background, No Noise Overlay */
 body {
-  background-color: #080808;
+  background-color: #0A0A0A;
   color: #FFFFFF;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
@@ -90,21 +114,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Paper Noise Grain Texture Overlay */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
-
-/* Swiss Tabular Numerals */
+/* Swiss Tabular Numerals (Reserved for Metrics and Data) */
 .tabular-nums,
 [data-tabular-nums="true"] {
   font-variant-numeric: tabular-nums;
@@ -114,7 +124,7 @@ body::before {
 /* Precision Hairline Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #282828 transparent;
+  scrollbar-color: #303030 transparent;
 }
 
 ::-webkit-scrollbar {
@@ -123,16 +133,16 @@ body::before {
 }
 
 ::-webkit-scrollbar-track {
-  background: #080808;
+  background: #0A0A0A;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #282828;
+  background: #303030;
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #383838;
+  background: #404040;
 }
 
 /* Tactile Keycaps (kbd) */
@@ -146,164 +156,208 @@ kbd,
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
-  color: #EFEFEF;
+  color: #B5B5B5;
   background: #141414;
-  border: 1px solid #282828;
-  border-bottom: 2px solid #080808;
+  border: 1px solid #303030;
+  border-bottom: 2px solid #0A0A0A;
   border-radius: 4px;
   padding: 2.5px 6px;
   letter-spacing: 0.04em;
   user-select: none;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 /* ========================================================================= */
-/* 1. RESTRAINED SKEUOMORPHIC & SWISS BUTTONS                                 */
+/* 1. BUTTON STANDARDS (.btn-primary & .btn-secondary)                       */
 /* ========================================================================= */
 
-/* Monochromatic High-Contrast White Primary Button */
+/* Primary Button: 44px height, solid white bg, solid black text, rounded-lg */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem; /* 44px (h-11) */
+  padding-left: 1.5rem; /* 24px (px-6) */
+  padding-right: 1.5rem;
+  background-color: #FFFFFF;
+  color: #0A0A0A;
+  font-size: 0.875rem; /* 14px (text-sm) */
+  font-weight: 600; /* font-semibold */
+  line-height: 1.25rem;
+  border-radius: 0.5rem; /* 8px (rounded-lg) */
+  border: 1px solid #FFFFFF;
+  transition-property: color, background-color, border-color, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  user-select: none;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #E5E5E5; /* hover:bg-neutral-200 */
+  border-color: #E5E5E5;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Secondary Button: 44px height, #191919 bg, 1px border #303030, white text */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem; /* 44px (h-11) */
+  padding-left: 1.5rem; /* 24px (px-6) */
+  padding-right: 1.5rem;
+  background-color: #191919;
+  color: #FFFFFF;
+  font-size: 0.875rem; /* 14px (text-sm) */
+  font-weight: 500; /* font-medium */
+  line-height: 1.25rem;
+  border-radius: 0.5rem; /* 8px (rounded-lg) */
+  border: 1px solid #303030;
+  transition-property: color, background-color, border-color, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  user-select: none;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #222222;
+  border-color: #404040;
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Tactile Button Compatibility Aliases */
 .tactile-button,
 .tactile-button-primary,
-.tactile-button-gold {
+.tactile-button-gold,
+.gold-button {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #FFFFFF;
-  color: #080808;
+  background-color: #FFFFFF;
+  color: #0A0A0A;
   font-weight: 600;
   border: 1px solid #FFFFFF;
-  border-top-color: #FFFFFF;
-  border-bottom-color: #D4D4D4;
   border-radius: 6px;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+  transition: transform 0.08s ease, background-color 0.12s ease;
   user-select: none;
   cursor: pointer;
 }
 
 .tactile-button:hover:not(:disabled),
 .tactile-button-primary:hover:not(:disabled),
-.tactile-button-gold:hover:not(:disabled) {
-  background: #F4F4F4;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 2px 6px rgba(0, 0, 0, 0.35);
+.tactile-button-gold:hover:not(:disabled),
+.gold-button:hover:not(:disabled) {
+  background-color: #E5E5E5;
+  border-color: #E5E5E5;
 }
 
 .tactile-button:active:not(:disabled),
 .tactile-button-primary:active:not(:disabled),
-.tactile-button-gold:active:not(:disabled) {
+.tactile-button-gold:active:not(:disabled),
+.gold-button:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 
-    inset 0 1px 2px rgba(0, 0, 0, 0.2),
-    0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .tactile-button:disabled,
 .tactile-button-primary:disabled,
-.tactile-button-gold:disabled {
+.tactile-button-gold:disabled,
+.gold-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  box-shadow: none;
+  pointer-events: none;
 }
 
-/* Secondary Machined Dark Button */
 .tactile-button-secondary {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #141414;
+  background-color: #191919;
   color: #FFFFFF;
   font-weight: 500;
-  border: 1px solid #282828;
-  border-top-color: rgba(255, 255, 255, 0.15);
-  border-bottom-color: #111111;
+  border: 1px solid #303030;
   border-radius: 6px;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.5);
-  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease, border-color 0.12s ease;
+  transition: transform 0.08s ease, background-color 0.12s ease, border-color 0.12s ease;
   user-select: none;
   cursor: pointer;
 }
 
 .tactile-button-secondary:hover:not(:disabled) {
-  background: #181818;
-  border-color: #383838;
-  border-top-color: rgba(255, 255, 255, 0.25);
+  background-color: #222222;
+  border-color: #404040;
 }
 
 .tactile-button-secondary:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 
-    inset 0 1px 2px rgba(0, 0, 0, 0.6),
-    0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 .tactile-button-secondary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  box-shadow: none;
+  pointer-events: none;
 }
 
-/* Luminous Turquoise / Telemetry Button alias */
 .tactile-button-turquoise {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #06B6D4;
-  color: #080808;
+  background-color: #FFFFFF;
+  color: #0A0A0A;
   font-weight: 600;
-  border: 1px solid #06B6D4;
-  border-top-color: #A5F3FC;
-  border-bottom-color: #0E7490;
+  border: 1px solid #FFFFFF;
   border-radius: 6px;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 2px 4px rgba(6, 182, 212, 0.25);
-  transition: transform 0.08s ease, filter 0.12s ease;
+  transition: transform 0.08s ease, background-color 0.12s ease;
   user-select: none;
   cursor: pointer;
 }
 
 .tactile-button-turquoise:hover:not(:disabled) {
-  filter: brightness(1.05);
+  background-color: #E5E5E5;
 }
 
-.tactile-button-turquoise:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-/* Danger Tactile Button */
 .tactile-button-danger {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #1C1214;
-  color: #FCA5A5;
+  background-color: #1C1214;
+  color: #EF4444;
   font-weight: 600;
   border: 1px solid #7F1D1D;
-  border-top-color: #B91C1C;
-  border-bottom-color: #450A0A;
   border-radius: 6px;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 1px 3px rgba(0, 0, 0, 0.6);
-  transition: transform 0.08s ease;
+  transition: transform 0.08s ease, background-color 0.12s ease;
   cursor: pointer;
 }
 
 .tactile-button-danger:hover:not(:disabled) {
-  background: #2A1719;
+  background-color: #2A1719;
   border-color: #991B1B;
 }
 
@@ -317,94 +371,89 @@ kbd,
 
 .milled-well,
 .recessed-well {
-  background-color: #080808;
-  border: 1px solid #222222;
-  border-top-color: #1A1A1A;
-  border-bottom-color: #2E2E2E;
+  background-color: #0A0A0A;
+  border: 1px solid #303030;
   border-radius: 6px;
-  box-shadow: 
-    inset 0 2px 4px rgba(0, 0, 0, 0.8),
-    0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
 .milled-well-sm,
 .recessed-well-sm {
-  background-color: #080808;
-  border: 1px solid #222222;
+  background-color: #0A0A0A;
+  border: 1px solid #303030;
   border-radius: 4px;
-  box-shadow: 
-    inset 0 1.5px 3px rgba(0, 0, 0, 0.7),
-    0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.5);
 }
 
 .recessed-well-code {
-  background-color: #060606;
-  border: 1px solid #1E1E1E;
-  box-shadow: 
-    inset 0 2px 5px rgba(0, 0, 0, 0.85),
-    0 1px 0 rgba(255, 255, 255, 0.02);
+  background-color: #0A0A0A;
+  border: 1px solid #303030;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.7);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 /* ========================================================================= */
-/* 3. PRECISION TACTILE CARDS                                                */
+/* 3. SURFACES & PRECISION CARDS                                             */
 /* ========================================================================= */
 
-.tactile-card {
-  background: #111111;
-  border: 1px solid #282828;
-  border-top-color: #333333;
+.surface-primary {
+  background-color: #141414;
+  border: 1px solid #303030;
+}
+
+.surface-secondary {
+  background-color: #191919;
+  border: 1px solid #303030;
+}
+
+.tactile-card,
+.carbon-card {
+  background: #141414;
+  border: 1px solid #303030;
   border-radius: 8px;
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
-    0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.12s ease;
 }
 
-.tactile-card-interactive {
-  background: #111111;
-  border: 1px solid #282828;
-  border-top-color: #333333;
+.tactile-card-interactive,
+.carbon-card-interactive {
+  background: #141414;
+  border: 1px solid #303030;
   border-radius: 8px;
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
-    0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   transition: border-color 0.12s ease, background-color 0.12s ease, transform 0.08s ease;
   cursor: pointer;
 }
 
-.tactile-card-interactive:hover {
-  background: #141414;
-  border-color: #383838;
-  border-top-color: #444444;
+.tactile-card-interactive:hover,
+.carbon-card-interactive:hover {
+  background: #191919;
+  border-color: #404040;
 }
 
-.tactile-card-elevated {
-  background: #141414;
-  border: 1px solid #333333;
-  border-top-color: #404040;
+.tactile-card-elevated,
+.carbon-elevated {
+  background: #191919;
+  border: 1px solid #303030;
   border-radius: 8px;
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
-    0 6px 16px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .tactile-card-gold,
 .tactile-card-turquoise {
-  background: #111111;
-  border: 1px solid #2E2E2E;
-  border-top-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    0 2px 8px rgba(0, 0, 0, 0.4);
+  background: #141414;
+  border: 1px solid #303030;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 /* ========================================================================= */
-/* 4. FUNCTIONAL STATUS DIODES (Emerald, Amber, Rose, Cyan)                  */
+/* 4. FUNCTIONAL STATUS DIODES (Emerald, Amber, Rose, White Only)            */
 /* ========================================================================= */
 
 .status-diode,
-.hardware-led {
+.hardware-led,
+.led-indicator {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -414,178 +463,13 @@ kbd,
   border-radius: 9999px;
   flex-shrink: 0;
   box-shadow: 
-    0 0 0 1px #080808,
-    0 0 0 1.5px #222222;
+    0 0 0 1px #0A0A0A,
+    0 0 0 1.5px #303030;
 }
 
 /* Diode glass lens reflection */
 .status-diode::after,
-.hardware-led::after {
-  content: "";
-  position: absolute;
-  top: 15%;
-  left: 20%;
-  width: 30%;
-  height: 30%;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.85);
-  pointer-events: none;
-}
-
-.status-diode-emerald,
-.hardware-led-emerald {
-  background-color: #10B981;
-  box-shadow: 
-    0 0 0 1px #080808,
-    0 0 0 1.5px #222222,
-    0 0 6px #10B981;
-}
-
-.status-diode-amber,
-.hardware-led-amber,
-.hardware-led-gold {
-  background-color: #F59E0B;
-  box-shadow: 
-    0 0 0 1px #080808,
-    0 0 0 1.5px #222222,
-    0 0 6px #F59E0B;
-}
-
-.status-diode-rose,
-.hardware-led-rose {
-  background-color: #EF4444;
-  box-shadow: 
-    0 0 0 1px #080808,
-    0 0 0 1.5px #222222,
-    0 0 6px #EF4444;
-}
-
-.status-diode-cyan,
-.hardware-led-cyan,
-.hardware-led-turquoise {
-  background-color: #06B6D4;
-  box-shadow: 
-    0 0 0 1px #080808,
-    0 0 0 1.5px #222222,
-    0 0 6px #06B6D4;
-}
-
-.status-diode-white,
-.hardware-led-blue {
-  background-color: #FFFFFF;
-  box-shadow: 
-    0 0 0 1px #080808,
-    0 0 0 1.5px #222222,
-    0 0 4px #FFFFFF;
-}
-
-/* ========================================================================= */
-/* 5. MODERN SWISS GRID & ARCHITECTURAL TYPOGRAPHY                           */
-/* ========================================================================= */
-
-.swiss-label {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: #A0A0A0;
-  user-select: none;
-}
-
-.swiss-header {
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: #FFFFFF;
-}
-
-.swiss-grid {
-  display: grid;
-  gap: 1px;
-  background-color: #282828;
-  border: 1px solid #282828;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.swiss-grid > * {
-  background-color: #0C0C0C;
-}
-
-.border-machined,
-.border-hairline {
-  border: 1px solid #282828;
-}
-
-.border-machined-t,
-.border-hairline-t {
-  border-top: 1px solid #282828;
-}
-
-.border-machined-b,
-.border-hairline-b {
-  border-bottom: 1px solid #282828;
-}
-
-.border-machined-l,
-.border-hairline-l {
-  border-left: 1px solid #282828;
-}
-
-.border-machined-r,
-.border-hairline-r {
-  border-right: 1px solid #282828;
-}
-
-/* Backward compatibility classes */
-.carbon-card {
-  background-color: #111111;
-  border: 1px solid #282828;
-}
-
-.carbon-card-interactive {
-  background-color: #111111;
-  border: 1px solid #282828;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-
-.carbon-card-interactive:hover {
-  border-color: #383838;
-  background-color: #141414;
-}
-
-.carbon-elevated {
-  background-color: #141414;
-  border: 1px solid #333333;
-}
-
-.gold-button {
-  background: #FFFFFF;
-  color: #080808;
-  font-weight: 600;
-  border: 1px solid #FFFFFF;
-  border-radius: 6px;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.gold-badge {
-  background-color: #141414;
-  color: #FFFFFF;
-  border: 1px solid #282828;
-}
-
-.led-indicator {
-  position: relative;
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 9999px;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 1px #080808, 0 0 0 1.5px #222222;
-}
-
+.hardware-led::after,
 .led-indicator::after {
   content: "";
   position: absolute;
@@ -598,27 +482,223 @@ kbd,
   pointer-events: none;
 }
 
-.led-turquoise {
-  background-color: #06B6D4;
-  box-shadow: 0 0 0 1px #080808, 0 0 0 1.5px #222222, 0 0 6px #06B6D4;
-}
-
+/* Success / Compliant: Emerald #10B981 */
+.status-diode-emerald,
+.hardware-led-emerald,
 .led-emerald {
   background-color: #10B981;
-  box-shadow: 0 0 0 1px #080808, 0 0 0 1.5px #222222, 0 0 6px #10B981;
+  box-shadow: 
+    0 0 0 1px #0A0A0A,
+    0 0 0 1.5px #303030,
+    0 0 6px rgba(16, 185, 129, 0.5);
 }
 
+/* Warning / Pending: Amber #F59E0B */
+.status-diode-amber,
+.hardware-led-amber,
+.hardware-led-gold,
 .led-amber {
   background-color: #F59E0B;
-  box-shadow: 0 0 0 1px #080808, 0 0 0 1.5px #222222, 0 0 6px #F59E0B;
+  box-shadow: 
+    0 0 0 1px #0A0A0A,
+    0 0 0 1.5px #303030,
+    0 0 6px rgba(245, 158, 11, 0.5);
 }
 
-.led-gold {
-  background-color: #FFFFFF;
-  box-shadow: 0 0 0 1px #080808, 0 0 0 1.5px #222222, 0 0 4px #FFFFFF;
-}
-
+/* Critical Violations: Red #EF4444 */
+.status-diode-rose,
+.hardware-led-rose,
 .led-rose {
   background-color: #EF4444;
-  box-shadow: 0 0 0 1px #080808, 0 0 0 1.5px #222222, 0 0 6px #EF4444;
+  box-shadow: 
+    0 0 0 1px #0A0A0A,
+    0 0 0 1.5px #303030,
+    0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+/* Informational / Active: Neutral White */
+.status-diode-white,
+.hardware-led-blue,
+.led-gold {
+  background-color: #FFFFFF;
+  box-shadow: 
+    0 0 0 1px #0A0A0A,
+    0 0 0 1.5px #303030,
+    0 0 4px rgba(255, 255, 255, 0.4);
+}
+
+/* Neutralized cyan/turquoise aliases */
+.status-diode-cyan,
+.hardware-led-cyan,
+.hardware-led-turquoise,
+.led-turquoise {
+  background-color: #FFFFFF;
+  box-shadow: 
+    0 0 0 1px #0A0A0A,
+    0 0 0 1.5px #303030,
+    0 0 4px rgba(255, 255, 255, 0.4);
+}
+
+/* ========================================================================= */
+/* 5. TYPOGRAPHY SCALE TOKENS & UTILITIES                                    */
+/* ========================================================================= */
+
+/* Main hero heading: 52–64px */
+.heading-hero {
+  font-size: 3.25rem; /* 52px */
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+}
+@media (min-width: 640px) {
+  .heading-hero {
+    font-size: 4rem; /* 64px */
+  }
+}
+
+/* Section headings: 32–40px */
+.heading-section {
+  font-size: 2rem; /* 32px */
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #FFFFFF;
+}
+@media (min-width: 640px) {
+  .heading-section {
+    font-size: 2.5rem; /* 40px */
+  }
+}
+
+/* Subsection headings: 22–26px */
+.heading-subsection {
+  font-size: 1.375rem; /* 22px */
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+}
+@media (min-width: 640px) {
+  .heading-subsection {
+    font-size: 1.625rem; /* 26px */
+  }
+}
+
+/* Card headings: 18–21px */
+.heading-card {
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: #FFFFFF;
+}
+@media (min-width: 640px) {
+  .heading-card {
+    font-size: 1.3125rem; /* 21px */
+  }
+}
+
+/* Body copy: 15–17px */
+.text-body-standard {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.65;
+  font-weight: 400;
+  color: #B5B5B5;
+}
+@media (min-width: 640px) {
+  .text-body-standard {
+    font-size: 1rem; /* 16px */
+  }
+}
+
+/* Supporting text: 14–15px */
+.text-supporting {
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.5;
+  font-weight: 400;
+  color: #858585;
+}
+
+/* Navigation: 14–15px */
+.text-nav-link {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  color: #B5B5B5;
+  transition: color 0.15s ease;
+}
+.text-nav-link:hover {
+  color: #FFFFFF;
+}
+
+/* Technical metadata: 12–13px (Monospace ONLY for IDs, DOIs, hashes, numbers) */
+.text-tech-metadata {
+  font-size: 0.75rem; /* 12px */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #858585;
+  letter-spacing: 0.02em;
+}
+
+/* ========================================================================= */
+/* 6. SWISS STRUCTURAL GRID & BORDERS                                        */
+/* ========================================================================= */
+
+.swiss-label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #858585;
+  user-select: none;
+}
+
+.swiss-header {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+}
+
+.swiss-grid {
+  display: grid;
+  gap: 1px;
+  background-color: #303030;
+  border: 1px solid #303030;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.swiss-grid > * {
+  background-color: #141414;
+}
+
+.border-machined,
+.border-hairline {
+  border: 1px solid #303030;
+}
+
+.border-machined-t,
+.border-hairline-t {
+  border-top: 1px solid #303030;
+}
+
+.border-machined-b,
+.border-hairline-b {
+  border-bottom: 1px solid #303030;
+}
+
+.border-machined-l,
+.border-hairline-l {
+  border-left: 1px solid #303030;
+}
+
+.border-machined-r,
+.border-hairline-r {
+  border-right: 1px solid #303030;
+}
+
+.gold-badge {
+  background-color: #141414;
+  color: #FFFFFF;
+  border: 1px solid #303030;
 }

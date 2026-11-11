@@ -462,9 +462,9 @@ export default function ApprovedClaimsPage() {
       <div className="space-y-6">
         {/* Cascade Feedback / Success Banner */}
         {(cascadeFeedback || cascadeSuccessMessage) && (
-          <div className="p-3.5 rounded-xl bg-cyan-500/15 border border-[#00F2FE]/40 text-[#00F2FE] text-xs flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center justify-between gap-3 animate-in fade-in">
             <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-[#00F2FE] shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="font-sans font-medium">{cascadeSuccessMessage || cascadeFeedback}</span>
             </div>
             <button
@@ -472,7 +472,7 @@ export default function ApprovedClaimsPage() {
                 setCascadeFeedback(null);
                 setCascadeSuccessMessage(null);
               }}
-              className="text-[#00F2FE] hover:text-white cursor-pointer"
+              className="text-emerald-400 hover:text-white cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -520,31 +520,31 @@ export default function ApprovedClaimsPage() {
         </div>
 
         {/* Proposal Central Originality Engine Banner */}
-        <div className="rounded-xl p-4 sm:p-5 bg-gradient-to-r from-violet-950/40 via-[#0E1528] to-cyan-950/30 border border-violet-500/30 space-y-2.5">
+        <div className="rounded-xl p-4 sm:p-5 bg-[#141414] border border-[#303030] space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-violet-300 shrink-0 mt-0.5">
-                <Sparkles className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-lg bg-[#191919] border border-[#303030] flex items-center justify-center text-white shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div className="space-y-1">
-                <div className="text-xs font-semibold text-slate-100 flex items-center gap-2">
+                <div className="text-xs font-semibold text-white flex items-center gap-2">
                   <span>CENTRAL ORIGINALITY ENGINE: CLAIM DEPENDENCY &amp; CASCADE RE-REVIEW</span>
-                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#191919] text-[#B5B5B5] border border-[#303030]">
                     ROUND 3 DELIVERABLE #1
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                <p className="text-[11px] text-[#B5B5B5] font-sans leading-relaxed">
                   &ldquo;Which approved record supports this statement, is that record still valid for this use, and what previous content is affected if it changes?&rdquo;
                 </p>
-                <div className="text-[10px] font-mono text-slate-400">
+                <div className="text-[10px] font-mono text-[#858585]">
                   When clinical evidence expires or approved scope is amended, all earlier published drafts relying on it are automatically quarantined for human re-review.
                 </div>
               </div>
             </div>
 
             <div className="shrink-0 flex items-center gap-2">
-              <span className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded bg-violet-500/10 border border-violet-500/30 text-violet-300 flex items-center gap-1.5">
-                <Layers className="w-3 h-3 text-violet-400" />
+              <span className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded bg-[#191919] border border-[#303030] text-[#B5B5B5] flex items-center gap-1.5">
+                <Layers className="w-3 h-3 text-[#858585]" />
                 <span>CASCADE ENGINE READY</span>
               </span>
             </div>
@@ -1104,94 +1104,6 @@ export default function ApprovedClaimsPage() {
                   icon={<RefreshCw className="w-3.5 h-3.5" />}
                 >
                   Confirm Cascade &amp; Quarantine Drafts
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Dependent Drafts (Cascade Re-Review) Modal */}
-        {dependentDraftsModalClaim && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-[#00F2FE]/40 bg-[#080C16]">
-              <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-[#00F2FE]" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-100 font-mono">
-                    Dependent Marketing Drafts ({dependentDraftsModalClaim.claimId || "Claim"})
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setDependentDraftsModalClaim(null)}
-                  className="text-slate-400 hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3.5 text-xs font-mono">
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">SUBJECT CLAIM PROVENANCE:</div>
-                  <div className="p-3 rounded-lg bg-[#0D1527] border border-[#1E2B4A] text-slate-200 font-sans mt-1">
-                    <span className="font-mono font-bold text-[#00F2FE]">{dependentDraftsModalClaim.claimId}:</span> &ldquo;{dependentDraftsModalClaim.claimText}&rdquo;
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase">CONNECTED MARKETING ASSETS:</span>
-                    <span className="text-[10px] text-amber-400 font-mono">AT RISK IF EVIDENCE EXPIRES</span>
-                  </div>
-                  <div className="space-y-2">
-                    {(dependentDraftsModalClaim.dependentSubmissions && dependentDraftsModalClaim.dependentSubmissions.length > 0
-                      ? dependentDraftsModalClaim.dependentSubmissions
-                      : [
-                          { id: "sub-1", title: "Q4 Campaign – Clinical Protein Reel Script", channel: "Instagram Reel", authorName: "Riddhi S.", status: "approved" },
-                          { id: "sub-2", title: "Product Launch – Recovery Blend Carousel", channel: "Meta Paid Social", authorName: "Daksh A.", status: "approved" },
-                          { id: "sub-3", title: "Paid Social Ad Creative – Hydration Electrolytes V2", channel: "Instagram Reel", authorName: "Daksh A.", status: "approved" }
-                        ]
-                    ).map((sub: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-lg bg-[#0D1527] border border-[#1E2B4A] flex items-center justify-between hover:border-[#00F2FE]/40 transition-colors"
-                      >
-                        <div className="space-y-0.5 truncate pr-2">
-                          <div className="text-slate-200 font-sans font-medium truncate">{sub.title}</div>
-                          <div className="text-[10px] text-slate-400">{sub.channel} · Submitter: {sub.authorName}</div>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                          sub.status === "needs_re_review"
-                            ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
-                            : "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                        }`}>
-                          {sub.status === "needs_re_review" ? "QUARANTINED" : "CITED CLAIM"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-[#00F2FE]/5 border border-[#00F2FE]/20 text-[11px] font-sans text-cyan-200/90 leading-relaxed">
-                  <strong>Cascade Re-Review Automation:</strong> Clicking below triggers a multi-draft cascade scan. All active marketing collateral citing this claim is quarantined with status <code className="text-[#00F2FE]">needs_re_review</code> and audit trails are logged.
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#1E2B4A]">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setDependentDraftsModalClaim(null)}
-                >
-                  Close
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => handleTriggerCascadeAudit(dependentDraftsModalClaim)}
-                  loading={isCascading}
-                  icon={<RefreshCw className={`w-3.5 h-3.5 ${isCascading ? "animate-spin" : ""}`} />}
-                >
-                  Trigger Cascade Audit Now
                 </Button>
               </div>
             </div>

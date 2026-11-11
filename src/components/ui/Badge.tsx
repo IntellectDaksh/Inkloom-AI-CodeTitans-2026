@@ -63,72 +63,72 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const sizeClasses = {
-    xs: "px-1.5 py-0.5 text-[10px] gap-1",
-    sm: "px-2 py-0.5 text-[11px] gap-1.5",
-    md: "px-2.5 py-1 text-xs gap-1.5 font-semibold",
+    xs: "px-2 py-0.5 text-[11px] gap-1",
+    sm: "px-2.5 py-0.5 text-xs gap-1.5",
+    md: "px-3 py-1 text-xs gap-1.5 font-semibold",
   };
 
   const variantStyles: Record<BadgeVariant, string> = {
-    // Functional Status Accents
+    // Compliant / Approvals / Emerald (#10B981) — Functional Success Only
     verified:
-      "bg-[#0E1A1A] text-[#22D3EE] border border-[#0E3A42] shadow-[inset_0_1px_0_rgba(6,182,212,0.15)]",
-    turquoise:
-      "bg-[#0E1A1A] text-[#22D3EE] border border-[#0E3A42] shadow-[inset_0_1px_0_rgba(6,182,212,0.15)]",
-    cyan:
-      "bg-[#0E1A1A] text-[#22D3EE] border border-[#0E3A42] shadow-[inset_0_1px_0_rgba(6,182,212,0.15)]",
-    metadata:
-      "bg-[#0C0C0C] text-[#22D3EE] border border-[#222222] font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-
-    // Critical Violations / Rose
-    critical:
-      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
-    high:
-      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
-    violation:
-      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
-    rejected:
-      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
-    rose:
-      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
-
-    // Compliant / Approvals / Emerald
+      "bg-[#0C1A14] text-[#10B981] border border-[#10B981]/30",
     approved:
-      "bg-[#0C1A14] text-[#86EFAC] border border-[#14422B] shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+      "bg-[#0C1A14] text-[#10B981] border border-[#10B981]/30",
     success:
-      "bg-[#0C1A14] text-[#86EFAC] border border-[#14422B] shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+      "bg-[#0C1A14] text-[#10B981] border border-[#10B981]/30",
     emerald:
-      "bg-[#0C1A14] text-[#86EFAC] border border-[#14422B] shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+      "bg-[#0C1A14] text-[#10B981] border border-[#10B981]/30",
 
-    // Warnings / Review / Amber
+    // Critical Violations / Red (#EF4444) — Functional Critical Only
+    critical:
+      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+    high:
+      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+    violation:
+      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+    rejected:
+      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+    rose:
+      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+
+    // Warnings / Review / Amber (#F59E0B) — Functional Warnings Only
     medium:
-      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
     warning:
-      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
     changes_requested:
-      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
     amber:
-      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
     pending:
-      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
 
-    // Monochromatic High-Contrast Swiss Tags
+    // Technical Metadata: 12-13px Monospace for IDs, DOIs, hashes
+    metadata:
+      "bg-[#141414] text-[#858585] border border-[#303030] font-mono",
+
+    // Monochromatic High-Contrast Swiss Neutral Tags (#FFFFFF / #B5B5B5)
     gold:
-      "bg-[#181818] text-white border border-[#333333] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
-    low: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-    info: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-    draft: "bg-[#0C0C0C] text-[#A0A0A0] border border-[#222222]",
-    tag: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-    neutral: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-    slate: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-    blue: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-    violet: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+      "bg-[#191919] text-white border border-[#303030]",
+    low: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+    info: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+    draft: "bg-[#141414] text-[#858585] border border-[#303030]",
+    tag: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+    neutral: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+    slate: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+
+    // Neutralized legacy color aliases (No blue/cyan/violet status accents)
+    cyan: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+    turquoise: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+    blue: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+    violet: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
   };
 
   const defaultDotColorMap: Record<BadgeVariant, DotColor> = {
     critical: "rose",
     high: "rose",
     medium: "amber",
-    low: "cyan",
+    low: "white",
     info: "white",
     approved: "emerald",
     pending: "amber",
@@ -139,52 +139,52 @@ export function Badge({
     neutral: "white",
     success: "emerald",
     warning: "amber",
-    verified: "cyan",
+    verified: "emerald",
     violation: "rose",
-    metadata: "cyan",
+    metadata: "white",
     emerald: "emerald",
     amber: "amber",
     rose: "rose",
-    violet: "cyan",
+    violet: "white",
     slate: "white",
-    cyan: "cyan",
-    blue: "cyan",
+    cyan: "white",
+    blue: "white",
     gold: "white",
-    turquoise: "cyan",
+    turquoise: "white",
   };
 
   const statusDiodeClasses: Record<DotColor, string> = {
     emerald: "status-diode status-diode-emerald",
     amber: "status-diode status-diode-amber",
     rose: "status-diode status-diode-rose",
-    cyan: "status-diode status-diode-cyan",
+    cyan: "status-diode status-diode-white",
     white: "status-diode status-diode-white",
-    violet: "status-diode status-diode-cyan",
+    violet: "status-diode status-diode-white",
     slate: "status-diode status-diode-white",
-    blue: "status-diode status-diode-cyan",
-    gold: "status-diode status-diode-amber",
-    turquoise: "status-diode status-diode-cyan",
+    blue: "status-diode status-diode-white",
+    gold: "status-diode status-diode-white",
+    turquoise: "status-diode status-diode-white",
   };
 
   const pingColorClasses: Record<DotColor, string> = {
-    emerald: "bg-emerald-400",
-    amber: "bg-amber-400",
-    rose: "bg-rose-400",
-    cyan: "bg-cyan-400",
+    emerald: "bg-emerald-500",
+    amber: "bg-amber-500",
+    rose: "bg-red-500",
+    cyan: "bg-white",
     white: "bg-white",
-    violet: "bg-cyan-400",
+    violet: "bg-white",
     slate: "bg-white",
-    blue: "bg-cyan-400",
-    gold: "bg-amber-300",
-    turquoise: "bg-cyan-400",
+    blue: "bg-white",
+    gold: "bg-white",
+    turquoise: "bg-white",
   };
 
   const activeDotColor = dotColor || defaultDotColorMap[variant] || "white";
 
   return (
     <span
-      className={`inline-flex items-center font-medium rounded select-none leading-none tracking-tight ${
-        mono || variant === "metadata" ? "font-mono tracking-wider tabular-nums uppercase text-[10px]" : "font-sans"
+      className={`inline-flex items-center font-medium rounded-md select-none leading-none tracking-tight ${
+        mono || variant === "metadata" ? "font-mono tracking-wider tabular-nums text-xs" : "font-sans"
       } ${sizeClasses[size]} ${variantStyles[variant]} ${className}`}
       {...props}
     >

@@ -456,25 +456,25 @@ export default function AnalyticsPage() {
                 {expiringClaims.map((claim) => (
                   <div
                     key={claim.code}
-                    className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-2"
+                    className="p-3.5 rounded-lg bg-[#191919] border border-[#303030] space-y-2"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-mono text-cyan-300 text-[11px] font-semibold">
+                      <span className="font-mono text-white text-[11px] font-semibold">
                         {claim.code}
                       </span>
-                      <span className="font-mono text-[#E5A93C] font-semibold text-[11px] flex items-center gap-1">
-                        <span className="led-indicator led-gold" />
+                      <span className="font-mono text-[#F59E0B] font-semibold text-[11px] flex items-center gap-1">
+                        <span className="led-indicator led-amber" />
                         {claim.daysLeft} DAYS LEFT
                       </span>
                     </div>
 
-                    <p className="text-slate-300 text-xs font-sans leading-relaxed">
+                    <p className="text-[#B5B5B5] text-xs font-sans leading-relaxed">
                       &ldquo;{claim.text}&rdquo;
                     </p>
 
-                    <div className="pt-1.5 flex items-center justify-between text-[10px] font-mono text-slate-500 border-t border-[#162038]">
+                    <div className="pt-1.5 flex items-center justify-between text-[10px] font-mono text-[#858585] border-t border-[#303030]">
                       <span>{claim.evidence}</span>
-                      <span className="text-slate-400">{claim.owner}</span>
+                      <span className="text-[#B5B5B5]">{claim.owner}</span>
                     </div>
                   </div>
                 ))}
@@ -482,27 +482,27 @@ export default function AnalyticsPage() {
                 <div className="pt-2">
                   <Link
                     href="/knowledge-base/claims"
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#080C16] hover:bg-[#111C35] border border-[#1E2B4A] text-xs font-medium text-slate-200 hover:text-white transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#191919] hover:bg-[#222222] border border-[#303030] text-xs font-medium text-[#B5B5B5] hover:text-white transition-colors"
                   >
                     <span>Manage All Claims in Truth Library</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-[#00F2FE]" />
+                    <ChevronRight className="w-3.5 h-3.5 text-[#858585]" />
                   </Link>
                 </div>
               </div>
             </div>
 
             {/* Labelled Evaluation Benchmark Card linking to /evaluations */}
-            <div className="tactile-card rounded-xl p-5 space-y-3.5 border-violet-500/40 bg-gradient-to-br from-[#0C101E] to-[#120E24]">
+            <div className="tactile-card rounded-xl p-5 space-y-3.5 bg-[#141414] border border-[#303030]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-violet-300">
+                  <div className="w-7 h-7 rounded-lg bg-[#191919] border border-[#303030] flex items-center justify-center text-white">
                     <Scale className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-100">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-white">
                       Evaluation Benchmark Bench
                     </h3>
-                    <div className="text-[10px] font-mono text-violet-300">ROUND 3 DELIVERABLE #3</div>
+                    <div className="text-[10px] font-mono text-[#858585]">ROUND 3 DELIVERABLE #3</div>
                   </div>
                 </div>
                 <Badge variant="verified" size="xs">
@@ -510,24 +510,24 @@ export default function AnalyticsPage() {
                 </Badge>
               </div>
 
-              <p className="text-xs text-slate-300 leading-relaxed font-sans">
+              <p className="text-xs text-[#B5B5B5] leading-relaxed font-sans">
                 Continuous empirical validation suite running the 4 canonical proposal case studies: FTC/Teami (2020), Adidas (2017), CNET AI (2023), and Clinical Baseline Control.
               </p>
 
               <div className="grid grid-cols-2 gap-2 text-center font-mono text-xs">
-                <div className="p-2 rounded bg-[#080C16] border border-[#1E2B4A]">
-                  <div className="text-[10px] text-slate-500">FALSE-POSITIVE</div>
-                  <div className="text-sm font-bold text-violet-300">2.1%</div>
+                <div className="p-2 rounded bg-[#191919] border border-[#303030]">
+                  <div className="text-[10px] text-[#858585]">FALSE-POSITIVE</div>
+                  <div className="text-sm font-bold text-white">2.1%</div>
                 </div>
-                <div className="p-2 rounded bg-[#080C16] border border-[#1E2B4A]">
-                  <div className="text-[10px] text-slate-500">MISSED-ISSUE</div>
-                  <div className="text-sm font-bold text-emerald-400">0.0%</div>
+                <div className="p-2 rounded bg-[#191919] border border-[#303030]">
+                  <div className="text-[10px] text-[#858585]">MISSED-ISSUE</div>
+                  <div className="text-sm font-bold text-[#10B981]">0.0%</div>
                 </div>
               </div>
 
               <Link
                 href="/evaluations"
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors shadow-xs"
+                className="btn-secondary w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold"
               >
                 <span>Launch Interactive Benchmark Suite</span>
                 <ChevronRight className="w-4 h-4" />

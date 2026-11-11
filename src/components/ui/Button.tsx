@@ -37,56 +37,61 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "relative inline-flex items-center justify-center font-medium transition-all duration-100 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-[#080808]";
+    "relative inline-flex items-center justify-center font-medium transition-colors duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] shrink-0";
 
+  // Height 44px for primary interactive buttons (.btn-primary and .btn-secondary), readable 14–15px font
   const sizeStyles = {
-    xs: "h-6 px-2 text-[11px] gap-1 rounded",
-    sm: "h-8 px-2.5 text-xs gap-1.5 rounded-md",
-    md: "h-9 px-3.5 text-xs font-semibold gap-2 rounded-md",
-    lg: "h-10 px-4 text-sm font-semibold gap-2.5 rounded-md",
+    xs: "h-7 px-2.5 text-[11px] gap-1 rounded", // compact utility trigger
+    sm: "h-9 px-4 text-xs font-medium gap-1.5 rounded-md", // compact form actions
+    md: "h-11 px-6 text-sm font-semibold gap-2 rounded-lg", // 44px height, px-6 (Strict .btn-primary / .btn-secondary specification)
+    lg: "h-11 px-6 text-sm font-semibold gap-2.5 rounded-lg", // 44px, 14px font
   };
 
   const iconSizes = {
-    xs: "w-3 h-3",
-    sm: "w-3.5 h-3.5",
+    xs: "w-3.5 h-3.5",
+    sm: "w-4 h-4",
     md: "w-4 h-4",
     lg: "w-4 h-4",
   };
 
   const variantStyles: Record<ButtonVariant, string> = {
-    // High-Contrast Pure White Primary
+    // Primary: Solid white background (#FFFFFF), black text (#0A0A0A), font-semibold, hover neutral-200
     primary:
-      "bg-white hover:bg-[#F0F0F0] text-[#080808] border border-white border-b-[#D4D4D4] shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_2px_rgba(0,0,0,0.5)] active:translate-y-px active:shadow-none",
+      "bg-[#FFFFFF] hover:bg-neutral-200 text-[#0A0A0A] font-semibold border border-transparent shadow-sm active:translate-y-px",
     gold:
-      "bg-white hover:bg-[#F0F0F0] text-[#080808] border border-white border-b-[#D4D4D4] shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_2px_rgba(0,0,0,0.5)] active:translate-y-px active:shadow-none",
+      "bg-[#FFFFFF] hover:bg-neutral-200 text-[#0A0A0A] font-semibold border border-transparent shadow-sm active:translate-y-px",
     accent:
-      "bg-white hover:bg-[#F0F0F0] text-[#080808] border border-white border-b-[#D4D4D4] shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_2px_rgba(0,0,0,0.5)] active:translate-y-px active:shadow-none",
+      "bg-[#FFFFFF] hover:bg-neutral-200 text-[#0A0A0A] font-semibold border border-transparent shadow-sm active:translate-y-px",
 
-    // Precision Machined Secondary
+    // Secondary: #191919 background, 1px border #303030, white text, hover #222222
     secondary:
-      "bg-[#141414] hover:bg-[#1A1A1A] text-[#F8F8F8] border border-[#282828] border-t-white/15 border-b-[#111111] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.6)] active:translate-y-px active:shadow-none",
+      "bg-[#191919] hover:bg-[#222222] text-white font-medium border border-[#303030] active:translate-y-px",
     subtle:
-      "bg-[#111111] hover:bg-[#181818] text-[#A0A0A0] hover:text-[#FFFFFF] border border-[#222222] active:translate-y-px",
+      "bg-[#141414] hover:bg-[#191919] text-[#B5B5B5] hover:text-white border border-[#303030] active:translate-y-px",
 
     // Outlined Minimalist
     outline:
-      "bg-transparent hover:bg-[#141414] text-[#EFEFEF] hover:text-white border border-[#282828] hover:border-[#383838] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:translate-y-px",
+      "bg-transparent hover:bg-[#191919] text-white border border-[#303030] hover:border-[#404040] active:translate-y-px",
 
     // Ghost
     ghost:
-      "bg-transparent hover:bg-[#141414] text-[#A0A0A0] hover:text-white border border-transparent active:translate-y-px",
+      "bg-transparent hover:bg-[#191919] text-[#858585] hover:text-white border border-transparent active:translate-y-px",
 
-    // Functional Status Variants
+    // Functional Red / Critical violations only
     danger:
-      "bg-[#1C1214] hover:bg-[#2A1719] text-[#FCA5A5] border border-[#7F1D1D] border-t-[#B91C1C] border-b-[#450A0A] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_2px_rgba(0,0,0,0.6)] active:translate-y-px",
+      "bg-[#1C1214] hover:bg-[#2A1619] text-[#EF4444] border border-[#7F1D1D] active:translate-y-px",
     destructive:
-      "bg-[#1C1214] hover:bg-[#2A1719] text-[#FCA5A5] border border-[#7F1D1D] border-t-[#B91C1C] border-b-[#450A0A] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_2px_rgba(0,0,0,0.6)] active:translate-y-px",
+      "bg-[#1C1214] hover:bg-[#2A1619] text-[#EF4444] border border-[#7F1D1D] active:translate-y-px",
+
+    // Functional Green / Success & Approvals only
     success:
-      "bg-[#0A1A14] hover:bg-[#0F241C] text-[#6EE7B7] border border-[#065F46] border-t-[#059669] border-b-[#022C22] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:translate-y-px",
+      "bg-[#0C1A14] hover:bg-[#0F241C] text-[#10B981] border border-[#065F46] active:translate-y-px",
     approve:
-      "bg-[#0A1A14] hover:bg-[#0F241C] text-[#6EE7B7] border border-[#065F46] border-t-[#059669] border-b-[#022C22] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:translate-y-px",
+      "bg-[#0C1A14] hover:bg-[#0F241C] text-[#10B981] border border-[#065F46] active:translate-y-px",
+
+    // Neutralized legacy turquoise token
     turquoise:
-      "bg-[#06B6D4] hover:bg-[#22D3EE] text-[#080808] font-semibold border border-[#06B6D4] shadow-[0_1px_2px_rgba(0,0,0,0.4)] active:translate-y-px",
+      "bg-[#FFFFFF] hover:bg-neutral-200 text-[#0A0A0A] font-semibold border border-transparent shadow-sm active:translate-y-px",
   };
 
   return (
@@ -128,7 +133,7 @@ export function Button({
       )}
 
       {shortcut && (
-        <kbd className="ml-1 text-[9px] px-1.5 py-0.5 rounded bg-black/30 border border-white/20 text-current opacity-85 font-mono tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+        <kbd className="ml-1 text-xs px-1.5 py-0.5 rounded bg-black/40 border border-white/20 text-current opacity-80 font-mono tracking-tight">
           {shortcut}
         </kbd>
       )}
