@@ -318,22 +318,17 @@ export default function LandingPage() {
       <nav className="border-b border-white/[0.08] bg-[#080808]/90 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 h-18 flex items-center justify-between">
           {/* Brand Logo & Mark */}
-          <Link href="/" className="flex items-center gap-3.5 group">
+          <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold text-sm tracking-tight shadow-sm">
               IK
             </div>
-            <div className="flex items-center gap-2.5">
-              <span className="font-semibold text-base tracking-tight text-white">
-                Inkloom AI
-              </span>
-              <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-white/[0.05] text-[#A0A0A0] border border-white/[0.08]">
-                GOVERNANCE OS
-              </span>
-            </div>
+            <span className="font-semibold text-base tracking-tight text-white">
+              Inkloom AI
+            </span>
           </Link>
 
           {/* Primary Nav Links */}
-          <div className="hidden lg:flex items-center gap-8 text-sm font-medium text-[#A0A0A0]">
+          <div className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium text-[#A0A0A0]">
             <button
               onClick={scrollToWorkbench}
               className="hover:text-white transition-colors cursor-pointer"
@@ -355,8 +350,8 @@ export default function LandingPage() {
           </div>
 
           {/* Action Controls & Active Status Indicator */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-[#A0A0A0]">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+            <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-[#A0A0A0]">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Zero-Tolerance Policy Active</span>
             </div>
