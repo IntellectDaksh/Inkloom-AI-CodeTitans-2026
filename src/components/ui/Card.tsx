@@ -2,7 +2,15 @@ import React from "react";
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  variant?: "default" | "elevated" | "interactive" | "glass" | "highlight";
+  variant?:
+    | "default"
+    | "elevated"
+    | "interactive"
+    | "glass"
+    | "highlight"
+    | "gold"
+    | "turquoise"
+    | "well";
   className?: string;
 }
 
@@ -12,19 +20,20 @@ export function Card({
   className = "",
   ...props
 }: CardProps) {
-  const variantStyles = {
-    default: "bg-[#0F1117] border border-[#1C202F]",
-    elevated: "bg-[#141722] border border-[#1C202F]",
-    interactive:
-      "bg-[#0F1117] border border-[#1C202F] hover:border-[#2B3248] hover:bg-[#12151F] transition-colors cursor-pointer",
-    glass: "bg-[#0F1117] border border-[#1C202F]",
-    highlight:
-      "bg-[#0F1117] border border-violet-500/40 shadow-[inset_0_1px_0_rgba(139,92,246,0.15)]",
+  const variantStyles: Record<string, string> = {
+    default: "tactile-card",
+    elevated: "tactile-card-elevated",
+    interactive: "tactile-card-interactive",
+    glass: "tactile-card",
+    highlight: "tactile-card-turquoise",
+    gold: "tactile-card-gold",
+    turquoise: "tactile-card-turquoise",
+    well: "recessed-well p-5",
   };
 
   return (
     <div
-      className={`rounded-xl overflow-hidden transition-all duration-150 ${variantStyles[variant]} ${className}`}
+      className={`rounded-xl overflow-hidden transition-all duration-150 ${variantStyles[variant] || "tactile-card"} ${className}`}
       {...props}
     >
       {children}
@@ -44,7 +53,7 @@ export function CardHeader({
   return (
     <div
       className={`px-5 py-4 ${
-        divided ? "border-b border-[#1C202F]" : ""
+        divided ? "border-b border-[#1E2E50] bg-[#10192E]/40" : ""
       } ${className}`}
     >
       {children}
@@ -61,7 +70,7 @@ export function CardTitle({
 }) {
   return (
     <h3
-      className={`text-sm sm:text-base font-semibold text-[#F4F6F9] tracking-tight ${className}`}
+      className={`text-sm sm:text-base font-bold text-[#F8FAFC] tracking-tight ${className}`}
     >
       {children}
     </h3>
@@ -76,7 +85,7 @@ export function CardDescription({
   className?: string;
 }) {
   return (
-    <p className={`text-xs text-[#94A3B8] mt-0.5 leading-relaxed ${className}`}>
+    <p className={`text-xs text-[#94A3B8] mt-1 leading-relaxed ${className}`}>
       {children}
     </p>
   );
@@ -95,13 +104,17 @@ export function CardContent({
 export function CardFooter({
   children,
   className = "",
+  divided = true,
 }: {
   children: React.ReactNode;
   className?: string;
+  divided?: boolean;
 }) {
   return (
     <div
-      className={`px-5 py-3 border-t border-[#1C202F] bg-[#0C0E14] text-xs text-[#94A3B8] flex items-center justify-between ${className}`}
+      className={`px-5 py-3.5 bg-[#0A1020]/70 flex items-center ${
+        divided ? "border-t border-[#1E2E50]" : ""
+      } ${className}`}
     >
       {children}
     </div>

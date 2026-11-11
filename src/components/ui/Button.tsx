@@ -1,17 +1,21 @@
 import React from "react";
 
+export type ButtonVariant =
+  | "gold"
+  | "turquoise"
+  | "secondary"
+  | "ghost"
+  | "danger"
+  | "outline"
+  | "primary"
+  | "destructive"
+  | "success"
+  | "approve"
+  | "subtle";
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?:
-    | "primary"
-    | "secondary"
-    | "outline"
-    | "ghost"
-    | "danger"
-    | "destructive"
-    | "success"
-    | "approve"
-    | "subtle";
+  variant?: ButtonVariant;
   size?: "xs" | "sm" | "md" | "lg";
   loading?: boolean;
   icon?: React.ReactNode;
@@ -21,7 +25,7 @@ export interface ButtonProps
 
 export function Button({
   children,
-  variant = "primary",
+  variant = "gold",
   size = "md",
   loading = false,
   icon,
@@ -32,13 +36,13 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "relative inline-flex items-center justify-center font-medium transition-all duration-120 select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-500 focus-visible:ring-offset-1 focus-visible:ring-offset-[#090A10]";
+    "relative inline-flex items-center justify-center font-medium transition-all duration-100 select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00F2FE] focus-visible:ring-offset-1 focus-visible:ring-offset-[#080C16]";
 
   const sizeStyles = {
     xs: "h-6 px-2 text-[11px] gap-1 rounded",
     sm: "h-8 px-2.5 text-xs gap-1.5 rounded-md",
-    md: "h-9 px-3.5 text-xs font-medium gap-2 rounded-md",
-    lg: "h-10 px-4 text-sm font-medium gap-2.5 rounded-lg",
+    md: "h-9 px-3.5 text-xs font-semibold gap-2 rounded-md",
+    lg: "h-10 px-4 text-sm font-semibold gap-2.5 rounded-lg",
   };
 
   const iconSizes = {
@@ -48,25 +52,23 @@ export function Button({
     lg: "w-4 h-4",
   };
 
-  const variantStyles = {
-    primary:
-      "bg-violet-600 hover:bg-violet-500 text-white border border-violet-500/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] active:scale-[0.985] active:bg-violet-600",
-    secondary:
-      "bg-[#141722] hover:bg-[#1A1E2C] text-[#F4F6F9] border border-[#1C202F] hover:border-[#2B3248] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] active:scale-[0.985]",
+  const variantStyles: Record<ButtonVariant, string> = {
+    gold: "tactile-button-gold",
+    primary: "tactile-button-gold",
+    turquoise: "tactile-button-turquoise",
+    secondary: "tactile-button-secondary",
+    danger: "tactile-button-danger",
+    destructive: "tactile-button-danger",
     outline:
-      "bg-transparent hover:bg-[#141722] text-[#94A3B8] hover:text-[#F4F6F9] border border-[#1C202F] hover:border-[#2B3248] active:scale-[0.985]",
+      "bg-transparent hover:bg-[#152038] text-[#CBD5E1] hover:text-[#F8FAFC] border border-[#1E2E50] hover:border-[#2A406E] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.3)] active:translate-y-[1px]",
     ghost:
-      "bg-transparent hover:bg-[#141722] text-[#94A3B8] hover:text-[#F4F6F9] border border-transparent active:scale-[0.985]",
-    danger:
-      "bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 hover:border-rose-400/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:scale-[0.985]",
-    destructive:
-      "bg-rose-500/10 hover:bg-rose-500/20 active:bg-rose-500/30 text-rose-300 border border-rose-500/30 shadow-xs active:scale-[0.985]",
+      "bg-transparent hover:bg-[#152038] text-[#94A3B8] hover:text-[#F8FAFC] border border-transparent active:translate-y-[1px]",
     success:
-      "bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 border border-emerald-500/30 hover:border-emerald-400/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:scale-[0.985]",
+      "bg-gradient-to-b from-emerald-500 to-emerald-700 text-slate-950 font-semibold border border-emerald-400 border-t-emerald-300 border-b-emerald-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_0_#064e3b,0_3px_8px_rgba(16,185,129,0.3)] active:translate-y-[1.5px] active:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4),0_0.5px_0_#064e3b]",
     approve:
-      "bg-emerald-500/15 hover:bg-emerald-500/25 active:bg-emerald-500/35 text-emerald-300 border border-emerald-500/35 shadow-xs active:scale-[0.985]",
+      "bg-gradient-to-b from-emerald-500 to-emerald-700 text-slate-950 font-semibold border border-emerald-400 border-t-emerald-300 border-b-emerald-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_0_#064e3b,0_3px_8px_rgba(16,185,129,0.3)] active:translate-y-[1.5px] active:shadow-[inset_0_1px_2px_rgba(0,0,0,0.4),0_0.5px_0_#064e3b]",
     subtle:
-      "bg-[#0F1117] hover:bg-[#141722] text-[#94A3B8] hover:text-[#F4F6F9] border border-[#1C202F] hover:border-[#2B3248] active:scale-[0.985]",
+      "bg-[#0D1527] hover:bg-[#152038] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#1E2E50] hover:border-[#2A406E] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] active:translate-y-[1px]",
   };
 
   return (
@@ -84,7 +86,7 @@ export function Button({
           aria-hidden="true"
         >
           <circle
-            className="opacity-20"
+            className="opacity-25"
             cx="12"
             cy="12"
             r="10"
@@ -108,7 +110,7 @@ export function Button({
       )}
 
       {shortcut && (
-        <kbd className="ml-1 text-[9px] px-1 py-0.5 rounded bg-black/30 border border-white/10 text-white/70 font-mono tracking-tight">
+        <kbd className="ml-1 text-[9px] px-1 py-0.5 rounded bg-black/40 border border-white/15 text-current opacity-85 font-mono tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
           {shortcut}
         </kbd>
       )}

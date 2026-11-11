@@ -24,11 +24,42 @@ import {
   Hash,
   Eye,
   Edit3,
+  Lock,
+  Layers,
+  BookOpen,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { DiffViewer } from "@/components/ui/DiffViewer";
+
+interface FindingItem {
+  id: string;
+  category: string;
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  flaggedText: string;
+  suggestedCorrection: string;
+  explanation: string;
+  claimId?: string;
+  citedExcerpt?: string;
+  doi?: string;
+  assayStandard?: string;
+  confidence?: string;
+  confidenceDecomposition?: {
+    lexicalMatch: number;
+    regulatoryZeroHazard: number;
+    semanticAlignment: number;
+  };
+}
+
+interface RevisionItem {
+  id: string;
+  revisedText: string;
+  reasoning: string;
+  isApplied: boolean;
+  timestamp?: string;
+}
 
 function SubmissionReviewInner({
   params,
@@ -39,18 +70,18 @@ function SubmissionReviewInner({
   const id = resolvedParams.id;
 
   const [submission, setSubmission] = useState<any>(null);
-  const [findings, setFindings] = useState<any[]>([]);
-  const [revisions, setRevisions] = useState<any[]>([]);
+  const [findings, setFindings] = useState<FindingItem[]>([]);
+  const [revisions, setRevisions] = useState<RevisionItem[]>([]);
   const [activeTab, setActiveTab] = useState<"review" | "details" | "history">("review");
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedFindingId, setExpandedFindingId] = useState<string | null>(null);
-  const [activeProvenanceFinding, setActiveProvenanceFinding] = useState<any | null>(null);
+  const [activeProvenanceFinding, setActiveProvenanceFinding] = useState<FindingItem | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editableContent, setEditableContent] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [copiedHash, setCopiedHash] = useState(false);
+  const [copiedProvenance, setCopiedProvenance] = useState(false);
 
   useEffect(() => {
     fetchSubmission();
@@ -90,7 +121,7 @@ function SubmissionReviewInner({
       if (data.success) {
         setSubmission(data.submission);
         setEditableContent(revisedText);
-        setFeedbackMessage("Surgical revision applied. Re-running compliance audit...");
+        setFeedbackMessage("Surgical fix applied to content. Triggering deterministic re-audit...");
 
         // Automatically trigger live re-analysis
         handleReRunAnalysis(revisedText);
@@ -119,7 +150,7 @@ function SubmissionReviewInner({
             complianceScore: data.report.complianceScore,
           }));
         }
-        setFeedbackMessage("Deterministic compliance audit completed!");
+        setFeedbackMessage("Deterministic compliance audit updated with ISO 22196 telemetry.");
         setTimeout(() => setFeedbackMessage(null), 4000);
       }
     } finally {
@@ -136,7 +167,7 @@ function SubmissionReviewInner({
         body: JSON.stringify({
           submissionId: id,
           decision,
-          reviewerName: "Daksh Agrawal",
+          reviewerName: "Daksh Agrawal (Brand Director)",
           notes: `Formal human sign-off: ${decision.toUpperCase()} recorded with ISO-21CFR electronic signature.`,
         }),
       });
@@ -145,8 +176,8 @@ function SubmissionReviewInner({
         setSubmission(data.submission);
         setFeedbackMessage(
           decision === "approved"
-            ? "Submission cleared and signed off for distribution!"
-            : `Submission marked as ${decision.replace("_", " ")}.`
+            ? "Submission formally APPROVED & cleared for distribution!"
+            : `Submission updated: ${decision.replace("_", " ").toUpperCase()}.`
         );
         setTimeout(() => setFeedbackMessage(null), 4000);
       }
@@ -155,19 +186,20 @@ function SubmissionReviewInner({
     }
   };
 
-  const handleCopyHash = async (hash: string) => {
+  const handleCopyCitation = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(hash);
-      setCopiedHash(true);
-      setTimeout(() => setCopiedHash(false), 2000);
+      await navigator.clipboard.writeText(text);
+      setCopiedProvenance(true);
+      setTimeout(() => setCopiedProvenance(false), 2000);
     } catch {}
   };
 
   if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin h-6 w-6 border-2 border-violet-500 border-t-transparent rounded-full" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
+          <div className="animate-spin h-6 w-6 border-2 border-[#00F2FE] border-t-transparent rounded-full" />
+          <div className="font-mono text-xs text-slate-400">LOADING REVIEW WORKSPACE...</div>
         </div>
       </AppLayout>
     );
@@ -192,7 +224,8 @@ function SubmissionReviewInner({
   const activeRevision = revisions.find((r) => !r.isApplied) || revisions[0];
 
   // Decompose text into line numbers
-  const contentLines = (isEditMode ? editableContent : submission.currentContent)
+  const currentDisplayedText = isEditMode ? editableContent : submission.currentContent;
+  const contentLines = currentDisplayedText
     .split("\n")
     .map((line: string, idx: number) => ({
       num: idx + 1,
@@ -207,26 +240,34 @@ function SubmissionReviewInner({
       title="Compliance Review Workspace"
       subtitle={`Auditing submission ${submission.id} against active brand claims.`}
     >
-      <div className="space-y-5">
+      <div className="space-y-6">
         {/* Top Breadcrumb & Human Approval Gate Bar */}
         <div className="space-y-3">
-          <Link
-            href="/submissions"
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>SUBMISSIONS DESK / {submission.id}</span>
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link
+              href="/submissions"
+              className="inline-flex items-center gap-2 text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>SUBMISSIONS DESK / {submission.id}</span>
+            </Link>
 
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-lg bg-[#131622] border border-[#1E2333] shadow-xs">
-            <div className="space-y-1">
+            <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500">
+              <span className="led-indicator led-turquoise" />
+              <span>DETERMINISTIC PRE-FLIGHT ENGINE ACTIVE</span>
+            </div>
+          </div>
+
+          {/* Top Gate Bar with Classic Navy & Brushed Gold accents */}
+          <div className="tactile-card rounded-xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-100">
                   {submission.title}
                 </h1>
-                <Badge variant="metadata" size="xs">
+                <span className="font-mono text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
                   {submission.channel || "SOCIAL REEL"}
-                </Badge>
+                </span>
                 <Badge
                   variant={
                     submission.status === "approved"
@@ -241,22 +282,22 @@ function SubmissionReviewInner({
                 </Badge>
               </div>
 
-              {/* Execution Latency & RLS Telemetry */}
-              <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-slate-500 pt-0.5">
+              {/* Monospace Latency & Provenance Telemetry */}
+              <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-slate-400 pt-0.5">
                 <span>AUTHOR: RIDDHI S.</span>
                 <span>•</span>
                 <span>LATENCY: 384ms</span>
                 <span>•</span>
                 <span>ENGINE: GEMINI-2.5-FLASH</span>
                 <span>•</span>
-                <span className="text-slate-400">
-                  SHA-256: 7f83b1657f...
+                <span className="text-[#E5A93C]">
+                  SHA-256: {submission.id ? `${submission.id.slice(0, 10)}...` : "7f83b165..."}
                 </span>
               </div>
             </div>
 
-            {/* Human Approval Gate Action Buttons */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* Human Approval Gate Buttons */}
+            <div className="flex items-center gap-2.5 shrink-0">
               <Button
                 size="sm"
                 variant="destructive"
@@ -270,9 +311,9 @@ function SubmissionReviewInner({
                 variant="approve"
                 onClick={() => handleApprovalDecision("approved")}
                 loading={actionLoading}
-                icon={<Check className="w-3.5 h-3.5" />}
+                icon={<Check className="w-3.5 h-3.5 text-emerald-300" />}
               >
-                Sign Off & Approve
+                Approve Submission
               </Button>
             </div>
           </div>
@@ -280,51 +321,54 @@ function SubmissionReviewInner({
 
         {/* Feedback Alert Banner */}
         {feedbackMessage && (
-          <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
-            <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
+            <span className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{feedbackMessage}</span>
             </span>
             <button
               onClick={() => setFeedbackMessage(null)}
-              className="text-emerald-400 hover:text-white cursor-pointer"
+              className="text-emerald-400 hover:text-white font-mono text-xs cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              DISMISS
             </button>
           </div>
         )}
 
         {/* Workspace Tab Navigation */}
-        <div className="border-b border-[#1E2333] flex items-center gap-6 text-xs font-mono font-medium">
+        <div className="border-b border-[#1E2B4A] flex items-center gap-6 text-xs font-mono font-medium">
           <button
             onClick={() => setActiveTab("review")}
-            className={`pb-2.5 relative transition-colors cursor-pointer ${
+            className={`pb-3 relative transition-colors cursor-pointer flex items-center gap-2 ${
               activeTab === "review"
                 ? "text-slate-100 font-semibold"
                 : "text-slate-500 hover:text-slate-300"
             }`}
           >
-            01_SURGICAL_REVIEW ({findings.length} FINDINGS)
+            <span>01_SURGICAL_REVIEW</span>
+            <span className="px-1.5 py-0.2 rounded bg-[#111C35] text-[#00F2FE] border border-[#1E2B4A] text-[10px]">
+              {findings.length} FINDINGS
+            </span>
             {activeTab === "review" && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00F2FE] rounded-full" />
             )}
           </button>
           <button
             onClick={() => setActiveTab("details")}
-            className={`pb-2.5 relative transition-colors cursor-pointer ${
+            className={`pb-3 relative transition-colors cursor-pointer ${
               activeTab === "details"
                 ? "text-slate-100 font-semibold"
                 : "text-slate-500 hover:text-slate-300"
             }`}
           >
-            02_METADATA_SPECIFICATION
+            02_REGULATORY_SPECIFICATION
             {activeTab === "details" && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00F2FE] rounded-full" />
             )}
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`pb-2.5 relative transition-colors cursor-pointer ${
+            className={`pb-3 relative transition-colors cursor-pointer ${
               activeTab === "history"
                 ? "text-slate-100 font-semibold"
                 : "text-slate-500 hover:text-slate-300"
@@ -332,7 +376,7 @@ function SubmissionReviewInner({
           >
             03_AUDIT_TRAIL_LEDGER
             {activeTab === "history" && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00F2FE] rounded-full" />
             )}
           </button>
         </div>
@@ -340,62 +384,64 @@ function SubmissionReviewInner({
         {/* TAB 1: DUAL-PANE SURGICAL REVIEW WORKSPACE */}
         {activeTab === "review" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Pane (7 cols): Highlighted Content with Line Numbers & Suggested Revision */}
+            {/* Left Pane (7 cols): Recessed Milled Code/Text Well & Integrated Surgical Diff Box */}
             <div className="lg:col-span-7 space-y-4">
-              {/* Content Box */}
-              <div className="bg-[#131622] border border-[#1E2333] rounded-lg overflow-hidden shadow-xs">
+              {/* Recessed Milled Text Well Container */}
+              <div className="tactile-card rounded-xl overflow-hidden">
                 {/* Header */}
-                <div className="px-4 py-2.5 border-b border-[#1E2333] bg-[#0E1017] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                      Draft Copy Editor
+                <div className="px-4 py-3 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <FileText className="w-4 h-4 text-[#00F2FE]" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-200">
+                      Draft Copy Inspector
                     </span>
                     <span className="text-[10px] font-mono text-slate-500">
-                      {isEditMode ? "(EDITING)" : "(ANNOTATED INSPECTION)"}
+                      {isEditMode ? "(LIVE EDIT MODE)" : "(MILLED WELL ANNOTATION)"}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {/* Live edit toggle */}
                     <button
                       onClick={() => setIsEditMode(!isEditMode)}
-                      className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded bg-[#080C16] hover:bg-[#111C35] border border-[#1E2B4A] text-xs text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer font-mono"
                     >
                       {isEditMode ? (
                         <>
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye className="w-3.5 h-3.5 text-[#00F2FE]" />
                           <span>Annotated View</span>
                         </>
                       ) : (
                         <>
-                          <Edit3 className="w-3.5 h-3.5" />
-                          <span>Edit Text</span>
+                          <Edit3 className="w-3.5 h-3.5 text-[#E5A93C]" />
+                          <span>Live Edit Text</span>
                         </>
                       )}
                     </button>
+
                     <Button
                       size="xs"
                       variant="ghost"
                       onClick={() => handleReRunAnalysis()}
                       loading={analyzing}
-                      icon={<RefreshCw className="w-3 h-3" />}
+                      icon={<RefreshCw className="w-3 h-3 text-[#00F2FE]" />}
                     >
-                      Audit
+                      Re-Audit
                     </Button>
                   </div>
                 </div>
 
-                {/* Content body with line numbers */}
-                <div className="p-0 bg-[#090A10]">
+                {/* Recessed Milled Code Well Body */}
+                <div className="p-0 milled-well">
                   {isEditMode ? (
                     <div className="p-4 space-y-3">
                       <textarea
                         value={editableContent}
                         onChange={(e) => setEditableContent(e.target.value)}
-                        rows={6}
-                        className="w-full bg-[#0E1017] border border-[#1E2333] focus:border-violet-500 focus:outline-none rounded p-3 text-xs text-slate-100 font-mono leading-relaxed resize-none"
+                        rows={7}
+                        className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-3.5 text-xs text-slate-100 font-mono leading-relaxed resize-none"
                       />
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2.5">
                         <Button
                           size="xs"
                           variant="secondary"
@@ -408,31 +454,30 @@ function SubmissionReviewInner({
                         </Button>
                         <Button
                           size="xs"
-                          variant="primary"
+                          className="gold-button"
                           onClick={() => {
                             handleApplyRevision(editableContent);
                             setIsEditMode(false);
                           }}
                         >
-                          Save & Re-Audit
+                          Save &amp; Re-Audit
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex font-mono text-xs leading-relaxed select-text overflow-x-auto">
-                      {/* Line Number Gutter */}
-                      <div className="bg-[#0B0D14] border-r border-[#161925] py-4 px-3 text-[11px] text-slate-600 select-none text-right w-10 shrink-0">
+                      {/* Gutter Line Numbers */}
+                      <div className="bg-[#05080E] border-r border-[#162038] py-4 px-3 text-[11px] text-slate-600 select-none text-right w-11 shrink-0 font-mono tabular-nums">
                         {contentLines.map((line: any) => (
-                          <div key={line.num} className="leading-6">
+                          <div key={line.num} className="leading-7">
                             {String(line.num).padStart(2, "0")}
                           </div>
                         ))}
                       </div>
 
-                      {/* Annotated Content */}
+                      {/* Content with Token Highlights */}
                       <div className="p-4 text-slate-200 flex-1 space-y-1">
                         {contentLines.map((line: any) => {
-                          // Highlight tokens if text matches known flags
                           let renderedText = <>{line.text}</>;
 
                           if (line.text.includes("2x faster results")) {
@@ -441,16 +486,16 @@ function SubmissionReviewInner({
                                 Our new protein blend gives you{" "}
                                 <span
                                   onClick={() => setExpandedFindingId("fnd_001")}
-                                  className="bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded border border-rose-500/40 font-semibold cursor-pointer hover:bg-rose-500/30 transition-colors"
-                                  title="Unverified Multiplier Metric (Click to inspect)"
+                                  className="bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/40 font-semibold cursor-pointer hover:bg-rose-500/30 transition-colors inline-block"
+                                  title="Unverified Multiplier Metric (Click to inspect in findings)"
                                 >
                                   2x faster results
                                 </span>{" "}
                                 and helps build muscle{" "}
                                 <span
                                   onClick={() => setExpandedFindingId("fnd_002")}
-                                  className="bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded border border-amber-500/40 font-semibold cursor-pointer hover:bg-amber-500/30 transition-colors"
-                                  title="Ungrounded Timeframe Claim (Click to inspect)"
+                                  className="bg-[#E5A93C]/20 text-[#F3BA54] px-1.5 py-0.5 rounded border border-[#E5A93C]/40 font-semibold cursor-pointer hover:bg-[#E5A93C]/30 transition-colors inline-block"
+                                  title="Ungrounded Timeframe Claim (Click to inspect in findings)"
                                 >
                                   in just 14 days
                                 </span>
@@ -460,7 +505,7 @@ function SubmissionReviewInner({
                           }
 
                           return (
-                            <div key={line.num} className="leading-6">
+                            <div key={line.num} className="leading-7 font-sans text-[13px] text-slate-200">
                               {renderedText}
                             </div>
                           );
@@ -471,54 +516,71 @@ function SubmissionReviewInner({
                 </div>
 
                 {/* Footer Telemetry */}
-                <div className="px-4 py-2 bg-[#0E1017] border-t border-[#1E2333] flex items-center justify-between text-[11px] font-mono text-slate-500">
+                <div className="px-4 py-2.5 bg-[#0A0F1D] border-t border-[#1E2B4A] flex items-center justify-between text-[11px] font-mono text-slate-500">
                   <div className="flex items-center gap-3">
                     <span>STATUS: {submission.status.toUpperCase()}</span>
                     <span>•</span>
-                    <span>LENGTH: {submission.currentContent.length} CHARS</span>
+                    <span>LENGTH: {submission.currentContent?.length || 0} CHARS</span>
                   </div>
-                  <span className="text-slate-400">
-                    HASH: sha256:{submission.id.substring(0, 10)}...
+                  <span className="text-[#00F2FE]">
+                    HASH: sha256:{submission.id ? submission.id.slice(0, 10) : "7f83b1"}...
                   </span>
                 </div>
               </div>
 
-              {/* Suggested Revision Surgical Diff Box */}
+              {/* Bottom: Integrated Surgical Diff Box with Tactile "Apply Surgical Fix" */}
               {activeRevision && (
-                <div className="bg-[#131622] border border-emerald-500/30 rounded-lg overflow-hidden shadow-xs space-y-0">
-                  <div className="px-4 py-2.5 bg-emerald-500/10 border-b border-emerald-500/25 flex items-center justify-between">
+                <div className="tactile-card rounded-xl overflow-hidden border-emerald-500/40">
+                  <div className="px-4 py-3 bg-emerald-500/10 border-b border-emerald-500/25 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <GitCompare className="w-3.5 h-3.5 text-emerald-400" />
+                      <GitCompare className="w-4 h-4 text-emerald-400" />
                       <span className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
-                        Suggested Compliant Revision
+                        Integrated Surgical Diff Correction
                       </span>
                     </div>
+
                     {activeRevision.isApplied && (
                       <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                        APPLIED TO SUBMISSION
+                        SURGICAL FIX APPLIED
                       </span>
                     )}
                   </div>
 
-                  <div className="p-4 space-y-3 font-mono text-xs">
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">
-                      PROPOSED DETERMINISTIC REVISION:
+                  <div className="p-4 space-y-3.5 font-mono text-xs">
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                      INLINE TOKEN-LEVEL COMPARISON:
                     </div>
 
-                    <div className="p-3 bg-[#090A10] border border-[#1E2333] rounded text-emerald-200 leading-relaxed font-sans">
-                      &ldquo;{activeRevision.revisedText}&rdquo;
+                    {/* Diff Preview: Deletion vs Addition */}
+                    <div className="space-y-2">
+                      {/* Red Deletion Row */}
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30">
+                        <span className="font-mono text-rose-400 font-bold select-none">-</span>
+                        <div className="text-rose-300 line-through decoration-rose-500/60 font-sans text-xs">
+                          {findings[0]?.flaggedText || "2x faster results / in just 14 days"}
+                        </div>
+                      </div>
+
+                      {/* Green Addition Row */}
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/35">
+                        <span className="font-mono text-emerald-400 font-bold select-none">+</span>
+                        <div className="text-emerald-200 font-medium font-sans text-xs">
+                          {activeRevision.revisedText}
+                        </div>
+                      </div>
                     </div>
 
                     <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
                       {activeRevision.reasoning ||
-                        "Eliminates ungrounded multiplier metrics while preserving target engagement and scientific grounding under ISO 22196."}
+                        "Replaces unverified multiplier metrics with substantiated 8-week protein synthesis benchmarks grounded in Clinical Report APX-2024-C3."}
                     </p>
 
-                    <div className="pt-2 flex items-center justify-between">
+                    <div className="pt-2 border-t border-[#1E2B4A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <span className="text-[10px] font-mono text-slate-500">
-                        SOURCE CITATION: CLINICAL STUDY REPORT CS-2025-4A
+                        CITATION: CLINICAL STUDY REPORT CS-2025-4A (ISO 22196)
                       </span>
 
+                      {/* Tactile "Apply Surgical Fix" Button */}
                       <Button
                         size="sm"
                         variant="approve"
@@ -530,7 +592,7 @@ function SubmissionReviewInner({
                         icon={<Check className="w-3.5 h-3.5" />}
                         shortcut="⌘A"
                       >
-                        {activeRevision.isApplied ? "Applied" : "Apply Surgical Fix"}
+                        {activeRevision.isApplied ? "Surgical Fix Active" : "Apply Surgical Fix"}
                       </Button>
                     </div>
                   </div>
@@ -538,13 +600,13 @@ function SubmissionReviewInner({
               )}
             </div>
 
-            {/* Right Pane (5 cols): Review Findings List & Provenance Drawer */}
+            {/* Right Pane (5 cols): Interactive Review Findings Cards & Citation Drawer Links */}
             <div className="lg:col-span-5 space-y-4">
-              {/* Compliance Score Summary Card */}
-              <div className="bg-[#131622] border border-[#1E2333] rounded-lg p-4 space-y-3 shadow-xs">
+              {/* Compliance Verification Score Decomposition Card */}
+              <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    Compliance Verification Score
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-200">
+                    Compliance Score Decomposition
                   </span>
                   <span
                     className={`font-mono text-xl font-bold tabular-nums ${
@@ -555,7 +617,7 @@ function SubmissionReviewInner({
                   </span>
                 </div>
 
-                <div className="w-full h-1.5 bg-[#090A10] rounded-full overflow-hidden border border-[#1E2333]">
+                <div className="w-full h-1.5 bg-[#080C16] rounded-full overflow-hidden border border-[#1E2B4A]">
                   <div
                     className={`h-full transition-all duration-500 ${
                       complianceScore >= 80 ? "bg-emerald-400 w-[94%]" : "bg-rose-500 w-[24%]"
@@ -563,23 +625,35 @@ function SubmissionReviewInner({
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                  <span>GROUNDED INDEX: {complianceScore >= 80 ? "96%" : "28%"}</span>
-                  <span className="text-slate-300">
-                    {complianceScore >= 80 ? "CLEARED" : `${findings.length} ISSUES OPEN`}
-                  </span>
+                {/* Multi-factor Score Breakdown */}
+                <div className="space-y-2 text-[11px] font-mono pt-1">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>1. LEXICAL GROUNDING INDEX</span>
+                    <span className="text-slate-200 font-semibold">{complianceScore >= 80 ? "96%" : "28%"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>2. STATUTORY ZERO-HAZARD</span>
+                    <span className={complianceScore >= 80 ? "text-emerald-400" : "text-rose-400"}>
+                      {complianceScore >= 80 ? "PASS (0 BREACH)" : "FAIL (FTC §255)"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>3. SEMANTIC CORPUS DISTANCE</span>
+                    <span className="text-[#00F2FE]">0.08 (COSINE MATCH)</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Review Findings List */}
-              <div className="bg-[#131622] border border-[#1E2333] rounded-lg overflow-hidden shadow-xs">
-                <div className="px-4 py-2.5 border-b border-[#1E2333] bg-[#0E1017] flex items-center justify-between">
+              {/* Interactive Review Findings List */}
+              <div className="tactile-card rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <AlertOctagon className="w-3.5 h-3.5 text-rose-400" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    <AlertOctagon className="w-4 h-4 text-rose-400" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
                       Audit Findings ({findings.length})
-                    </span>
+                    </h3>
                   </div>
+
                   <Badge variant={findings.length > 0 ? "violation" : "verified"} size="xs">
                     {findings.length > 0 ? "ACTION REQUIRED" : "ALL RESOLVED"}
                   </Badge>
@@ -596,28 +670,26 @@ function SubmissionReviewInner({
                         className={`rounded-lg border transition-all ${
                           isCritical
                             ? "bg-rose-500/10 border-rose-500/30"
-                            : "bg-[#181C2D] border-[#2B3248]"
+                            : "bg-[#0D1527] border-[#1E2B4A]"
                         }`}
                       >
                         {/* Finding Header */}
                         <div
-                          onClick={() =>
-                            setExpandedFindingId(isExpanded ? null : finding.id)
-                          }
-                          className="p-3 flex items-start justify-between gap-2 cursor-pointer select-none"
+                          onClick={() => setExpandedFindingId(isExpanded ? null : finding.id)}
+                          className="p-3.5 flex items-start justify-between gap-2.5 cursor-pointer select-none"
                         >
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               {isCritical ? (
                                 <AlertOctagon className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                               ) : (
-                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                <AlertTriangle className="w-3.5 h-3.5 text-[#E5A93C] shrink-0" />
                               )}
-                              <span className="text-xs font-semibold text-slate-200">
+                              <span className="text-xs font-semibold text-slate-200 font-sans">
                                 {finding.category
                                   ?.replace(/_/g, " ")
                                   .replace(/\b\w/g, (c: string) => c.toUpperCase()) ||
-                                  "Statutory Violation"}
+                                  "Statutory Substantiation Violation"}
                               </span>
                             </div>
                             <div className="text-[11px] font-mono text-slate-400">
@@ -626,6 +698,10 @@ function SubmissionReviewInner({
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Confidence Badge */}
+                            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#111C35] text-cyan-300 border border-[#1E2B4A]">
+                              {finding.confidence || "98% CONF"}
+                            </span>
                             <Badge
                               variant={isCritical ? "violation" : "warning"}
                               size="xs"
@@ -642,33 +718,51 @@ function SubmissionReviewInner({
 
                         {/* Expanded Finding Detail */}
                         {isExpanded && (
-                          <div className="px-3 pb-3 pt-1 border-t border-[#1E2333] space-y-3 text-xs animate-in fade-in">
-                            <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-                              {finding.explanation || finding.message}
+                          <div className="px-3.5 pb-3.5 pt-1 border-t border-[#1E2B4A] space-y-3 text-xs animate-in fade-in">
+                            <p className="text-[12px] text-slate-300 leading-relaxed font-sans">
+                              {finding.explanation}
                             </p>
 
-                            {/* Provenance Document Reference */}
-                            <div className="p-2.5 rounded bg-[#090A10] border border-[#1E2333] space-y-1.5 font-mono text-[11px]">
+                            {/* Provenance Document Link triggering drawer */}
+                            <div className="p-3 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-2 font-mono text-[11px]">
                               <div className="flex items-center justify-between text-slate-400">
                                 <span className="flex items-center gap-1.5">
-                                  <Database className="w-3 h-3 text-cyan-400" />
+                                  <Database className="w-3.5 h-3.5 text-[#00F2FE]" />
                                   <span>CITATION PROVENANCE:</span>
                                 </span>
                                 <span className="text-cyan-300">
                                   {finding.claimId || "CLM-APX-001"}
                                 </span>
                               </div>
-                              <div className="text-slate-300 truncate" title={finding.citedExcerpt || "Clinical Study Report CS-2025-4A"}>
-                                {finding.citedExcerpt ||
-                                  "Mean log reduction at 24h was 2.24 corresponding to 99.42% efficacy (p < 0.001)."}
+
+                              <div className="text-slate-300 font-sans text-xs italic">
+                                &ldquo;{finding.citedExcerpt ||
+                                  "Mean fractional synthetic rate (FSR) showed a 28.4% elevation (p = 0.004) under ISO 22196."}&rdquo;
+                              </div>
+
+                              {/* Button to open Provenance Citation Drawer */}
+                              <div className="pt-1 flex items-center justify-between border-t border-[#162038]">
+                                <span className="text-slate-500 text-[10px]">
+                                  DOI: {finding.doi || "10.1016/j.nutres.2024.108421"}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveProvenanceFinding(finding);
+                                  }}
+                                  className="text-[#00F2FE] hover:underline flex items-center gap-1 text-[11px] font-mono cursor-pointer"
+                                >
+                                  <span>Inspect Full Citation Chain</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </button>
                               </div>
                             </div>
 
-                            {/* Diff Action Inside Finding */}
+                            {/* Surgical correction quick trigger */}
                             {finding.suggestedCorrection && (
                               <div className="pt-1 flex items-center justify-between">
                                 <span className="text-[10px] font-mono text-slate-500">
-                                  CONFIDENCE: {finding.confidence || "98%"} HIGH
+                                  SEVERITY: {finding.severity?.toUpperCase()}
                                 </span>
                                 <Button
                                   size="xs"
@@ -701,34 +795,34 @@ function SubmissionReviewInner({
 
         {/* TAB 2: METADATA & COMPLIANCE SPECIFICATIONS */}
         {activeTab === "details" && (
-          <div className="bg-[#131622] border border-[#1E2333] rounded-lg p-5 space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <div className="tactile-card rounded-xl p-6 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
               Submission Governance Specifications
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
-              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+              <div className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A]">
                 <div className="text-slate-500">SUBMISSION ID</div>
                 <div className="text-slate-200 mt-1">{submission.id}</div>
               </div>
-              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+              <div className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A]">
                 <div className="text-slate-500">BRAND WORKSPACE</div>
                 <div className="text-slate-200 mt-1">Apex Nutrition (brand_apex)</div>
               </div>
-              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
-                <div className="text-slate-500">CHANNEL / CONTEXT</div>
+              <div className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A]">
+                <div className="text-slate-500">CHANNEL / SCOPE</div>
                 <div className="text-slate-200 mt-1">{submission.channel || "Instagram Reel"}</div>
               </div>
-              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+              <div className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A]">
                 <div className="text-slate-500">SUBMITTER</div>
                 <div className="text-slate-200 mt-1">Riddhi S. (Content Specialist)</div>
               </div>
-              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+              <div className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A]">
                 <div className="text-slate-500">COMPLIANCE STANDARD</div>
-                <div className="text-slate-200 mt-1">FTC §255 / FDA 21 CFR Part 11</div>
+                <div className="text-[#E5A93C] mt-1">FTC § 255.2 / FDA 21 CFR Part 11</div>
               </div>
-              <div className="p-3 rounded bg-[#090A10] border border-[#1E2333]">
+              <div className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A]">
                 <div className="text-slate-500">RECORD HASH</div>
-                <div className="text-slate-200 mt-1 truncate">sha256:7f83b1657ff1fc53b92d...</div>
+                <div className="text-cyan-300 mt-1 truncate">sha256:7f83b1657ff1fc53b92d...</div>
               </div>
             </div>
           </div>
@@ -736,15 +830,15 @@ function SubmissionReviewInner({
 
         {/* TAB 3: AUDIT TRAIL LEDGER */}
         {activeTab === "history" && (
-          <div className="bg-[#131622] border border-[#1E2333] rounded-lg p-5 space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <div className="tactile-card rounded-xl p-6 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
               Cryptographic Audit Trail Ledger
             </h3>
             <div className="space-y-3 font-mono text-xs">
               {[
                 {
                   action: "PREFLIGHT_AUDIT_EXECUTION",
-                  by: "Gemini-2.5-Flash (Deterministic)",
+                  by: "Gemini-2.5-Flash (Deterministic Pre-Flight)",
                   time: "10m ago",
                   hash: "sha256:881f...9b12",
                   notes: "Detected 3 statutory claims requiring clinical substantiation.",
@@ -759,11 +853,11 @@ function SubmissionReviewInner({
               ].map((ev, idx) => (
                 <div
                   key={idx}
-                  className="p-3 rounded bg-[#090A10] border border-[#1E2333] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                  className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                      <span className="led-indicator led-turquoise" />
                       <span className="text-slate-200 font-semibold">{ev.action}</span>
                       <span className="text-slate-500">BY {ev.by}</span>
                     </div>
@@ -775,6 +869,108 @@ function SubmissionReviewInner({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Evidence Citation Drawer / Modal Inspector */}
+        {activeProvenanceFinding && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3.5">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-[#00F2FE]" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-100 font-mono">
+                    Provenance Inspector — {activeProvenanceFinding.claimId || "CLM-APX-001"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveProvenanceFinding(null)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4 text-xs font-mono">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">FLAGGED MARKETING CLAIM:</div>
+                  <div className="p-2.5 rounded-lg bg-[#080C16] border border-rose-500/30 text-rose-300 font-sans mt-1">
+                    &ldquo;{activeProvenanceFinding.flaggedText}&rdquo;
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">VERBATIM CLINICAL ASSAY EXCERPT:</div>
+                  <div className="p-3 rounded-lg bg-[#080C16] border border-[#1E2B4A] text-slate-300 font-sans italic mt-1 leading-relaxed">
+                    &ldquo;{activeProvenanceFinding.citedExcerpt ||
+                      "Mean log reduction at 24h was 2.24 corresponding to 99.42% efficacy under ISO 22196:2011 Annex C."}&rdquo;
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-[11px]">
+                  <div className="p-2.5 rounded bg-[#080C16] border border-[#1E2B4A]">
+                    <div className="text-slate-500">GOVERNANCE OWNER:</div>
+                    <div className="text-slate-200 mt-0.5">Dr. Aris Vance (VP Medical)</div>
+                  </div>
+                  <div className="p-2.5 rounded bg-[#080C16] border border-[#1E2B4A]">
+                    <div className="text-slate-500">ASSAY STANDARD:</div>
+                    <div className="text-[#E5A93C] mt-0.5">{activeProvenanceFinding.assayStandard || "ISO 22196 / RCT"}</div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-[#080C16] border border-[#1E2B4A] flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 truncate mr-2">
+                    SHA-256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1a209b...
+                  </span>
+                  <button
+                    onClick={() =>
+                      handleCopyCitation(
+                        `Provenance Claim ${activeProvenanceFinding.claimId}: ${activeProvenanceFinding.citedExcerpt}`
+                      )
+                    }
+                    className="text-[#00F2FE] hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
+                  >
+                    {copiedProvenance ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Citation</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setActiveProvenanceFinding(null)}
+                  >
+                    Close Inspector
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="approve"
+                    onClick={() => {
+                      const phrase = activeProvenanceFinding.flaggedText || "2x faster results";
+                      const updated = submission.currentContent.replace(
+                        phrase,
+                        activeProvenanceFinding.suggestedCorrection
+                      );
+                      handleApplyRevision(updated);
+                      setActiveProvenanceFinding(null);
+                    }}
+                    icon={<Check className="w-3.5 h-3.5" />}
+                  >
+                    Apply Compliant Fix
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -791,7 +987,7 @@ export default function SubmissionReviewPage({
   return (
     <React.Suspense
       fallback={
-        <div className="min-h-screen bg-[#090A10] p-8 text-slate-400 flex items-center justify-center font-mono text-xs">
+        <div className="min-h-screen bg-[#080C16] p-8 text-slate-400 flex items-center justify-center font-mono text-xs">
           LOADING GOVERNANCE WORKSPACE...
         </div>
       }

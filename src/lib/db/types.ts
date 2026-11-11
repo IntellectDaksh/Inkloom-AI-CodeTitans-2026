@@ -76,7 +76,8 @@ export type SubmissionStatus =
   | 'resubmitted'
   | 'approved'
   | 'rejected'
-  | 'archived';
+  | 'archived'
+  | 'needs_re_review';
 
 export type AnalysisStatus = 'queued' | 'running' | 'completed' | 'failed';
 
@@ -97,7 +98,7 @@ export type FindingCategory =
   | 'missing_disclosure'
   | 'out_of_scope';
 
-export type FindingStatus = 'open' | 'resolved' | 'disputed' | 'ignored';
+export type FindingStatus = 'open' | 'resolved' | 'disputed' | 'ignored' | 'dismissed' | 'overridden';
 
 export type EvidenceMatchType =
   | 'direct_contradiction'
@@ -134,6 +135,10 @@ export type AuditEventAction =
   | 'approved'
   | 'rejected'
   | 'disputed'
+  | 'dismissed'
+  | 'overridden'
+  | 'cascade_re_review'
+  | 're_reviewed'
   | 'exported'
   | 'archived';
 
@@ -143,7 +148,9 @@ export type NotificationType =
   | 'changes_requested'
   | 'claim_expiring'
   | 'approval_granted'
-  | 'finding_disputed';
+  | 'finding_disputed'
+  | 'finding_overridden'
+  | 'cascade_re_review';
 
 // ============================================================================
 // CORE ENTITY INTERFACES (Matching Database Schema)
@@ -262,6 +269,7 @@ export interface ApprovedClaim {
   expires_at?: string | null;
   verified_by?: string | null;
   embedding?: number[] | null;
+  dependent_submission_ids?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -406,6 +414,10 @@ export interface Finding {
   character_end?: number | null;
   rule_ref?: string | null;
   status: FindingStatus;
+  override_memo?: string | null;
+  overridden_by?: string | null;
+  dismissal_reason?: string | null;
+  dismissed_by?: string | null;
   created_at: string;
   updated_at: string;
 
@@ -538,6 +550,7 @@ export interface ApprovedClaimWithEvidence extends ApprovedClaim {
   verifier?: UserProfile | null;
   is_expiring_soon?: boolean;
   days_until_expiry?: number | null;
+  dependent_submissions?: Submission[];
 }
 
 export interface FindingWithDetails extends Finding {

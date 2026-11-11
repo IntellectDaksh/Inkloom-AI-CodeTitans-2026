@@ -1,69 +1,106 @@
 @import "tailwindcss";
 
 @theme {
-  /* Carbon Surface Hierarchy */
-  --color-canvas: #090a10;
-  --color-frame: #0e1017;
-  --color-panel: #131622;
-  --color-panel-hover: #171b2b;
-  --color-panel-elevated: #181c2d;
+  /* Swiss Navy Obsidian Canvas */
+  --color-canvas-deep: #080C16;
+  --color-canvas: #0D1527;
+  --color-canvas-elevated: #121D36;
 
-  /* Hairline Borders */
-  --color-border-subtle: #161925;
-  --color-border-default: #1e2333;
-  --color-border-strong: #2b3248;
-  --color-border-focus: #7c3aed;
+  /* Machined Slate-Navy Surface Hierarchy */
+  --color-frame: #0D1527;
+  --color-panel: #152038;
+  --color-panel-hover: #1A2846;
+  --color-panel-elevated: #203155;
 
-  /* Typography */
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+  /* Machined Slate-Navy Borders */
+  --color-border-subtle: #16223B;
+  --color-border-default: #1E2E50;
+  --color-border-strong: #2A406E;
+  --color-border-highlight: #3B5A96;
+  --color-border-focus: #00F2FE;
+
+  /* Accent 1: Tactile Brushed Gold */
+  --color-gold-100: #FEF3C7;
+  --color-gold-200: #FDE68A;
+  --color-gold-300: #FCD34D;
+  --color-gold-400: #FBBF24;
+  --color-gold-500: #E5A93C;
+  --color-gold-600: #D97706;
+  --color-gold-700: #B45309;
+  --color-gold-800: #92400E;
+  --color-gold-900: #78350F;
+
+  /* Accent 2: Electric Luminous Turquoise */
+  --color-turquoise-100: #CFFAFE;
+  --color-turquoise-200: #A5F3FC;
+  --color-turquoise-300: #67E8F9;
+  --color-turquoise-400: #22D3EE;
+  --color-turquoise-500: #06B6D4;
+  --color-turquoise-600: #0891B2;
+  --color-turquoise-700: #0E7490;
+  --color-turquoise-glow: #00F2FE;
 
   /* Semantic Compliance Accents */
-  --color-semantic-emerald: #10b981;
-  --color-semantic-amber: #f59e0b;
-  --color-semantic-rose: #f43f5e;
-  --color-semantic-cyan: #06b6d4;
-  --color-brand-violet: #7c3aed;
-  --color-brand-violet-hover: #6d28d9;
+  --color-semantic-emerald: #10B981;
+  --color-semantic-amber: #F59E0B;
+  --color-semantic-rose: #F43F5E;
+  --color-semantic-cyan: #06B6D4;
+  --color-semantic-gold: #E5A93C;
+  --color-brand-violet: #7C3AED;
 
-  /* Backward compatibility tokens */
-  --color-carbon-bg: #090a10;
-  --color-carbon-surface: #0e1017;
-  --color-carbon-elevated: #131622;
-  --color-carbon-border: #1e2333;
-  --color-carbon-border-hover: #2b3248;
-  --color-carbon-text-primary: #f1f5f9;
-  --color-carbon-text-secondary: #94a3b8;
-  --color-carbon-text-muted: #64748b;
-  --color-dark-bg: #090a10;
-  --color-dark-surface: #0e1017;
-  --color-dark-card: #131622;
-  --color-dark-card-hover: #171b2b;
-  --color-dark-border: #1e2333;
-  --color-dark-border-hover: #2b3248;
+  /* Typography */
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted: #94A3B8;
+  --color-text-dim: #64748B;
+
+  /* Backward Compatibility Tokens */
+  --color-carbon-bg: #080C16;
+  --color-carbon-surface: #0D1527;
+  --color-carbon-elevated: #152038;
+  --color-carbon-border: #1E2E50;
+  --color-carbon-border-hover: #2A406E;
+  --color-carbon-text-primary: #F8FAFC;
+  --color-carbon-text-secondary: #CBD5E1;
+  --color-carbon-text-muted: #94A3B8;
+  --color-dark-bg: #080C16;
+  --color-dark-surface: #0D1527;
+  --color-dark-card: #152038;
+  --color-dark-card-hover: #1A2846;
+  --color-dark-border: #1E2E50;
+  --color-dark-border-hover: #2A406E;
+  --color-navy-deep: #080C16;
+  --color-navy-carbon: #0D1527;
+  --color-navy-surface: #152038;
+  --color-navy-border: #1E2E50;
+  --color-navy-border-hover: #2A406E;
+  --color-gold-brushed: #E5A93C;
+  --color-gold-hover: #FBBF24;
+  --color-turquoise-led: #00F2FE;
 }
 
 :root {
-  --background: #090a10;
-  --foreground: #f1f5f9;
-  --bg-primary: #090a10;
-  --bg-surface: #0e1017;
-  --bg-elevated: #131622;
-  --border-subtle: #161925;
-  --border-default: #1e2333;
-  --border-hover: #2b3248;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --background: #080C16;
+  --foreground: #F8FAFC;
+  --bg-primary: #080C16;
+  --bg-surface: #0D1527;
+  --bg-elevated: #152038;
+  --border-subtle: #16223B;
+  --border-default: #1E2E50;
+  --border-hover: #2A406E;
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --gold-accent: #E5A93C;
+  --turquoise-accent: #00F2FE;
   color-scheme: dark;
 }
 
 body {
-  background-color: #090a10;
-  color: #f1f5f9;
+  background-color: #080C16;
+  color: #F8FAFC;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
   min-height: 100vh;
   overflow-x: hidden;
   text-rendering: optimizeLegibility;
@@ -71,10 +108,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Micro-precision Scrollbars */
+/* Tabular Numerals for Swiss Precision */
+.tabular-nums,
+[data-tabular-nums="true"] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Micro-precision Machined Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1e2333 transparent;
+  scrollbar-color: #1E2E50 transparent;
 }
 
 ::-webkit-scrollbar {
@@ -83,16 +127,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #090a10;
+  background: #080C16;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e2333;
+  background: #1E2E50;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2b3248;
+  background: #2A406E;
 }
 
 /* Tactile Keycaps (kbd) */
@@ -106,63 +150,457 @@ kbd,
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
-  color: #94a3b8;
-  background: #161925;
-  border: 1px solid #2b3248;
-  border-bottom: 2px solid #161925;
+  color: #CBD5E1;
+  background: linear-gradient(180deg, #1A2846 0%, #152038 100%);
+  border: 1px solid #2A406E;
+  border-bottom: 2px solid #0D1527;
   border-radius: 4px;
-  padding: 2px 5px;
+  padding: 2.5px 6px;
   letter-spacing: 0.04em;
   user-select: none;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Hair-line Border Utilities */
-.border-hairline {
-  border: 1px solid #1e2333;
+/* ========================================================================= */
+/* 1. NEO-SKEUOMORPHIC TACTILE BUTTONS                                       */
+/* ========================================================================= */
+
+/* Brushed Gold Tactile Button */
+.tactile-button-gold {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #FBBF24 0%, #E5A93C 52%, #D97706 100%);
+  color: #080C16;
+  font-weight: 700;
+  border: 1px solid #D97706;
+  border-top-color: #FDE68A;
+  border-bottom-color: #92400E;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 0 #92400E,
+    0 4px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+  user-select: none;
+  cursor: pointer;
 }
 
-.border-hairline-t {
-  border-top: 1px solid #1e2333;
+.tactile-button-gold:hover:not(:disabled) {
+  filter: brightness(1.05);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 0 #92400E,
+    0 6px 14px rgba(229, 169, 60, 0.35);
 }
 
-.border-hairline-b {
-  border-bottom: 1px solid #1e2333;
+.tactile-button-gold:active:not(:disabled) {
+  transform: translateY(1.5px);
+  box-shadow: 
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    0 0.5px 0 #92400E,
+    0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
-.border-hairline-l {
-  border-left: 1px solid #1e2333;
+.tactile-button-gold:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
-.border-hairline-r {
-  border-right: 1px solid #1e2333;
+/* Electric Luminous Turquoise Tactile Button */
+.tactile-button-turquoise {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #22D3EE 0%, #06B6D4 52%, #0891B2 100%);
+  color: #080C16;
+  font-weight: 700;
+  border: 1px solid #06B6D4;
+  border-top-color: #CFFAFE;
+  border-bottom-color: #0E7490;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 0 #0E7490,
+    0 4px 12px rgba(0, 242, 254, 0.3);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+  user-select: none;
+  cursor: pointer;
 }
 
-/* Carbon Surface Classes */
+.tactile-button-turquoise:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 2px 0 #0E7490,
+    0 6px 16px rgba(0, 242, 254, 0.45);
+}
+
+.tactile-button-turquoise:active:not(:disabled) {
+  transform: translateY(1.5px);
+  box-shadow: 
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    0 0.5px 0 #0E7490,
+    0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.tactile-button-turquoise:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Machined Slate-Navy Secondary Tactile Button */
+.tactile-button-secondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #1C2B4A 0%, #15223C 100%);
+  color: #F8FAFC;
+  font-weight: 600;
+  border: 1px solid #2A406E;
+  border-top-color: #3B5A96;
+  border-bottom-color: #121D36;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 0 #0D1527,
+    0 3px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease, border-color 0.12s ease;
+  user-select: none;
+  cursor: pointer;
+}
+
+.tactile-button-secondary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #22345A 0%, #192948 100%);
+  border-color: #3B5A96;
+  color: #FFFFFF;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 0 #0D1527,
+    0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+.tactile-button-secondary:active:not(:disabled) {
+  transform: translateY(1.5px);
+  box-shadow: 
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0.5px 0 #0D1527;
+}
+
+.tactile-button-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Danger / Critical Red Tactile Button */
+.tactile-button-danger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #E11D48 0%, #BE123C 52%, #9F1239 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  border: 1px solid #BE123C;
+  border-top-color: #FDA4AF;
+  border-bottom-color: #881337;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 2px 0 #881337,
+    0 3px 8px rgba(225, 29, 72, 0.35);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  cursor: pointer;
+}
+
+.tactile-button-danger:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.tactile-button-danger:active:not(:disabled) {
+  transform: translateY(1.5px);
+  box-shadow: 
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 0.5px 0 #881337;
+}
+
+/* ========================================================================= */
+/* 2. RECESSED / MILLED WELLS (Inputs, Code, Diff Areas)                     */
+/* ========================================================================= */
+
+.recessed-well {
+  background-color: #080C16;
+  border: 1px solid #1E2E50;
+  border-top-color: #16223B;
+  border-bottom-color: #2A406E;
+  border-radius: 8px;
+  box-shadow: 
+    inset 0 2px 5px rgba(0, 0, 0, 0.75),
+    inset 0 0 1px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.recessed-well-sm {
+  background-color: #080C16;
+  border: 1px solid #1E2E50;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.65),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.recessed-well-code {
+  background-color: #060A12;
+  border: 1px solid #1A2846;
+  box-shadow: 
+    inset 0 2px 6px rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(255, 255, 255, 0.03);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ========================================================================= */
+/* 3. MACHINED TACTILE CARDS                                                 */
+/* ========================================================================= */
+
+.tactile-card {
+  background: linear-gradient(180deg, #152038 0%, #0F172A 100%);
+  border: 1px solid #1E2E50;
+  border-top-color: #2A406E;
+  border-radius: 12px;
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.tactile-card-interactive {
+  background: linear-gradient(180deg, #152038 0%, #0F172A 100%);
+  border: 1px solid #1E2E50;
+  border-top-color: #2A406E;
+  border-radius: 12px;
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+  cursor: pointer;
+}
+
+.tactile-card-interactive:hover {
+  border-color: #2A406E;
+  border-top-color: #3B5A96;
+  background: linear-gradient(180deg, #1A2846 0%, #121D36 100%);
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    0 6px 20px rgba(0, 0, 0, 0.55);
+}
+
+.tactile-card-elevated {
+  background: linear-gradient(180deg, #1A2846 0%, #152038 100%);
+  border: 1px solid #2A406E;
+  border-top-color: #3B5A96;
+  border-radius: 12px;
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+.tactile-card-gold {
+  background: linear-gradient(180deg, #182236 0%, #121B2D 100%);
+  border: 1px solid #E5A93C/30;
+  border-top-color: #FBBF24/60;
+  box-shadow: 
+    inset 0 1px 0 0 rgba(251, 191, 36, 0.2),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.tactile-card-turquoise {
+  background: linear-gradient(180deg, #132238 0%, #0E1B2E 100%);
+  border: 1px solid #06B6D4/30;
+  border-top-color: #22D3EE/60;
+  box-shadow: 
+    inset 0 1px 0 0 rgba(34, 211, 238, 0.2),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* ========================================================================= */
+/* 4. REALISTIC HARDWARE STATUS LEDS WITH GLASS LENS REFLECTION              */
+/* ========================================================================= */
+
+.hardware-led {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  box-shadow: 
+    0 0 0 1px #080C16,
+    0 0 0 1.5px #1E2E50;
+}
+
+/* Glass lens reflection dot */
+.hardware-led::after {
+  content: "";
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 32%;
+  height: 32%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.hardware-led-turquoise {
+  background-color: #00F2FE;
+  box-shadow: 
+    0 0 0 1px #080C16,
+    0 0 0 1.5px #1E2E50,
+    0 0 8px #00F2FE,
+    0 0 16px rgba(0, 242, 254, 0.45);
+}
+
+.hardware-led-emerald {
+  background-color: #10B981;
+  box-shadow: 
+    0 0 0 1px #080C16,
+    0 0 0 1.5px #1E2E50,
+    0 0 8px #10B981,
+    0 0 14px rgba(16, 185, 129, 0.4);
+}
+
+.hardware-led-gold {
+  background-color: #FBBF24;
+  box-shadow: 
+    0 0 0 1px #080C16,
+    0 0 0 1.5px #1E2E50,
+    0 0 8px #FBBF24,
+    0 0 14px rgba(251, 191, 36, 0.5);
+}
+
+.hardware-led-amber {
+  background-color: #F59E0B;
+  box-shadow: 
+    0 0 0 1px #080C16,
+    0 0 0 1.5px #1E2E50,
+    0 0 8px #F59E0B,
+    0 0 14px rgba(245, 158, 11, 0.45);
+}
+
+.hardware-led-rose {
+  background-color: #F43F5E;
+  box-shadow: 
+    0 0 0 1px #080C16,
+    0 0 0 1.5px #1E2E50,
+    0 0 8px #F43F5E,
+    0 0 14px rgba(244, 63, 94, 0.5);
+}
+
+.hardware-led-blue {
+  background-color: #38BDF8;
+  box-shadow: 
+    0 0 0 1px #080C16,
+    0 0 0 1.5px #1E2E50,
+    0 0 8px #38BDF8,
+    0 0 14px rgba(56, 189, 248, 0.45);
+}
+
+/* ========================================================================= */
+/* 5. SWISS GEOMETRIC GRID & TYPOGRAPHY HELPERS                              */
+/* ========================================================================= */
+
+.swiss-label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #94A3B8;
+  user-select: none;
+}
+
+.swiss-header {
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: #F8FAFC;
+}
+
+.swiss-grid {
+  display: grid;
+  gap: 1px;
+  background-color: #1E2E50;
+  border: 1px solid #1E2E50;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.swiss-grid > * {
+  background-color: #0D1527;
+}
+
+.milled-bevel {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Hairline borders */
+.border-machined {
+  border: 1px solid #1E2E50;
+}
+
+.border-machined-t {
+  border-top: 1px solid #1E2E50;
+}
+
+.border-machined-b {
+  border-bottom: 1px solid #1E2E50;
+}
+
+.border-machined-l {
+  border-left: 1px solid #1E2E50;
+}
+
+.border-machined-r {
+  border-right: 1px solid #1E2E50;
+}
+
+/* Backward compatibility classes */
 .carbon-card {
-  background-color: #131622;
-  border: 1px solid #1e2333;
+  background-color: #152038;
+  border: 1px solid #1E2E50;
 }
 
 .carbon-card-interactive {
-  background-color: #131622;
-  border: 1px solid #1e2333;
+  background-color: #152038;
+  border: 1px solid #1E2E50;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .carbon-card-interactive:hover {
-  border-color: #2b3248;
-  background-color: #171b2b;
+  border-color: #2A406E;
+  background-color: #1A2846;
 }
 
 .carbon-elevated {
-  background-color: #181c2d;
-  border: 1px solid #2b3248;
+  background-color: #1A2846;
+  border: 1px solid #2A406E;
 }
 
-/* High-Craft Tactile Bevel */
 .linear-bevel {
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 .linear-bevel-violet {
@@ -170,5 +608,108 @@ kbd,
 }
 
 .inset-highlight {
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.border-hairline {
+  border: 1px solid #1E2E50;
+}
+
+.border-hairline-t {
+  border-top: 1px solid #1E2E50;
+}
+
+.border-hairline-b {
+  border-bottom: 1px solid #1E2E50;
+}
+
+.border-hairline-l {
+  border-left: 1px solid #1E2E50;
+}
+
+.border-hairline-r {
+  border-right: 1px solid #1E2E50;
+}
+
+.milled-well {
+  background-color: #080C16;
+  border: 1px solid #1E2E50;
+  box-shadow: inset 0 2px 6px 0 rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.gold-badge {
+  background-color: rgba(229, 169, 60, 0.12);
+  color: #FBBF24;
+  border: 1px solid rgba(229, 169, 60, 0.35);
+  box-shadow: inset 0 1px 0 0 rgba(229, 169, 60, 0.18);
+}
+
+.gold-button {
+  background: linear-gradient(180deg, #FBBF24 0%, #E5A93C 52%, #D97706 100%);
+  color: #080C16;
+  font-weight: 700;
+  border: 1px solid #D97706;
+  border-top-color: #FDE68A;
+  border-bottom-color: #92400E;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 0 #92400E,
+    0 4px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.08s ease, filter 0.12s ease;
+}
+
+.gold-button:hover {
+  filter: brightness(1.05);
+}
+
+.gold-button:active {
+  transform: translateY(1.5px);
+}
+
+.led-indicator {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px #080C16, 0 0 0 1.5px #1E2E50;
+}
+
+.led-indicator::after {
+  content: "";
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 32%;
+  height: 32%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.led-turquoise {
+  background-color: #00F2FE;
+  box-shadow: 0 0 0 1px #080C16, 0 0 0 1.5px #1E2E50, 0 0 8px #00F2FE, 0 0 16px rgba(0, 242, 254, 0.45);
+}
+
+.led-emerald {
+  background-color: #10B981;
+  box-shadow: 0 0 0 1px #080C16, 0 0 0 1.5px #1E2E50, 0 0 8px #10B981, 0 0 14px rgba(16, 185, 129, 0.4);
+}
+
+.led-amber {
+  background-color: #F59E0B;
+  box-shadow: 0 0 0 1px #080C16, 0 0 0 1.5px #1E2E50, 0 0 8px #F59E0B, 0 0 14px rgba(245, 158, 11, 0.45);
+}
+
+.led-gold {
+  background-color: #FBBF24;
+  box-shadow: 0 0 0 1px #080C16, 0 0 0 1.5px #1E2E50, 0 0 8px #FBBF24, 0 0 14px rgba(251, 191, 36, 0.5);
+}
+
+.led-rose {
+  background-color: #F43F5E;
+  box-shadow: 0 0 0 1px #080C16, 0 0 0 1.5px #1E2E50, 0 0 8px #F43F5E, 0 0 14px rgba(244, 63, 94, 0.5);
 }

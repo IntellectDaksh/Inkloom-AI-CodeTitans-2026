@@ -24,7 +24,9 @@ export type BadgeVariant =
   | "violet"
   | "slate"
   | "cyan"
-  | "blue";
+  | "blue"
+  | "gold"
+  | "turquoise";
 
 export type DotColor =
   | "emerald"
@@ -33,7 +35,9 @@ export type DotColor =
   | "violet"
   | "slate"
   | "cyan"
-  | "blue";
+  | "blue"
+  | "gold"
+  | "turquoise";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
@@ -58,36 +62,68 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const sizeClasses = {
-    xs: "px-1.5 py-0.2 text-[10px] gap-1",
+    xs: "px-1.5 py-0.5 text-[10px] gap-1",
     sm: "px-2 py-0.5 text-[11px] gap-1.5",
-    md: "px-2.5 py-1 text-xs gap-1.5 font-medium",
+    md: "px-2.5 py-1 text-xs gap-1.5 font-semibold",
   };
 
   const variantStyles: Record<BadgeVariant, string> = {
-    critical: "bg-rose-500/10 text-rose-300 border border-rose-500/25",
-    high: "bg-rose-500/10 text-rose-300 border border-rose-500/25",
-    medium: "bg-amber-500/10 text-amber-300 border border-amber-500/25",
-    low: "bg-blue-500/10 text-blue-300 border border-blue-500/25",
-    info: "bg-slate-800/40 text-slate-300 border border-slate-700/40",
-    approved: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25",
-    pending: "bg-violet-500/10 text-violet-300 border border-violet-500/25",
-    changes_requested: "bg-amber-500/10 text-amber-300 border border-amber-500/25",
-    rejected: "bg-rose-500/10 text-rose-300 border border-rose-500/25",
-    draft: "bg-[#141722] text-slate-400 border border-[#2B3248]",
-    tag: "bg-[#141722] text-slate-300 border border-[#1E2333]",
-    neutral: "bg-[#141722] text-slate-300 border border-[#1E2333]",
-    success: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25",
-    warning: "bg-amber-500/10 text-amber-300 border border-amber-500/25",
-    verified: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25",
-    violation: "bg-rose-500/10 text-rose-300 border border-rose-500/25",
-    metadata: "bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 font-mono",
-    emerald: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25",
-    amber: "bg-amber-500/10 text-amber-300 border border-amber-500/25",
-    rose: "bg-rose-500/10 text-rose-300 border border-rose-500/25",
-    violet: "bg-violet-500/10 text-violet-300 border border-violet-500/25",
-    slate: "bg-slate-800/40 text-slate-300 border border-slate-700/40",
-    cyan: "bg-cyan-500/10 text-cyan-300 border border-cyan-500/25",
-    blue: "bg-blue-500/10 text-blue-300 border border-blue-500/25",
+    // Verified Claim / Telemetry
+    verified:
+      "bg-[#00F2FE]/10 text-[#00F2FE] border border-[#00F2FE]/30 shadow-[inset_0_1px_0_rgba(0,242,254,0.15)]",
+    turquoise:
+      "bg-[#00F2FE]/10 text-[#00F2FE] border border-[#00F2FE]/30 shadow-[inset_0_1px_0_rgba(0,242,254,0.15)]",
+    cyan:
+      "bg-[#06B6D4]/10 text-[#22D3EE] border border-[#06B6D4]/30 shadow-[inset_0_1px_0_rgba(6,182,212,0.15)]",
+
+    // Brushed Gold / Executive
+    gold:
+      "bg-[#E5A93C]/12 text-[#FBBF24] border border-[#E5A93C]/35 shadow-[inset_0_1px_0_rgba(251,191,36,0.2)]",
+
+    // Violations / Critical
+    critical:
+      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
+    high:
+      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
+    violation:
+      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
+    rejected:
+      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
+    rose:
+      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
+
+    // Approvals / Success
+    approved:
+      "bg-emerald-950/40 text-emerald-300 border border-emerald-500/35 shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+    success:
+      "bg-emerald-950/40 text-emerald-300 border border-emerald-500/35 shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+    emerald:
+      "bg-emerald-950/40 text-emerald-300 border border-emerald-500/35 shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+
+    // Warnings / Pending
+    medium:
+      "bg-amber-950/40 text-amber-300 border border-amber-500/35 shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+    warning:
+      "bg-amber-950/40 text-amber-300 border border-amber-500/35 shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+    changes_requested:
+      "bg-amber-950/40 text-amber-300 border border-amber-500/35 shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+    amber:
+      "bg-amber-950/40 text-amber-300 border border-amber-500/35 shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+    pending:
+      "bg-[#E5A93C]/12 text-[#FBBF24] border border-[#E5A93C]/35 shadow-[inset_0_1px_0_rgba(251,191,36,0.15)]",
+
+    // Info / Neutral / Machined
+    low: "bg-[#152038] text-sky-300 border border-[#2A406E] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    info: "bg-[#152038] text-[#CBD5E1] border border-[#1E2E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    draft: "bg-[#0D1527] text-[#94A3B8] border border-[#1E2E50]",
+    tag: "bg-[#152038] text-[#CBD5E1] border border-[#1E2E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    neutral: "bg-[#152038] text-[#CBD5E1] border border-[#1E2E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    slate: "bg-[#152038] text-[#CBD5E1] border border-[#1E2E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    blue: "bg-[#152038] text-sky-300 border border-[#2A406E] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    violet:
+      "bg-indigo-950/40 text-indigo-300 border border-indigo-500/30 shadow-[inset_0_1px_0_rgba(99,102,241,0.15)]",
+    metadata:
+      "bg-[#0D1527] text-[#22D3EE] border border-[#1E2E50] font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
   };
 
   const defaultDotColorMap: Record<BadgeVariant, DotColor> = {
@@ -97,7 +133,7 @@ export function Badge({
     low: "blue",
     info: "slate",
     approved: "emerald",
-    pending: "violet",
+    pending: "gold",
     changes_requested: "amber",
     rejected: "rose",
     draft: "slate",
@@ -105,47 +141,61 @@ export function Badge({
     neutral: "slate",
     success: "emerald",
     warning: "amber",
-    verified: "emerald",
+    verified: "turquoise",
     violation: "rose",
-    metadata: "cyan",
+    metadata: "turquoise",
     emerald: "emerald",
     amber: "amber",
     rose: "rose",
     violet: "violet",
     slate: "slate",
-    cyan: "cyan",
+    cyan: "turquoise",
     blue: "blue",
+    gold: "gold",
+    turquoise: "turquoise",
   };
 
-  const dotColorClasses: Record<DotColor, string> = {
+  const hardwareLedClasses: Record<DotColor, string> = {
+    emerald: "hardware-led hardware-led-emerald",
+    amber: "hardware-led hardware-led-amber",
+    rose: "hardware-led hardware-led-rose",
+    violet: "hardware-led hardware-led-blue",
+    slate: "hardware-led bg-slate-400",
+    cyan: "hardware-led hardware-led-turquoise",
+    blue: "hardware-led hardware-led-blue",
+    gold: "hardware-led hardware-led-gold",
+    turquoise: "hardware-led hardware-led-turquoise",
+  };
+
+  const pingColorClasses: Record<DotColor, string> = {
     emerald: "bg-emerald-400",
     amber: "bg-amber-400",
     rose: "bg-rose-400",
-    violet: "bg-violet-400",
+    violet: "bg-indigo-400",
     slate: "bg-slate-400",
     cyan: "bg-cyan-400",
-    blue: "bg-blue-400",
+    blue: "bg-sky-400",
+    gold: "bg-amber-300",
+    turquoise: "bg-[#00F2FE]",
   };
 
   const activeDotColor = dotColor || defaultDotColorMap[variant] || "slate";
 
   return (
     <span
-      className={`inline-flex items-center font-medium rounded select-none leading-none ${
-        mono || variant === "metadata" ? "font-mono tracking-tight" : "font-sans"
+      className={`inline-flex items-center font-medium rounded select-none leading-none tracking-tight ${
+        mono || variant === "metadata" ? "font-mono tracking-normal tabular-nums" : "font-sans"
       } ${sizeClasses[size]} ${variantStyles[variant]} ${className}`}
       {...props}
     >
       {dot && (
-        <span className="relative flex h-1.5 w-1.5 items-center justify-center shrink-0">
+        <span className="relative flex items-center justify-center shrink-0">
           {pulse && (
             <span
-              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${dotColorClasses[activeDotColor]}`}
+              className={`animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full opacity-60 ${pingColorClasses[activeDotColor]}`}
             />
           )}
-          <span
-            className={`relative inline-flex rounded-full h-1.5 w-1.5 ${dotColorClasses[activeDotColor]}`}
-          />
+          <span className={hardwareLedClasses[activeDotColor]} />
         </span>
       )}
       {children}

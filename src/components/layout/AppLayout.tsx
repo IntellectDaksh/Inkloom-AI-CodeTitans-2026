@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header, HeaderBreadcrumb } from "./Header";
 import { CommandK } from "../ui/CommandK";
@@ -28,20 +28,18 @@ export function AppLayout({
   fullWidth = false,
   className = "",
 }: AppLayoutProps) {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isCommandKOpen, setIsCommandKOpen] = useState(false);
-
-  // Load sidebar preference from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("inkloom:sidebar-collapsed");
-      if (saved !== null) {
-        setIsSidebarCollapsed(saved === "true");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("inkloom:sidebar-collapsed") === "true";
+      } catch {
+        return false;
       }
-    } catch {
-      // Ignore
     }
-  }, []);
+    return false;
+  });
+
+  const [isCommandKOpen, setIsCommandKOpen] = useState(false);
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -56,22 +54,22 @@ export function AppLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-[#090A10] text-[#F4F6F9] selection:bg-violet-900/60 selection:text-white">
+    <div className="flex min-h-screen bg-[#080C16] text-[#F8FAFC] selection:bg-[#00F2FE]/30 selection:text-white">
       {/* Global CommandK Quick Switcher Dialog */}
       <CommandK
         isOpen={isCommandKOpen}
         onClose={() => setIsCommandKOpen(false)}
       />
 
-      {/* Left Collapsible Enterprise Sidebar */}
+      {/* Left Collapsible Enterprise Swiss Sidebar */}
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
         orgName={currentBrand}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Swiss Content Shell */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#080C16]">
         <Header
           title={title}
           subtitle={subtitle}
@@ -83,7 +81,7 @@ export function AppLayout({
         />
 
         <main
-          className={`flex-1 p-5 sm:p-6 lg:p-8 w-full ${
+          className={`flex-1 p-6 sm:p-8 lg:p-10 w-full ${
             fullWidth ? "max-w-none" : "max-w-7xl mx-auto"
           } ${className}`}
         >

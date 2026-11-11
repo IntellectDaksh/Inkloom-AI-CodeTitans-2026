@@ -20,6 +20,9 @@ import {
   Database,
   Activity,
   FileText,
+  Download,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -27,12 +30,13 @@ import { Button } from "@/components/ui/Button";
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d");
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   const severityBreakdown = [
     { label: "Critical Statutory Violations", count: 2, percentage: 7, color: "bg-rose-500", standard: "FTC § 255 / FDA" },
-    { label: "High Risk Claims (Ungrounded)", count: 8, percentage: 29, color: "bg-rose-400", standard: "NAD Substantiation" },
-    { label: "Medium Warnings (Disclaimers)", count: 12, percentage: 43, color: "bg-amber-400", standard: "DSHEA § 403(r)" },
-    { label: "Low (Tone & Style Deviations)", count: 6, percentage: 21, color: "bg-cyan-400", standard: "Brand Voice Guide" },
+    { label: "High Risk Claims (Ungrounded)", count: 8, percentage: 29, color: "bg-[#E5A93C]", standard: "NAD Substantiation" },
+    { label: "Medium Warnings (Disclaimers)", count: 12, percentage: 43, color: "bg-[#00F2FE]", standard: "DSHEA § 403(r)" },
+    { label: "Low (Tone & Style Deviations)", count: 6, percentage: 21, color: "bg-emerald-400", standard: "Brand Voice Guide" },
   ];
 
   const recurringIssues = [
@@ -69,6 +73,38 @@ export default function AnalyticsPage() {
     },
   ];
 
+  const handleExportTelemetry = () => {
+    const data = {
+      report: "Inkloom Governance Telemetry",
+      period: timeRange,
+      generatedAt: new Date().toISOString(),
+      organization: "Apex Nutrition (brand_apex)",
+      metrics: {
+        complianceHealthScore: 84.2,
+        firstPassRate: 77.8,
+        turnaroundLatencyHours: 1.2,
+        expiringCount: 2,
+      },
+      weeklyProgression: weeklyTrendData,
+      severityBreakdown,
+      topViolations: recurringIssues,
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inkloom-telemetry-${timeRange}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setExportNotice("Compliance telemetry dataset exported as JSON.");
+    setTimeout(() => setExportNotice(null), 3500);
+  };
+
   return (
     <AppLayout
       title="Compliance & Risk Analytics"
@@ -77,131 +113,178 @@ export default function AnalyticsPage() {
       <div className="space-y-6">
         {/* Header & Filter Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="led-indicator led-turquoise" />
               <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
-                Governance &amp; Compliance Analytics
+                Governance &amp; Risk Analytics
               </h1>
               <Badge variant="verified" size="xs">
                 TELEMETRY ACTIVE
               </Badge>
+              <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
+                ORGANIZATION: APEX NUTRITION
+              </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Empirical risk breakdown and compliance health metrics across Apex Nutrition.
+            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+              Empirical multi-factor breakdown and compliance risk velocity across marketing, packaging, and regulatory assets.
             </p>
           </div>
 
-          {/* Time range selector */}
-          <div className="flex items-center bg-[#131622] border border-[#1E2333] rounded p-0.5 text-xs font-mono">
-            {(["7d", "30d", "90d"] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => setTimeRange(r)}
-                className={`px-3 py-1 rounded transition-all cursor-pointer font-medium ${
-                  timeRange === r
-                    ? "bg-[#181C2D] text-slate-100 border border-[#2B3248] shadow-xs"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                {r === "7d" ? "Past 7 Days" : r === "30d" ? "Past 30 Days" : "Past Quarter"}
-              </button>
-            ))}
+          <div className="flex items-center gap-2.5 shrink-0">
+            {/* Time range selector */}
+            <div className="flex items-center bg-[#080C16] border border-[#1E2B4A] rounded-lg p-0.5 text-xs font-mono">
+              {(["7d", "30d", "90d"] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setTimeRange(r)}
+                  className={`px-3 py-1.5 rounded-md transition-all cursor-pointer font-medium ${
+                    timeRange === r
+                      ? "bg-[#162445] text-slate-100 border border-[#2E416E] shadow-xs"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {r === "7d" ? "Past 7 Days" : r === "30d" ? "Past 30 Days" : "Past Quarter"}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Download className="w-3.5 h-3.5 text-[#00F2FE]" />}
+              onClick={handleExportTelemetry}
+            >
+              Export Dataset
+            </Button>
           </div>
         </div>
 
-        {/* 4 Crisp Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <div className="p-4 rounded-lg bg-[#131622] border border-[#1E2333] space-y-3 shadow-xs">
+        {/* Feedback Alert */}
+        {exportNotice && (
+          <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{exportNotice}</span>
+            </span>
+            <button
+              onClick={() => setExportNotice(null)}
+              className="text-emerald-400 hover:text-white font-mono text-xs"
+            >
+              DISMISS
+            </button>
+          </div>
+        )}
+
+        {/* 4 Tactile Skeuomorphic Stat Cards with Monospace Tabular Numbers */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1 */}
+          <div className="tactile-card rounded-xl p-5 space-y-3.5">
             <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                Compliance Health Score
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="led-indicator led-emerald" />
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
+                  Compliance Health Score
+                </span>
+              </div>
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-semibold font-mono tabular-nums text-emerald-400">
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-3xl font-bold font-mono tabular-nums text-emerald-400 tracking-tight">
                 84.2%
               </span>
-              <span className="text-[11px] font-mono font-medium text-emerald-400 flex items-center">
+              <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-0.5">
                 <ArrowUpRight className="w-3.5 h-3.5" /> +6.4%
               </span>
             </div>
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#161925] pt-2 flex items-center justify-between">
+            <div className="text-[11px] font-mono text-slate-500 border-t border-[#1E2B4A] pt-2.5 flex items-center justify-between">
               <span>GROUNDED CLAIMS</span>
-              <span className="text-slate-300">32 TOTAL</span>
+              <span className="text-slate-200 font-semibold">32 TOTAL</span>
             </div>
           </div>
 
-          <div className="p-4 rounded-lg bg-[#131622] border border-[#1E2333] space-y-3 shadow-xs">
+          {/* Card 2 */}
+          <div className="tactile-card rounded-xl p-5 space-y-3.5">
             <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                First-Pass Approval Rate
-              </span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-2">
+                <span className="led-indicator led-turquoise" />
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
+                  First-Pass Approval Rate
+                </span>
+              </div>
+              <CheckCircle2 className="w-4 h-4 text-[#00F2FE]" />
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-semibold font-mono tabular-nums text-slate-100">
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-3xl font-bold font-mono tabular-nums text-slate-100 tracking-tight">
                 77.8%
               </span>
-              <span className="text-[11px] font-mono font-medium text-emerald-400 flex items-center">
+              <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-0.5">
                 <ArrowUpRight className="w-3.5 h-3.5" /> +18.2%
               </span>
             </div>
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#161925] pt-2 flex items-center justify-between">
+            <div className="text-[11px] font-mono text-slate-500 border-t border-[#1E2B4A] pt-2.5 flex items-center justify-between">
               <span>VS PREVIOUS PERIOD</span>
-              <span className="text-slate-300">59.6%</span>
+              <span className="text-slate-400 font-mono">59.6% PREV</span>
             </div>
           </div>
 
-          <div className="p-4 rounded-lg bg-[#131622] border border-[#1E2333] space-y-3 shadow-xs">
+          {/* Card 3 */}
+          <div className="tactile-card rounded-xl p-5 space-y-3.5">
             <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                Review Turnaround Latency
-              </span>
-              <Clock className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center gap-2">
+                <span className="led-indicator led-gold" />
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
+                  Turnaround Latency
+                </span>
+              </div>
+              <Clock className="w-4 h-4 text-[#E5A93C]" />
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-semibold font-mono tabular-nums text-slate-100">
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-3xl font-bold font-mono tabular-nums text-slate-100 tracking-tight">
                 1.2 hrs
               </span>
-              <span className="text-[11px] font-mono font-medium text-emerald-400 flex items-center">
+              <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-0.5">
                 <ArrowDownRight className="w-3.5 h-3.5" /> -42m
               </span>
             </div>
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#161925] pt-2 flex items-center justify-between">
-              <span>SLA THRESHOLD</span>
-              <span className="text-slate-300">&lt; 4.0 HRS</span>
+            <div className="text-[11px] font-mono text-slate-500 border-t border-[#1E2B4A] pt-2.5 flex items-center justify-between">
+              <span>SLA TARGET</span>
+              <span className="text-slate-200 font-semibold">&lt; 4.0 HRS</span>
             </div>
           </div>
 
-          <div className="p-4 rounded-lg bg-[#131622] border border-[#1E2333] space-y-3 shadow-xs">
+          {/* Card 4 */}
+          <div className="tactile-card rounded-xl p-5 space-y-3.5">
             <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                Claims Expiring &lt;30d
-              </span>
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <div className="flex items-center gap-2">
+                <span className="led-indicator led-amber" />
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
+                  Claims Expiring &lt;30d
+                </span>
+              </div>
+              <AlertTriangle className="w-4 h-4 text-[#E5A93C]" />
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-semibold font-mono tabular-nums text-amber-300">
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-3xl font-bold font-mono tabular-nums text-[#F3BA54] tracking-tight">
                 2
               </span>
-              <span className="text-[11px] font-mono text-amber-400 font-medium">
+              <span className="text-[11px] font-mono text-[#E5A93C] font-semibold bg-[#E5A93C]/10 px-2 py-0.5 rounded border border-[#E5A93C]/25">
                 Action Required
               </span>
             </div>
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#161925] pt-2 flex items-center justify-between">
+            <div className="text-[11px] font-mono text-slate-500 border-t border-[#1E2B4A] pt-2.5 flex items-center justify-between">
               <span>NEXT EXPIRATION</span>
-              <span className="text-amber-400">17 DAYS</span>
+              <span className="text-[#E5A93C] font-semibold">17 DAYS</span>
             </div>
           </div>
         </div>
 
-        {/* Weekly Trend Bar Chart & Severity Distribution */}
+        {/* Weekly Trend Chart & Severity Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (7 cols): 4-Week Compliance Velocity */}
           <div className="lg:col-span-7 space-y-4">
-            <div className="bg-[#131622] border border-[#1E2333] rounded-lg overflow-hidden shadow-xs">
-              <div className="px-4 py-3 border-b border-[#1E2333] bg-[#0E1017] flex items-center justify-between">
+            <div className="tactile-card rounded-xl overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
                     Compliance Velocity &amp; Score Progression
@@ -211,7 +294,7 @@ export default function AnalyticsPage() {
                   </p>
                 </div>
                 <Badge variant="verified" size="xs">
-                  TREND: UPWARD
+                  VELOCITY: +13% GAIN
                 </Badge>
               </div>
 
@@ -220,27 +303,27 @@ export default function AnalyticsPage() {
                   {weeklyTrendData.map((d) => (
                     <div
                       key={d.week}
-                      className="p-3 rounded bg-[#090A10] border border-[#1E2333] space-y-2"
+                      className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-2.5"
                     >
                       <div className="text-[11px] font-mono text-slate-400 font-semibold">
                         {d.week}
                       </div>
 
-                      {/* Bar Visualization */}
-                      <div className="h-24 flex items-end justify-center gap-1.5 px-2">
+                      {/* Bar Visualization with electric turquoise and gold accents */}
+                      <div className="h-28 flex items-end justify-center gap-2 px-1">
                         <div
-                          className="w-4 bg-violet-600 rounded-t"
-                          style={{ height: `${(d.score / 100) * 80}px` }}
-                          title={`Score: ${d.score}%`}
+                          className="w-5 bg-[#00F2FE] rounded-t shadow-[0_0_8px_rgba(0,242,254,0.3)] transition-all duration-300"
+                          style={{ height: `${(d.score / 100) * 90}px` }}
+                          title={`Compliance Score: ${d.score}%`}
                         />
                         <div
-                          className="w-2.5 bg-rose-500/60 rounded-t"
-                          style={{ height: `${d.violations * 8}px` }}
-                          title={`Violations: ${d.violations}`}
+                          className="w-3 bg-[#E5A93C]/80 rounded-t transition-all duration-300"
+                          style={{ height: `${d.violations * 9}px` }}
+                          title={`Statutory Violations: ${d.violations}`}
                         />
                       </div>
 
-                      <div className="text-xs font-mono font-semibold tabular-nums text-slate-200">
+                      <div className="text-xs font-mono font-bold tabular-nums text-slate-200">
                         {d.score}%
                       </div>
                       <div className="text-[10px] font-mono text-slate-500">
@@ -250,25 +333,25 @@ export default function AnalyticsPage() {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-[#1E2333]">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-[#1E2B4A]">
+                  <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-xs bg-violet-600 inline-block" />
+                      <span className="w-2.5 h-2.5 rounded-xs bg-[#00F2FE] inline-block shadow-[0_0_6px_#00F2FE]" />
                       <span>Compliance Score (%)</span>
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-xs bg-rose-500/60 inline-block" />
+                      <span className="w-2.5 h-2.5 rounded-xs bg-[#E5A93C] inline-block" />
                       <span>Statutory Flags</span>
                     </span>
                   </div>
-                  <span className="text-emerald-400">+13% Score Gain over 30d</span>
+                  <span className="text-emerald-400 font-semibold">+13% Score Gain over 30d</span>
                 </div>
               </div>
             </div>
 
             {/* Recurring Violations Frequency Table */}
-            <div className="bg-[#131622] border border-[#1E2333] rounded-lg overflow-hidden shadow-xs">
-              <div className="px-4 py-3 border-b border-[#1E2333] bg-[#0E1017] flex items-center justify-between">
+            <div className="tactile-card rounded-xl overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
                   Most Common Statutory Flags
                 </h3>
@@ -281,10 +364,10 @@ export default function AnalyticsPage() {
                 {recurringIssues.map((item, idx) => (
                   <div
                     key={item.name}
-                    className="p-3 rounded bg-[#090A10] border border-[#1E2333] flex items-center justify-between text-xs"
+                    className="p-3 rounded-lg bg-[#080C16] border border-[#1E2B4A] flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-slate-500 w-4 text-center">
+                      <span className="font-mono font-bold text-[#E5A93C] w-4 text-center">
                         {idx + 1}
                       </span>
                       <div className="space-y-0.5">
@@ -312,12 +395,12 @@ export default function AnalyticsPage() {
           {/* Right Column (5 cols): Severity Distribution & Expiring Watchlist */}
           <div className="lg:col-span-5 space-y-4">
             {/* Severity Breakdown Card */}
-            <div className="bg-[#131622] border border-[#1E2333] rounded-lg overflow-hidden shadow-xs">
-              <div className="px-4 py-3 border-b border-[#1E2333] bg-[#0E1017] flex items-center justify-between">
+            <div className="tactile-card rounded-xl overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
                   Findings by Severity Level
                 </h3>
-                <span className="text-[10px] font-mono text-slate-500">
+                <span className="text-[10px] font-mono text-[#E5A93C]">
                   28 TOTAL FLAGS
                 </span>
               </div>
@@ -334,7 +417,7 @@ export default function AnalyticsPage() {
                         {s.count} ({s.percentage}%)
                       </span>
                     </div>
-                    <div className="w-full h-1.5 bg-[#090A10] rounded-full overflow-hidden border border-[#1E2333]">
+                    <div className="w-full h-1.5 bg-[#080C16] rounded-full overflow-hidden border border-[#1E2B4A]">
                       <div
                         className={`h-full ${s.color} rounded-full`}
                         style={{ width: `${s.percentage}%` }}
@@ -346,11 +429,11 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Claims Approaching Expiry Watchlist */}
-            <div className="bg-[#131622] border border-amber-500/30 rounded-lg overflow-hidden shadow-xs">
-              <div className="px-4 py-3 border-b border-amber-500/20 bg-amber-500/5 flex items-center justify-between">
+            <div className="tactile-card rounded-xl overflow-hidden border-amber-500/40">
+              <div className="px-4 py-3.5 border-b border-amber-500/25 bg-amber-500/5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+                  <ShieldAlert className="w-4 h-4 text-[#E5A93C]" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#F3BA54]">
                     Claims Expiry Watchlist (&lt; 30d)
                   </h3>
                 </div>
@@ -359,17 +442,18 @@ export default function AnalyticsPage() {
                 </Badge>
               </div>
 
-              <div className="p-4 space-y-3 text-xs">
+              <div className="p-4 space-y-3.5 text-xs">
                 {expiringClaims.map((claim) => (
                   <div
                     key={claim.code}
-                    className="p-3.5 rounded bg-[#090A10] border border-[#1E2333] space-y-2"
+                    className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-2"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="font-mono text-cyan-300 text-[11px] font-semibold">
                         {claim.code}
                       </span>
-                      <span className="font-mono text-amber-400 font-semibold text-[11px]">
+                      <span className="font-mono text-[#E5A93C] font-semibold text-[11px] flex items-center gap-1">
+                        <span className="led-indicator led-gold" />
                         {claim.daysLeft} DAYS LEFT
                       </span>
                     </div>
@@ -378,7 +462,7 @@ export default function AnalyticsPage() {
                       &ldquo;{claim.text}&rdquo;
                     </p>
 
-                    <div className="pt-1 flex items-center justify-between text-[10px] font-mono text-slate-500 border-t border-[#161925]">
+                    <div className="pt-1.5 flex items-center justify-between text-[10px] font-mono text-slate-500 border-t border-[#162038]">
                       <span>{claim.evidence}</span>
                       <span className="text-slate-400">{claim.owner}</span>
                     </div>
@@ -388,10 +472,10 @@ export default function AnalyticsPage() {
                 <div className="pt-2">
                   <Link
                     href="/knowledge-base/claims"
-                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded bg-[#181C2D] hover:bg-[#20253B] border border-[#2B3248] text-xs font-medium text-slate-200 hover:text-white transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#080C16] hover:bg-[#111C35] border border-[#1E2B4A] text-xs font-medium text-slate-200 hover:text-white transition-colors"
                   >
                     <span>Manage All Claims in Truth Library</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3.5 h-3.5 text-[#00F2FE]" />
                   </Link>
                 </div>
               </div>

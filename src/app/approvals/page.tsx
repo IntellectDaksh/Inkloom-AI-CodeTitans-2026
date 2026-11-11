@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -18,6 +18,9 @@ import {
   ChevronRight,
   Layers,
   FileText,
+  Lock,
+  Download,
+  Sparkles,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -136,20 +139,25 @@ export default function ApprovalsPage() {
   const [items, setItems] = useState<ApprovalItem[]>(INITIAL_APPROVAL_ITEMS);
   const [searchQuery, setSearchQuery] = useState("");
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
 
-  const handleQuickApprove = (id: string) => {
+  // Optimistic Quick Approve action
+  const handleQuickApprove = (id: string, title: string) => {
     setActionInProgress(id);
     setTimeout(() => {
       setItems((prev) =>
         prev.map((item) =>
-          item.id === id ? { ...item, status: "approved" as const, score: 95, criticalIssues: 0 } : item
+          item.id === id ? { ...item, status: "approved" as const, score: 96, criticalIssues: 0 } : item
         )
       );
       setActionInProgress(null);
-    }, 400);
+      setFeedbackBanner(`Submission "${title}" approved and cleared for release under 21 CFR Part 11.`);
+      setTimeout(() => setFeedbackBanner(null), 3500);
+    }, 350);
   };
 
-  const handleQuickReject = (id: string) => {
+  // Optimistic Quick Request Changes action
+  const handleQuickReject = (id: string, title: string) => {
     setActionInProgress(id);
     setTimeout(() => {
       setItems((prev) =>
@@ -158,7 +166,9 @@ export default function ApprovalsPage() {
         )
       );
       setActionInProgress(null);
-    }, 400);
+      setFeedbackBanner(`Changes requested for "${title}". Submitter notified with required revisions.`);
+      setTimeout(() => setFeedbackBanner(null), 3500);
+    }, 350);
   };
 
   const pendingCount = items.filter((i) => i.status === "pending").length;
@@ -180,67 +190,92 @@ export default function ApprovalsPage() {
       subtitle="Formal human-in-the-loop sign-off desk for high-liability marketing claims."
     >
       <div className="space-y-6">
-        {/* Header & Meta */}
+        {/* Header & Meta Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="led-indicator led-amber" />
               <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
-                Human Sign-off &amp; Approvals Gate
+                Human Sign-off &amp; Approvals Triage
               </h1>
               <Badge variant="metadata" size="xs">
                 21 CFR PART 11
               </Badge>
+              <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
+                HUMAN-IN-THE-LOOP MANDATE
+              </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Marketing submissions with critical statutory findings require reviewer verification before distribution.
+            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+              Marketing submissions with critical statutory findings require formal reviewer sign-off before publication. AI proposes; authorized officers dispose.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500 bg-[#131622] px-3 py-1.5 rounded-lg border border-[#1E2333]">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            <span>PENDING SIGN-OFF: {pendingCount}</span>
-            <span>•</span>
-            <span className="text-slate-400">ORG: APEX NUTRITION</span>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Link href="/prototype-notice">
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<Lock className="w-3.5 h-3.5 text-[#00F2FE]" />}
+              >
+                Veeva / SAP Sync
+              </Button>
+            </Link>
           </div>
         </div>
 
-        {/* Filter Tabs and Search Bar */}
-        <div className="p-3 bg-[#131622] border border-[#1E2333] rounded-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs">
-          {/* Workflow Tabs */}
-          <div className="flex items-center bg-[#090A10] border border-[#1E2333] rounded p-0.5 text-xs font-mono font-medium">
+        {/* Feedback Alert Banner */}
+        {feedbackBanner && (
+          <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center justify-between animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{feedbackBanner}</span>
+            </div>
+            <button
+              onClick={() => setFeedbackBanner(null)}
+              className="text-emerald-400 hover:text-white font-mono text-xs cursor-pointer"
+            >
+              DISMISS
+            </button>
+          </div>
+        )}
+
+        {/* Filter Tabs and Quick Search Bar */}
+        <div className="tactile-card rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Workflow Tabs: Pending, Approved, Changes Req. */}
+          <div className="flex items-center bg-[#080C16] border border-[#1E2B4A] rounded-lg p-0.5 text-xs font-mono font-medium">
             <button
               onClick={() => setActiveTab("pending")}
-              className={`px-3 py-1.5 rounded transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "pending"
-                  ? "bg-[#181C2D] text-amber-300 font-semibold border border-[#2B3248] shadow-xs"
+                  ? "bg-[#162445] text-[#F3BA54] font-semibold border border-[#2E416E] shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <span className="led-indicator led-amber" />
               <span>Pending Action ({pendingCount})</span>
             </button>
 
             <button
               onClick={() => setActiveTab("approved")}
-              className={`px-3 py-1.5 rounded transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "approved"
-                  ? "bg-[#181C2D] text-emerald-300 font-semibold border border-[#2B3248] shadow-xs"
+                  ? "bg-[#162445] text-emerald-300 font-semibold border border-[#2E416E] shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="led-indicator led-emerald" />
               <span>Approved ({approvedCount})</span>
             </button>
 
             <button
               onClick={() => setActiveTab("changes_requested")}
-              className={`px-3 py-1.5 rounded transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "changes_requested"
-                  ? "bg-[#181C2D] text-rose-300 font-semibold border border-[#2B3248] shadow-xs"
+                  ? "bg-[#162445] text-rose-300 font-semibold border border-[#2E416E] shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              <XCircle className="w-3.5 h-3.5 text-rose-400" />
+              <span className="led-indicator led-rose" />
               <span>Changes Req. ({rejectedCount})</span>
             </button>
           </div>
@@ -250,54 +285,54 @@ export default function ApprovalsPage() {
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="Filter queue..."
+              placeholder="Filter queue by copy or author..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#090A10] border border-[#1E2333] focus:border-violet-500 focus:outline-none rounded pl-8 pr-3 py-1 text-xs text-slate-200 font-mono placeholder:text-slate-600 transition-colors"
+              className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono placeholder:text-slate-600 transition-colors"
             />
           </div>
         </div>
 
-        {/* Approvals Queue Cards */}
-        <div className="space-y-3">
+        {/* Approvals Queue Cards with Tactile Skeuomorphism */}
+        <div className="space-y-4">
           {displayItems.length > 0 ? (
             displayItems.map((item) => (
               <div
                 key={item.id}
-                className="p-4 sm:p-5 rounded-lg bg-[#131622] border border-[#1E2333] hover:border-[#2B3248] transition-all space-y-3.5 shadow-xs"
+                className="tactile-card rounded-xl p-5 space-y-4"
               >
-                {/* Header row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                {/* Header Row */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E2B4A] pb-3.5">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/submissions/${item.id}`}
-                        className="text-sm font-semibold text-slate-100 hover:text-violet-300 transition-colors"
+                        className="text-sm font-semibold text-slate-100 hover:text-[#00F2FE] transition-colors"
                       >
                         {item.title}
                       </Link>
                       <Badge variant="tag" size="xs">
                         {item.type}
                       </Badge>
-                      <Badge variant="metadata" size="xs">
+                      <span className="px-2 py-0.5 rounded bg-[#080C16] text-[10px] font-mono text-cyan-300 border border-[#1E2B4A]">
                         {item.channel}
-                      </Badge>
+                      </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-slate-400">
                       <span>AUTHOR: {item.author}</span>
                       <span>•</span>
-                      <span>ASSIGNED: {item.reviewer}</span>
+                      <span>REVIEWER: {item.reviewer}</span>
                       <span>•</span>
                       <span className="text-slate-500">{item.timestamp}</span>
                     </div>
                   </div>
 
-                  {/* Score pill */}
+                  {/* Monospace Tabular Score */}
                   <div className="flex items-center gap-3 self-start sm:self-center">
                     <div className="text-right">
                       <div
-                        className={`font-mono text-sm font-semibold tabular-nums ${
+                        className={`font-mono text-sm font-bold tabular-nums ${
                           item.score >= 80
                             ? "text-emerald-400"
                             : item.score >= 50
@@ -325,7 +360,7 @@ export default function ApprovalsPage() {
                       size="sm"
                     >
                       {item.status === "approved"
-                        ? "Cleared"
+                        ? "Approved"
                         : item.status === "changes_requested"
                         ? "Changes Req."
                         : "Needs Review"}
@@ -334,21 +369,21 @@ export default function ApprovalsPage() {
                 </div>
 
                 {/* Content snippet with red-line highlight preview */}
-                <div className="p-3 rounded bg-[#090A10] border border-[#1E2333] text-xs text-slate-300 font-sans leading-relaxed">
-                  <div className="text-[10px] font-mono text-slate-500 mb-1">
+                <div className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] text-xs text-slate-300 font-sans leading-relaxed">
+                  <div className="text-[10px] font-mono text-slate-500 mb-1.5 uppercase font-medium">
                     SUBMITTED MARKETING PHRASING:
                   </div>
-                  <p>&ldquo;{item.summary}&rdquo;</p>
+                  <p className="text-slate-200">&ldquo;{item.summary}&rdquo;</p>
 
                   {item.flaggedText && item.suggestedFix && (
-                    <div className="mt-2.5 pt-2 border-t border-[#161925] font-mono text-[11px] flex flex-col gap-1">
-                      <div className="text-rose-400 flex items-center gap-1.5">
-                        <span className="font-bold select-none">-</span>
+                    <div className="mt-3 pt-2.5 border-t border-[#162038] font-mono text-[11px] space-y-1.5">
+                      <div className="text-rose-400 flex items-center gap-2">
+                        <span className="font-bold select-none text-rose-500">-</span>
                         <span className="line-through decoration-rose-500/50">{item.flaggedText}</span>
                       </div>
-                      <div className="text-emerald-300 flex items-center gap-1.5">
-                        <span className="font-bold select-none">+</span>
-                        <span>{item.suggestedFix}</span>
+                      <div className="text-emerald-300 flex items-center gap-2">
+                        <span className="font-bold select-none text-emerald-500">+</span>
+                        <span className="font-medium">{item.suggestedFix}</span>
                       </div>
                     </div>
                   )}
@@ -357,16 +392,16 @@ export default function ApprovalsPage() {
                 {/* Footer action bar */}
                 <div className="pt-1 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="text-[11px] font-mono text-slate-500">
-                    SUBMISSION ID: {item.id}
+                    SUBMISSION ID: {item.id} · TENANT: APEX NUTRITION
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     {item.status === "pending" && (
                       <>
                         <Button
                           size="xs"
                           variant="destructive"
-                          onClick={() => handleQuickReject(item.id)}
+                          onClick={() => handleQuickReject(item.id, item.title)}
                           loading={actionInProgress === item.id}
                         >
                           Request Changes
@@ -374,9 +409,9 @@ export default function ApprovalsPage() {
                         <Button
                           size="xs"
                           variant="approve"
-                          onClick={() => handleQuickApprove(item.id)}
+                          onClick={() => handleQuickApprove(item.id, item.title)}
                           loading={actionInProgress === item.id}
-                          icon={<Check className="w-3 h-3" />}
+                          icon={<Check className="w-3.5 h-3.5" />}
                         >
                           Quick Approve
                         </Button>
@@ -397,8 +432,8 @@ export default function ApprovalsPage() {
               </div>
             ))
           ) : (
-            <div className="p-12 text-center text-slate-500 font-mono text-xs bg-[#131622] rounded-lg border border-[#1E2333]">
-              QUEUE EMPTY: NO SUBMISSIONS IN THIS STATUS
+            <div className="tactile-card rounded-xl p-12 text-center text-slate-500 font-mono text-xs">
+              QUEUE CLEAR: NO SUBMISSIONS IN THIS STATUS
             </div>
           )}
         </div>

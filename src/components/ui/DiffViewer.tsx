@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, Copy, ArrowRight, GitCompare, AlertOctagon, SplitSquareVertical } from "lucide-react";
+import {
+  Check,
+  Copy,
+  ArrowRight,
+  GitCompare,
+  SplitSquareVertical,
+  ShieldAlert,
+} from "lucide-react";
 import { Badge, BadgeVariant } from "./Badge";
 import { Button } from "./Button";
 
@@ -42,7 +49,6 @@ export function DiffViewer({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -64,10 +70,10 @@ export function DiffViewer({
     if (!textToSearch.includes(flaggedPhrase)) {
       return (
         <div className="flex flex-col gap-2 font-mono text-xs leading-relaxed">
-          <div className="line-through text-rose-400 bg-rose-950/30 px-2 py-1 rounded border border-rose-500/30">
+          <div className="line-through text-rose-300 bg-rose-950/30 px-3 py-2 rounded-md border border-rose-500/30 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
             {flaggedPhrase}
           </div>
-          <div className="text-emerald-300 bg-emerald-950/30 px-2 py-1 rounded border border-emerald-500/30">
+          <div className="text-[#00F2FE] bg-[#00F2FE]/10 px-3 py-2 rounded-md border border-[#00F2FE]/30 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
             {suggestedReplacement}
           </div>
         </div>
@@ -76,12 +82,12 @@ export function DiffViewer({
 
     const parts = textToSearch.split(flaggedPhrase);
     return (
-      <div className="text-xs sm:text-sm text-[#F4F6F9] leading-relaxed p-3.5 rounded-lg bg-[#0A0B11] border border-[#1C202F]">
+      <div className="text-xs sm:text-sm text-[#F8FAFC] leading-relaxed p-4 rounded-lg bg-[#080C16] border border-[#1E2E50] shadow-[inset_0_2px_5px_rgba(0,0,0,0.7)]">
         {parts[0]}
-        <del className="bg-rose-950/50 text-rose-300 font-medium line-through decoration-rose-500/70 px-1.5 py-0.5 rounded border border-rose-500/30 mx-1 inline-block">
+        <del className="bg-rose-950/60 text-rose-300 font-medium line-through decoration-rose-500/80 px-2 py-0.5 rounded border border-rose-500/40 mx-1 inline-block shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
           {flaggedPhrase}
         </del>
-        <ins className="bg-emerald-950/50 text-emerald-300 font-semibold no-underline px-1.5 py-0.5 rounded border border-emerald-500/40 mx-1 inline-block">
+        <ins className="bg-[#00F2FE]/15 text-[#00F2FE] font-bold no-underline px-2 py-0.5 rounded border border-[#00F2FE]/40 mx-1 inline-block shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
           {suggestedReplacement}
         </ins>
         {parts.slice(1).join(flaggedPhrase)}
@@ -91,44 +97,44 @@ export function DiffViewer({
 
   return (
     <div
-      className={`rounded-xl bg-[#0F1117] border border-[#1C202F] overflow-hidden transition-all ${className}`}
+      className={`rounded-xl bg-[#0D1527] border border-[#1E2E50] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all ${className}`}
     >
       {/* Diff Header */}
-      <div className="px-4 py-3 bg-[#141722] border-b border-[#1C202F] flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className="px-4 py-3 bg-[#152038] border-b border-[#1E2E50] flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
           <Badge variant={severity as BadgeVariant} dot size="xs" mono>
             {severity.toUpperCase()}
           </Badge>
           {ruleName && (
-            <span className="text-xs font-medium text-[#F4F6F9] truncate max-w-xs">
+            <span className="text-xs font-semibold text-[#F8FAFC] truncate max-w-xs tracking-tight">
               {ruleName}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {/* View toggle */}
           <button
             onClick={() =>
               setViewMode(viewMode === "split" ? "inline" : "split")
             }
-            className="flex items-center gap-1 px-2 py-1 rounded text-[11px] text-[#94A3B8] hover:text-[#F4F6F9] hover:bg-[#1C202F] transition-colors border border-transparent hover:border-[#2B3248]"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-[#94A3B8] hover:text-[#F8FAFC] bg-[#0D1527] hover:bg-[#1A2846] border border-[#1E2E50] hover:border-[#2A406E] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] cursor-pointer"
             title={`Switch to ${viewMode === "split" ? "Inline" : "Split"} view`}
           >
-            <SplitSquareVertical className="w-3.5 h-3.5" />
+            <SplitSquareVertical className="w-3.5 h-3.5 text-[#00F2FE]" />
             <span className="capitalize">{viewMode}</span>
           </button>
 
           {/* Copy Replacement */}
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1 px-2 py-1 rounded text-[11px] text-[#94A3B8] hover:text-emerald-400 hover:bg-[#1C202F] transition-colors border border-transparent hover:border-[#2B3248]"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-[#94A3B8] hover:text-[#00F2FE] bg-[#0D1527] hover:bg-[#1A2846] border border-[#1E2E50] hover:border-[#2A406E] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] cursor-pointer"
             title="Copy suggestion"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Copied</span>
+                <Check className="w-3.5 h-3.5 text-[#00F2FE]" />
+                <span className="text-[#00F2FE] font-semibold">Copied</span>
               </>
             ) : (
               <>
@@ -141,27 +147,32 @@ export function DiffViewer({
       </div>
 
       {/* Diff Content Body */}
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3.5 bg-[#0A1020]/50">
         {reason && (
-          <p className="text-xs text-[#94A3B8] leading-relaxed">
-            {reason}
-          </p>
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-[#080C16] border border-[#1E2E50]/70 text-xs text-[#CBD5E1] leading-relaxed">
+            <ShieldAlert className="w-4 h-4 text-[#FBBF24] shrink-0 mt-0.5" />
+            <p>{reason}</p>
+          </div>
         )}
 
         {viewMode === "split" ? (
-          <div className="space-y-2 font-mono text-xs">
+          <div className="space-y-2.5 font-mono text-xs">
             {/* Deleted / Flagged Row */}
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-rose-950/20 border border-rose-500/20">
-              <span className="text-rose-400 font-bold shrink-0 select-none">-</span>
-              <div className="flex-1 text-rose-300 line-through decoration-rose-500/50 break-words">
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-950/20 border border-rose-500/25 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]">
+              <span className="text-rose-400 font-bold shrink-0 select-none text-sm leading-none">
+                -
+              </span>
+              <div className="flex-1 text-rose-300 line-through decoration-rose-500/60 break-words font-medium">
                 {flaggedPhrase}
               </div>
             </div>
 
             {/* Added / Suggested Row */}
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-500/30">
-              <span className="text-emerald-400 font-bold shrink-0 select-none">+</span>
-              <div className="flex-1 text-emerald-300 font-medium break-words">
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[#00F2FE]/5 border border-[#00F2FE]/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]">
+              <span className="text-[#00F2FE] font-bold shrink-0 select-none text-sm leading-none">
+                +
+              </span>
+              <div className="flex-1 text-[#00F2FE] font-semibold break-words">
                 {suggestedReplacement}
               </div>
             </div>
@@ -172,21 +183,28 @@ export function DiffViewer({
       </div>
 
       {/* Diff Footer / Action bar */}
-      <div className="px-4 py-2.5 bg-[#0C0E14] border-t border-[#1C202F] flex items-center justify-between">
-        <span className="text-[11px] text-[#64748B] flex items-center gap-1.5 font-mono">
-          <GitCompare className="w-3.5 h-3.5 text-violet-400" /> Grounded Surgical Correction
+      <div className="px-4 py-3 bg-[#080C16] border-t border-[#1E2E50] flex items-center justify-between">
+        <span className="text-[10px] text-[#64748B] flex items-center gap-2 font-mono uppercase tracking-wider font-semibold">
+          <GitCompare className="w-3.5 h-3.5 text-[#00F2FE]" />
+          SURGICAL DIFF AUDIT PASS
         </span>
 
         {onApply && (
           <Button
-            size="xs"
-            variant={applied ? "secondary" : "success"}
+            size="sm"
+            variant={applied ? "secondary" : "turquoise"}
             onClick={handleApply}
             loading={isApplying}
             disabled={applied}
-            icon={applied ? <Check className="w-3 h-3" /> : <ArrowRight className="w-3 h-3" />}
+            icon={
+              applied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <ArrowRight className="w-3.5 h-3.5" />
+              )
+            }
           >
-            {applied ? "Applied" : "Apply Fix"}
+            {applied ? "Applied to Draft" : "Apply Surgical Fix"}
           </Button>
         )}
       </div>

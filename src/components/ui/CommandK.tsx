@@ -16,12 +16,13 @@ import {
   FolderOpen,
   ArrowRight,
   X,
+  Info,
 } from "lucide-react";
 
 export interface CommandItem {
   id: string;
   title: string;
-  category: "Actions" | "Navigation" | "Knowledge Base" | "Brands";
+  category: "Actions" | "Navigation" | "Knowledge Base" | "Brands" | "System";
   description?: string;
   href?: string;
   icon: React.ElementType;
@@ -111,6 +112,16 @@ const DEFAULT_COMMANDS: CommandItem[] = [
     icon: Settings,
   },
 
+  // System & Prototype Notice
+  {
+    id: "system-prototype-notice",
+    title: "Prototype Environment Notice",
+    category: "System",
+    description: "CodeTitans 2026 sandbox preview notice & 1-click role bypasses",
+    href: "/prototype-notice",
+    icon: Info,
+  },
+
   // Knowledge Base Quick Jump
   {
     id: "kb-claims",
@@ -192,14 +203,6 @@ export function CommandK({
     setSelectedIndex(0);
   };
 
-  const handleOpen = () => {
-    if (isControlled && controlledOnClose) {
-      // Parent controlled
-    } else {
-      setInternalIsOpen(true);
-    }
-  };
-
   // Global Keyboard listener for Ctrl+K / Cmd+K and custom trigger
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -208,9 +211,7 @@ export function CommandK({
         if (isOpen) {
           handleClose();
         } else {
-          if (isControlled && controlledOnClose) {
-            // Can't toggle if only onClose is provided, but window event will handle
-          } else {
+          if (!isControlled) {
             setInternalIsOpen(true);
           }
         }
@@ -257,11 +258,6 @@ export function CommandK({
     );
   });
 
-  // Clamp selectedIndex when filtered items change
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
   const handleExecute = (item: CommandItem) => {
     handleClose();
     if (item.onSelect) {
@@ -294,9 +290,10 @@ export function CommandK({
   if (!isOpen) return null;
 
   // Group items by category
-  const categories: ("Actions" | "Navigation" | "Knowledge Base" | "Brands")[] = [
+  const categories: ("Actions" | "Navigation" | "Knowledge Base" | "Brands" | "System")[] = [
     "Actions",
     "Navigation",
+    "System",
     "Knowledge Base",
     "Brands",
   ];
@@ -305,43 +302,48 @@ export function CommandK({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/70 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-100"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-120"
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-xl bg-[#0F1117] border border-[#1C202F] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[75vh] animate-in zoom-in-95 duration-100"
+        className="w-full max-w-xl bg-[#0D1527] border border-[#2A406E] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.15)] overflow-hidden flex flex-col max-h-[75vh] animate-in zoom-in-95 duration-120"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3 border-b border-[#1C202F] gap-3 bg-[#141722]">
-          <Search className="w-4 h-4 text-[#94A3B8] shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleInputKeyDown}
-            placeholder="Type a command or jump to brand, claim, or submission..."
-            className="flex-1 bg-transparent text-sm text-[#F4F6F9] placeholder-[#64748B] focus:outline-none"
-          />
-          {query ? (
-            <button
-              onClick={() => setQuery("")}
-              className="text-[#64748B] hover:text-[#F4F6F9] transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          ) : (
-            <kbd className="text-[10px] text-[#94A3B8] bg-[#0F1117] px-1.5 py-0.5 rounded border border-[#2B3248]">
-              ESC
-            </kbd>
-          )}
+        {/* Search Input Bar (Recessed Milled Well) */}
+        <div className="p-3 bg-[#080C16] border-b border-[#1E2E50]">
+          <div className="flex items-center px-3.5 py-2.5 rounded-lg bg-[#080C16] border border-[#1E2E50] border-t-[#16223B] border-b-[#2A406E] shadow-[inset_0_2px_4px_rgba(0,0,0,0.7)] gap-3">
+            <Search className="w-4 h-4 text-[#00F2FE] shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelectedIndex(0);
+              }}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Type a command, claim, or jump to section..."
+              className="flex-1 bg-transparent text-sm text-[#F8FAFC] placeholder-[#64748B] focus:outline-none font-medium"
+            />
+            {query ? (
+              <button
+                onClick={() => setQuery("")}
+                className="text-[#64748B] hover:text-[#F8FAFC] transition-colors p-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <kbd className="text-[9px] text-[#CBD5E1] bg-[#152038] px-1.5 py-0.5 rounded border border-[#2A406E] font-mono shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                ESC
+              </kbd>
+            )}
+          </div>
         </div>
 
         {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-4">
+        <div className="flex-1 overflow-y-auto p-2 space-y-3 bg-[#0D1527]">
           {filteredCommands.length === 0 ? (
-            <div className="py-12 text-center text-xs text-[#64748B]">
+            <div className="py-12 text-center text-xs text-[#64748B] font-mono">
               No results found for &ldquo;{query}&rdquo;
             </div>
           ) : (
@@ -351,7 +353,7 @@ export function CommandK({
 
               return (
                 <div key={cat} className="space-y-1">
-                  <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+                  <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#94A3B8]">
                     {cat}
                   </div>
                   {catItems.map((item) => {
@@ -364,37 +366,41 @@ export function CommandK({
                         key={item.id}
                         onClick={() => handleExecute(item)}
                         onMouseEnter={() => setSelectedIndex(thisIndex)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs cursor-pointer transition-all duration-100 ${
                           isSelected
-                            ? "bg-[#141722] text-[#F4F6F9] border border-[#2B3248]"
-                            : "text-[#94A3B8] hover:text-[#F4F6F9] border border-transparent"
+                            ? "bg-[#152038] text-[#F8FAFC] border border-[#2A406E] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_4px_rgba(0,0,0,0.4)]"
+                            : "text-[#CBD5E1] hover:text-[#F8FAFC] hover:bg-[#152038]/60 border border-transparent"
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 truncate">
-                          <Icon
-                            className={`w-4 h-4 shrink-0 ${
-                              isSelected ? "text-violet-400" : "text-[#64748B]"
+                        <div className="flex items-center gap-3 truncate">
+                          <div
+                            className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 border ${
+                              isSelected
+                                ? "bg-[#1A2846] border-[#3B5A96] text-[#00F2FE]"
+                                : "bg-[#080C16] border-[#1E2E50] text-[#64748B]"
                             }`}
-                          />
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
                           <div className="truncate">
-                            <div className="font-medium truncate text-[#F4F6F9]">
+                            <div className="font-semibold truncate text-[#F8FAFC]">
                               {item.title}
                             </div>
                             {item.description && (
-                              <div className="text-[11px] text-[#64748B] truncate">
+                              <div className="text-[11px] text-[#94A3B8] truncate">
                                 {item.description}
                               </div>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0 ml-3">
+                        <div className="flex items-center gap-1.5 shrink-0 ml-3">
                           {item.shortcut ? (
-                            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#090A10] border border-[#2B3248] text-[#94A3B8]">
+                            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#080C16] border border-[#2A406E] text-[#CBD5E1] font-mono">
                               {item.shortcut}
                             </kbd>
                           ) : isSelected ? (
-                            <ArrowRight className="w-3.5 h-3.5 text-violet-400" />
+                            <ArrowRight className="w-3.5 h-3.5 text-[#00F2FE]" />
                           ) : null}
                         </div>
                       </div>
@@ -407,22 +413,30 @@ export function CommandK({
         </div>
 
         {/* Tactile Keycap Footer */}
-        <div className="px-4 py-2 bg-[#0C0E14] border-t border-[#1C202F] flex items-center justify-between text-[11px] text-[#64748B]">
+        <div className="px-4 py-2.5 bg-[#080C16] border-t border-[#1E2E50] flex items-center justify-between text-[11px] text-[#64748B]">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="text-[9px] px-1 py-0.2 rounded bg-[#141722] border border-[#2B3248]">↑</kbd>
-              <kbd className="text-[9px] px-1 py-0.2 rounded bg-[#141722] border border-[#2B3248]">↓</kbd>
-              <span>to navigate</span>
+              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#152038] border border-[#2A406E] text-[#CBD5E1]">
+                ↑
+              </kbd>
+              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#152038] border border-[#2A406E] text-[#CBD5E1]">
+                ↓
+              </kbd>
+              <span>navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="text-[9px] px-1.5 py-0.2 rounded bg-[#141722] border border-[#2B3248]">↵</kbd>
-              <span>to select</span>
+              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#152038] border border-[#2A406E] text-[#CBD5E1]">
+                ↵
+              </kbd>
+              <span>select</span>
             </span>
           </div>
 
           <span className="flex items-center gap-1">
-            <kbd className="text-[9px] px-1.5 py-0.2 rounded bg-[#141722] border border-[#2B3248]">ESC</kbd>
-            <span>to close</span>
+            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#152038] border border-[#2A406E] text-[#CBD5E1]">
+              ESC
+            </kbd>
+            <span>close</span>
           </span>
         </div>
       </div>
