@@ -490,6 +490,49 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Labelled Evaluation Benchmark Card linking to /evaluations */}
+            <div className="tactile-card rounded-xl p-5 space-y-3.5 border-violet-500/40 bg-gradient-to-br from-[#0C101E] to-[#120E24]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-violet-300">
+                    <Scale className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-100">
+                      Evaluation Benchmark Bench
+                    </h3>
+                    <div className="text-[10px] font-mono text-violet-300">ROUND 3 DELIVERABLE #3</div>
+                  </div>
+                </div>
+                <Badge variant="verified" size="xs">
+                  97.9% PRECISION
+                </Badge>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                Continuous empirical validation suite running the 4 canonical proposal case studies: FTC/Teami (2020), Adidas (2017), CNET AI (2023), and Clinical Baseline Control.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 text-center font-mono text-xs">
+                <div className="p-2 rounded bg-[#080C16] border border-[#1E2B4A]">
+                  <div className="text-[10px] text-slate-500">FALSE-POSITIVE</div>
+                  <div className="text-sm font-bold text-violet-300">2.1%</div>
+                </div>
+                <div className="p-2 rounded bg-[#080C16] border border-[#1E2B4A]">
+                  <div className="text-[10px] text-slate-500">MISSED-ISSUE</div>
+                  <div className="text-sm font-bold text-emerald-400">0.0%</div>
+                </div>
+              </div>
+
+              <Link
+                href="/evaluations"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors shadow-xs"
+              >
+                <span>Launch Interactive Benchmark Suite</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

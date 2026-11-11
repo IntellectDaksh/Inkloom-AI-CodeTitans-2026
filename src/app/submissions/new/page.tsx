@@ -11,9 +11,12 @@ import {
   Send,
   ShieldCheck,
   AlertCircle,
+  Play,
+  ArrowRight,
+  Database,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
 export default function NewSubmissionPage() {
@@ -67,17 +70,17 @@ export default function NewSubmissionPage() {
 
   const handleLoadSample = (type: "reel" | "compliant") => {
     if (type === "reel") {
-      setTitle("Q4 Campaign – Reel Script");
+      setTitle("Q4 Campaign – Clinical Protein Reel Script");
       setContent(
-        "Our new protein blend gives you 2x faster results and helps build muscle in just 14 days. It's the most advanced formula for serious results."
+        "Our proprietary formula gives you 2x faster results and helps build muscle in just 14 days without dietary changes. Guaranteed 100% recovery with all-natural miracle bio-peptides."
       );
       setSubmissionType("reel_script");
       setChannel("social_media");
       setCampaign("Q4 Peak Athletic Season");
     } else {
-      setTitle("Product Launch - Clean Recovery Post");
+      setTitle("Product Launch – Clean Recovery Blend Post");
       setContent(
-        "Introducing our new plant-powered recovery formula. Clinically tested for faster results and crafted with 100% bio-available ingredients. Fuel your passion the clean way."
+        "Introducing our ISO-tested plant protein recovery blend. Clinically demonstrated to support muscle protein synthesis when consumed within 45 minutes of resistance training. Formulated with zero added sugars."
       );
       setSubmissionType("social_post");
       setChannel("social_media");
@@ -86,24 +89,34 @@ export default function NewSubmissionPage() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout
+      title="Draft Ingestion & Pre-Flight Studio"
+      subtitle="Submit marketing, advertising, or packaging copy for instant deterministic pre-flight checks and clinical proof grounding."
+    >
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Top Breadcrumb & Sample Presets */}
         <div className="space-y-4">
           <Link
             href="/submissions"
-            className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Submissions</span>
+            <span>SUBMISSIONS / NEW DRAFT AUDIT</span>
           </Link>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                Submit Content for Review
-              </h1>
-              <p className="text-sm text-slate-400 mt-1">
-                Your draft will undergo deterministic brand rule checks and AI evidence verification.
+              <div className="flex items-center gap-2">
+                <span className="led-indicator led-turquoise" />
+                <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
+                  Pre-Flight Content Ingestion
+                </h1>
+                <Badge variant="verified" size="xs">
+                  STAGE 1 INGESTION
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Your draft will undergo deterministic brand rule checks, regex filtering, and evidence verification.
               </p>
             </div>
 
@@ -111,14 +124,14 @@ export default function NewSubmissionPage() {
               <button
                 type="button"
                 onClick={() => handleLoadSample("reel")}
-                className="px-3 py-1.5 rounded-lg bg-[#181B2D] hover:bg-[#20243C] text-slate-300 text-xs font-medium border border-[#2B304C] transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-[#111C35] hover:bg-[#162547] text-amber-300 text-xs font-mono border border-amber-500/30 transition-colors cursor-pointer"
               >
                 Load Sample (With Flags)
               </button>
               <button
                 type="button"
                 onClick={() => handleLoadSample("compliant")}
-                className="px-3 py-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 text-xs font-medium border border-emerald-500/30 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 text-xs font-mono border border-emerald-500/30 transition-colors cursor-pointer"
               >
                 Load Compliant Draft
               </button>
@@ -127,131 +140,142 @@ export default function NewSubmissionPage() {
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+          <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Content Details & Target Channel</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-xs">
+          <div className="tactile-card rounded-xl p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#00F2FE]" />
+                <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+                  Submission Configuration &amp; Metadata
+                </h2>
+              </div>
+              <span className="text-[10px] font-mono text-slate-500">MANDATORY SPECIFICATION</span>
+            </div>
+
+            <div className="space-y-4 text-xs font-mono">
               <div>
-                <label className="block text-slate-300 font-medium mb-1.5">
-                  Content Title *
+                <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[11px]">
+                  CONTENT TITLE *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g., Q4 Campaign – Reel Script or Summer Ad Headline"
+                  placeholder="e.g. Q4 Campaign – Clinical Protein Reel Script"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-[#0B0C14] border border-[#232840] rounded-lg px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                  className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg px-3.5 py-2.5 text-xs text-slate-100 font-sans"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1.5">
-                    Brand Workspace
+                  <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[11px]">
+                    BRAND WORKSPACE *
                   </label>
                   <select
                     value={brandId}
                     onChange={(e) => setBrandId(e.target.value)}
-                    className="w-full bg-[#0B0C14] border border-[#232840] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg px-3 py-2 text-slate-200 cursor-pointer"
                   >
-                    <option value="brand_apex">Apex Nutrition</option>
+                    <option value="brand_apex">Apex Nutrition (Active)</option>
                     <option value="brand_zenith">Zenith Cloud SaaS</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1.5">
-                    Content Format
+                  <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[11px]">
+                    CONTENT FORMAT *
                   </label>
                   <select
                     value={submissionType}
                     onChange={(e) => setSubmissionType(e.target.value)}
-                    className="w-full bg-[#0B0C14] border border-[#232840] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg px-3 py-2 text-slate-200 cursor-pointer"
                   >
                     <option value="reel_script">Reel / Video Script</option>
                     <option value="social_post">Social Media Post</option>
                     <option value="banner_copy">Ad / Visual Banner Copy</option>
-                    <option value="newsletter">Email Newsletter</option>
+                    <option value="newsletter">Email Direct Newsletter</option>
                     <option value="landing_page">Website / Landing Page</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1.5">
-                    Publication Channel
+                  <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[11px]">
+                    PUBLICATION CHANNEL *
                   </label>
                   <select
                     value={channel}
                     onChange={(e) => setChannel(e.target.value)}
-                    className="w-full bg-[#0B0C14] border border-[#232840] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg px-3 py-2 text-slate-200 cursor-pointer"
                   >
                     <option value="social_media">Instagram / TikTok / X</option>
                     <option value="advertisement">Paid Ads / Meta / Google</option>
                     <option value="email">Email Campaign</option>
-                    <option value="landing_page">Official Website</option>
-                    <option value="press_release">Press Release</option>
+                    <option value="landing_page">Official Website (DTC)</option>
+                    <option value="press_release">Press Release &amp; Wire</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1.5">
-                  Campaign / Initiative (Optional)
+                <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[11px]">
+                  CAMPAIGN / INITIATIVE (OPTIONAL)
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., Q4 Black Friday / Global Product Launch"
+                  placeholder="e.g. Q4 Black Friday / Global Athletic Launch"
                   value={campaign}
                   onChange={(e) => setCampaign(e.target.value)}
-                  className="w-full bg-[#0B0C14] border border-[#232840] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                  className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg px-3 py-2 text-slate-200 font-sans"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1.5">
-                  Content Draft Text *
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-slate-300 font-medium uppercase text-[11px]">
+                    CONTENT DRAFT TEXT *
+                  </label>
+                  <span className="text-slate-500 text-[10px]">REAL-TIME PRE-FLIGHT PARSING</span>
+                </div>
                 <textarea
                   required
                   rows={6}
-                  placeholder="Type or paste your copy here..."
+                  placeholder="Type or paste marketing copy, script lines, or packaging statements here..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="w-full bg-[#0B0C14] border border-[#232840] rounded-lg p-3 text-sm text-slate-100 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-violet-500"
+                  className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed resize-none"
                 />
-                <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
-                  <span>Character count: {content.length}</span>
-                  <span className="text-violet-400">
-                    Governance rules will be validated against active brand guidelines.
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mt-1.5">
+                  <span>LENGTH: {content.length} CHARACTERS · {Math.ceil(content.length / 4)} TOKENS</span>
+                  <span className="text-[#00F2FE] flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00F2FE]" />
+                    <span>Validated vs Active Claims &amp; ISO 22196</span>
                   </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Grounded in approved clinical/legal evidence</span>
             </div>
 
             <Button
               type="submit"
-              size="lg"
-              variant="primary"
+              size="md"
+              variant="gold"
               loading={loading}
-              icon={<Sparkles className="w-4 h-4" />}
+              icon={<Play className="w-3.5 h-3.5 fill-current" />}
             >
-              Submit &amp; Run Brand Audit
+              <span>{loading ? "Auditing Tokens..." : "Execute Pre-Flight Audit"}</span>
             </Button>
           </div>
         </form>

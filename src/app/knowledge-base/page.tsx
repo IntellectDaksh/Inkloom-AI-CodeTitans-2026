@@ -11,101 +11,119 @@ import {
   ArrowRight,
   Sparkles,
   BookOpen,
+  Tag,
+  Database,
+  Layers,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
 export default function KnowledgeBaseHubPage() {
   const cards = [
     {
-      title: "Brand Guidelines",
-      description: "Voice, tone, messaging, do's & don'ts.",
-      footer: "Updated 2 days ago",
-      icon: FileText,
-      href: "/knowledge-base/guidelines",
-      color: "text-violet-400",
-      bgColor: "bg-violet-600/15 border-violet-500/30",
-    },
-    {
-      title: "Approved Claims",
-      description: "Verified and permitted marketing claims.",
-      footer: "32 claims · 2 expiring",
+      title: "Approved Marketing Claims",
+      description: "Substantiated clinical and regulatory claims with expiration countdowns and cascade re-review triggers.",
+      footer: "32 verified claims · 2 expiring soon",
       icon: ShieldCheck,
       href: "/knowledge-base/claims",
       color: "text-emerald-400",
-      bgColor: "bg-emerald-600/15 border-emerald-500/30",
+      bgColor: "bg-emerald-500/10 border-emerald-500/30",
     },
     {
-      title: "Product Information",
-      description: "Specifications, features and usage.",
-      footer: "Updated 5 days ago",
-      icon: Package,
+      title: "Brand Voice Guidelines",
+      description: "Authoritative voice & tone rules, required medical disclaimers, and clear do's & don'ts.",
+      footer: "Active & enforced by pre-flight engine",
+      icon: BookOpen,
+      href: "/knowledge-base/guidelines",
+      color: "text-[#00F2FE]",
+      bgColor: "bg-cyan-500/10 border-cyan-500/30",
+    },
+    {
+      title: "Brand Terminology & Glossary",
+      description: "Deterministic vocabulary dictionary checking banned superlatives and preferred scientific keywords.",
+      footer: "Real-time regex scanner (5ms latency)",
+      icon: Tag,
       href: "/knowledge-base/terminology",
-      color: "text-indigo-400",
-      bgColor: "bg-indigo-600/15 border-indigo-500/30",
+      color: "text-[#E5A93C]",
+      bgColor: "bg-amber-500/10 border-amber-500/30",
     },
     {
-      title: "Brand Assets",
-      description: "Logos, fonts, colours and templates.",
-      footer: "142 files",
+      title: "Trial Documents & Evidence Assets",
+      description: "Uploaded clinical trial PDFs, ISO assay certificates, and third-party laboratory documentation.",
+      footer: "4 source documents · 11 extracted claims",
       icon: FolderArchive,
       href: "/knowledge-base/assets",
-      color: "text-amber-400",
-      bgColor: "bg-amber-600/15 border-amber-500/30",
+      color: "text-sky-400",
+      bgColor: "bg-sky-500/10 border-sky-500/30",
     },
   ];
 
   return (
-    <AppLayout>
+    <AppLayout
+      title="Knowledge Base & Ground Truth Repository"
+      subtitle="Single source of truth linking marketing communications to certified clinical trials and regulatory filings."
+    >
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-              Knowledge Base
-            </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Manage your brand guidelines, approved claims and assets.
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="led-indicator led-turquoise" />
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
+                Knowledge Base &amp; Truth Directory
+              </h1>
+              <Badge variant="verified" size="xs">
+                IMMUTABLE EVIDENCE
+              </Badge>
+              <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
+                ISO 22196 GROUNDED
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+              Every factual assertion in Inkloom must map to an active record in this library. Zero ungrounded modifications permitted by the AI governance pipeline.
             </p>
           </div>
 
-          <Link href="/knowledge-base/claims">
-            <Button size="md" variant="primary" icon={<Plus className="w-4 h-4" />}>
-              Add Resource
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Link href="/knowledge-base/claims">
+              <Button size="sm" variant="gold" icon={<Plus className="w-3.5 h-3.5 text-[#080C16]" />}>
+                Add Approved Claim
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        {/* 4 Primary Grid Cards (Matching Mockup exactly) */}
+        {/* 4 Primary Grid Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {cards.map((c) => {
             const Icon = c.icon;
             return (
               <Link key={c.title} href={c.href} className="group">
-                <div className="p-6 rounded-xl bg-[#111320] border border-[#1F2338] hover:border-violet-500/40 hover:bg-[#141626] transition-all duration-200 h-full flex flex-col justify-between group-hover:scale-[1.01] shadow-sm">
+                <div className="tactile-card rounded-xl p-6 h-full flex flex-col justify-between group-hover:border-[#00F2FE]/50 transition-all shadow-lg space-y-5">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div
-                        className={`w-11 h-11 rounded-lg flex items-center justify-center border ${c.bgColor}`}
+                        className={`w-11 h-11 rounded-lg flex items-center justify-center border shadow-inner ${c.bgColor}`}
                       >
                         <Icon className={`w-5 h-5 ${c.color}`} />
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-violet-400 group-hover:translate-x-1 transition-all" />
+                      <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-[#00F2FE] group-hover:translate-x-1 transition-all" />
                     </div>
 
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-100 group-hover:text-white transition-colors">
+                      <h2 className="text-base font-bold text-slate-100 group-hover:text-white transition-colors">
                         {c.title}
                       </h2>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed font-sans">
                         {c.description}
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-6 border-t border-[#1C2033] mt-6 text-xs text-slate-500 font-medium">
-                    {c.footer}
+                  <div className="pt-4 border-t border-[#1E2B4A] text-[11px] text-slate-400 font-mono font-medium flex items-center justify-between">
+                    <span>{c.footer}</span>
+                    <span className="text-[#00F2FE] font-sans">Manage &rarr;</span>
                   </div>
                 </div>
               </Link>

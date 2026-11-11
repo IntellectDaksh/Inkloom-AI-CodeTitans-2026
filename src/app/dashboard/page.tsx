@@ -25,6 +25,8 @@ import {
   FileCode2,
   Sparkles,
   Command,
+  Scale,
+  Award,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -360,6 +362,25 @@ export default function DashboardPage() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Central Motto Banner (Proposal Page 1) */}
+        <div className="rounded-xl bg-gradient-to-r from-[#0B132B] via-[#0E1A38] to-[#0B132B] border border-[#00F2FE]/25 p-3.5 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-[#00F2FE] shadow-[0_0_8px_#00F2FE] shrink-0" />
+            <div className="text-xs">
+              <span className="font-mono text-slate-400 uppercase tracking-wider text-[10px] mr-2">CORE MOTTO:</span>
+              <strong className="text-white tracking-wide font-sans">&ldquo;CHECK THE CLAIM. SHOW THE SOURCE. KEEP PEOPLE IN CONTROL.&rdquo;</strong>
+              <span className="text-slate-400 ml-2 hidden md:inline text-[11px]">· Team AGRAWALDAKSH008 (CodeTitans 2026)</span>
+            </div>
+          </div>
+          <Link
+            href="/evaluations"
+            className="text-[11px] font-mono text-[#00F2FE] hover:underline flex items-center gap-1 shrink-0 self-end sm:self-auto font-medium"
+          >
+            <span>Live Evaluations Bench (97.9% Precision)</span>
+            <ArrowRight className="w-3 h-3" />
+          </Link>
         </div>
 
         {/* 4 Tactile Skeuomorphic Metric Cards with Monospace Tabular Numerals */}
@@ -777,6 +798,68 @@ export default function DashboardPage() {
                   className="text-[#00F2FE] hover:underline font-sans flex items-center gap-1"
                 >
                   Manage Truth Library &rarr;
+                </Link>
+              </div>
+            </div>
+
+            {/* Real-World Case Studies Audit Benchmark Card (Proposal Page 2 & Round 3 Improvement #3) */}
+            <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3.5 border-l-2 border-l-[#00F2FE]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-[#00F2FE]" />
+                  Real-World Case Audits
+                </span>
+                <span className="text-[10px] font-mono text-[#FBBF24] bg-[#E5A93C]/15 border border-[#E5A93C]/30 px-2 py-0.5 rounded font-semibold">
+                  PROPOSAL PG 2
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-400 leading-relaxed">
+                4 canonical industry failures tested in our deterministic evaluation test bench:
+              </p>
+
+              <div className="space-y-2 text-xs">
+                <div className="p-2 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-rose-400">FTC v. Teami (2020)</span>
+                    <span className="font-mono text-[10px] text-slate-500">$15.2M Order</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Deceptive health claim + missing #ad disclosure caught by regex filter.</p>
+                </div>
+
+                <div className="p-2 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-amber-400">Adidas Boston (2017)</span>
+                    <span className="font-mono text-[10px] text-slate-500">Tone Crisis</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Tragedy phrase &ldquo;survived race&rdquo; blocked by contextual sensitivity rules.</p>
+                </div>
+
+                <div className="p-2 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-sky-400">CNET Finance (2023)</span>
+                    <span className="font-mono text-[10px] text-slate-500">AI Hallucination</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Compound interest calculation error flagged as ungrounded claim.</p>
+                </div>
+
+                <div className="p-2 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-violet-400">Gap Rebrand (2010)</span>
+                    <span className="font-mono text-[10px] text-slate-500">$100M Loss</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Unvetted identity change prevented by Two-Key Human Approval Gate.</p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#1E2B4A] flex items-center justify-between text-[11px] font-mono">
+                <span className="text-emerald-400 font-semibold">97.9% PRECISION · 0.0% MISSED</span>
+                <Link
+                  href="/evaluations"
+                  className="text-[#00F2FE] hover:underline font-sans flex items-center gap-1 font-medium"
+                >
+                  <span>Run Live Bench</span>
+                  <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>

@@ -1,6 +1,4 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026/main/public/file.svg" width="80" height="80" alt="Inkloom AI logo" style="display: none;" />
-
   # ⚖️ INKLOOM AI
 
   ### **The Pre-Publication Governance Layer for Brand Truth & Marketing Claims**
@@ -9,6 +7,7 @@
   <br />
 
   [![Live Production](https://img.shields.io/badge/Live%20Production-inkloom--ai--tau.vercel.app-8B5CF6?style=for-the-badge&logo=vercel&logoColor=white)](https://inkloom-ai-tau.vercel.app)
+  [![GitHub Repository](https://img.shields.io/badge/GitHub-IntellectDaksh%2FInkloom--AI-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026)
   [![Version](https://img.shields.io/badge/version-v2.0-3B82F6?style=for-the-badge)](https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026)
   [![License](https://img.shields.io/badge/license-MIT-10B981?style=for-the-badge)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-Web%20%2F%20Edge-06B6D4?style=for-the-badge)](https://inkloom-ai-tau.vercel.app)
@@ -18,7 +17,7 @@
   <br />
 
   **Team AGRAWALDAKSH008 — CodeTitans India 2026**  
-  *Daksh Agrawal (Team Lead) • Laksh Khatri • Riddhi Shah • Mansoor Rupawala*
+  *Daksh Agrawal (Team Lead & Full-Stack Architect) • Laksh Khatri • Riddhi Shah • Mansoor Rupawala*
 
   <br />
 
@@ -35,11 +34,12 @@
 > [!IMPORTANT]
 > ### ⚡ OFFICIAL JUDGES & EVALUATORS ACCESS
 > 
-> #### 🌐 Production Deployment: **[https://inkloom-ai-tau.vercel.app](https://inkloom-ai-tau.vercel.app)**
+> * 🌐 **Live Production Application:** **[https://inkloom-ai-tau.vercel.app](https://inkloom-ai-tau.vercel.app)**
+> * 💻 **Official Source Repository:** **[https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026](https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026)**
 > 
-> **Zero Configuration Required:** Evaluators can inspect the live 8-stage compliance engine immediately without registering.
+> **Zero Setup / Instant Judge Evaluation:** Evaluators can inspect the live 8-stage compliance engine immediately without registering.
 > 
-> * **Interactive Hero Sandbox:** The landing page features a live **Hero Audit Workbench** pre-loaded with 3 real-world vertical presets (*Clinical Nutrition*, *Enterprise SaaS SLA*, and *Cosmetics Ad Copy*). Run audits, test word-level surgical diff replacements, and inspect cryptographic evidence provenance with zero friction.
+> * **Interactive Hero Sandbox:** The landing page features a live **Hero Audit Workbench** pre-loaded with 3 real-world vertical presets (*Clinical Nutrition*, *Enterprise SaaS SLA*, and *Cosmetics Ad Copy*). Run pre-flight audits, test word-level surgical diff replacements, and inspect cryptographic evidence provenance with zero friction.
 > * **Pre-Authenticated 1-Click Role Logins:** Switch between enterprise personas directly on the [Login Page](https://inkloom-ai-tau.vercel.app/auth/login):
 >   * **Compliance Admin:** `daksh@inkloom.ai` (Full workspace authority, tenant settings, and audit logs)
 >   * **Legal Reviewer:** `laksh@inkloom.ai` (Approvals queue, dispute arbitration, and binding reviewer overrides)
@@ -51,7 +51,13 @@
 ## 🧭 Table of Contents
 
 - [Where It Fits (Competitive Matrix)](#-where-it-fits-competitive-matrix)
-- [Why This Exists (Problem & 4 Real-World Cases)](#-why-this-exists-problem--the-4-landmark-disasters)
+- [Why This Exists (The 4 Landmark Regulatory Disasters)](#-why-this-exists-the-4-landmark-regulatory-disasters)
+- [Round 3 Architectural Innovations](#-round-3-architectural-innovations)
+  - [1. Claim-Expiry & Cascade Re-Review](#1-claim-expiry--change-triggered-cascade-re-review)
+  - [2. Finding Dispute & Recorded Reviewer Overrides](#2-finding-dispute-reasoned-dismissal--recorded-reviewer-overrides)
+  - [3. Evaluation Benchmark Bench (4 Landmark Cases)](#3-labelled-evaluation-benchmark-bench-across-4-landmark-cases)
+  - [4. Empirical Confusion Matrix & Telemetry](#4-empirical-confusion-matrix--quantitative-telemetry)
+- [Swiss International Style & Design System](#-swiss-international-style--contemporary-minimalism)
 - [8-Stage Governance Architecture & Pipeline](#-8-stage-governance-architecture--pipeline)
 - [Complete Feature Index](#-complete-feature-index)
 - [Global Keyboard Shortcuts](#-global-keyboard-shortcuts)
@@ -82,11 +88,9 @@ Modern enterprise marketing stacks are fractured. Generic AI models churn out ha
 
 ---
 
-## 💥 Why This Exists (Problem & the 4 Landmark Disasters)
+## 💥 Why This Exists (The 4 Landmark Regulatory Disasters)
 
 Enterprise marketing teams generate thousands of digital assets each month: ad variants, influencer scripts, press releases, landing page copy, and social reels. The rapid adoption of generative AI has eliminated the cost of text generation, but it has drastically amplified the risk of **catastrophic brand liability**.
-
-When marketing copy makes unverified claims, tone drift insults an audience, or expired trial data remains live, corporations face ruinous fines, litigation, and permanent reputational destruction.
 
 ```
        GENERATIVE CONTENT EXPLOSION                     REGULATORY & BRAND CRACKDOWN
@@ -127,6 +131,106 @@ Inkloom was engineered specifically to prevent the four canonical classes of mar
 * **The Disaster:** Gap launched an unannounced, abrupt logo and brand identity redesign. The sudden shift clashed with decades of customer affinity, sparking intense public backlash that forced Gap to scrap the redesign after just **6 days**, burning an estimated **$100 million** in brand equity and production costs.
 * **The Root Cause:** Marketing execution occurred in a creative silo disconnected from centralized, version-controlled brand standards, governance review gates, and audience transition guidelines.
 * **How Inkloom Solves It:** Inkloom's multi-tier approval gate (`approval_requests`) requires sign-off from designated Brand Managers before campaign materials are cleared. When brand guidelines or visual assets are updated, Inkloom's Cascade Engine evaluates active submissions for guideline drift.
+
+---
+
+## 🔬 Round 3 Architectural Innovations
+
+In Round 3, Inkloom AI implemented four major breakthrough governance mechanisms that transition compliance from a static, reactive inspection tool into an active, enterprise-grade operating system:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        ROUND 3 CORE ARCHITECTURAL PILLARS                              │
+│                                                                                        │
+│  [1] CASCADE RE-REVIEW       ─── Dynamic graph propagation on claim expiry / edit      │
+│  [2] DISPUTE & OVERRIDE      ─── Bidirectional human gate with 21 CFR Part 11 audit    │
+│  [3] BENCHMARK TESTBENCH     ─── Labelled evaluation suite across 4 historical cases   │
+│  [4] EMPIRICAL MATRIX        ─── Exact 97.9% precision / 100% recall mathematical proof│
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. Claim-Expiry & Change-Triggered Cascade Re-Review
+* **The Problem of "Regulatory Drift":** In conventional organizations, brand guidelines and approved claims are stored in dormant PDF documents. When a clinical trial expires, a patent license lapses, or a regulatory body alters a permitted health claim, published campaigns and active creative drafts continue citing outdated assertions unnoticed for months.
+* **The Graph-Driven Solution:** Inkloom models every approved claim as an active, versioned database record with explicit validity windows, evidence contracts, and assigned medical/legal owners. The Cascade Engine (`src/lib/db/store.ts`):
+  1. Tracks bidirectional relational links between claims and all historical submissions.
+  2. Runs a proactive 30-day expiration radar alerting managers before clinical trial contracts lapse.
+  3. When an approved claim is edited, deprecated, or expires, the engine automatically identifies every past submission that relied on that claim, downgrades its status to `needs_re_review`, and injects a prioritized remediation card into the legal team's queue.
+
+### 2. Finding Dispute, Reasoned Dismissal & Recorded Reviewer Overrides
+* **The Problem of Rigid AI Bottlenecks:** Black-box AI compliance checkers create friction: they reject valid creative nuances with no recourse, forcing copywriters to bypass the tool via email or Slack.
+* **The Bidirectional Solution:** Inkloom enforces structured human-in-the-loop arbitration satisfying strict regulatory standards (such as **FDA 21 CFR Part 11** and **FTC substantiation**):
+  * **Creator Rebuttal:** When an issue is flagged, creators are not locked out. They can accept surgical diff fixes with one click, dismiss low-severity tips by documenting an operational justification, or formally dispute a finding by submitting counter-evidence (e.g., citing a regional market dispensation).
+  * **Reviewer Authority:** Disputed findings escalate to authorized Compliance Reviewers (`brand_manager` / `admin`). Reviewers can inspect the full evidence citation chain and record a legally binding override citing external legal counsel.
+  * **Immutable Audit Trail:** Every decision—approval, dispute, dismissal, or override—is cryptographically recorded in the `audit_events` ledger with user roles, timestamps, written rationales, and SHA-256 state hashes.
+
+### 3. Labelled Evaluation Benchmark Bench across 4 Landmark Cases
+* **Auditable Verification:** Inkloom features an integrated evaluation dashboard (`/evaluations`) that continuously tests the governance pipeline against a curated test suite derived directly from real-world corporate and regulatory disasters:
+  * **Dataset 1 (FTC v. Teami):** 20 test variants measuring detection of ungrounded health/weight-loss claims and missing statutory `#ad` disclosures.
+  * **Dataset 2 (Adidas Boston Marathon):** 15 test variants measuring tone sensitivity, trauma awareness, and hyperbolic insensitivity.
+  * **Dataset 3 (CNET AI Hallucinations):** 25 test variants verifying numerical facts, interest rate computations, and mathematical claims against authoritative figures.
+  * **Dataset 4 (Gap Rebrand Whiplash):** 18 test variants verifying brand voice stability, typography rules, and trademarked terminology consistency.
+
+### 4. Empirical Confusion Matrix & Quantitative Telemetry
+Instead of relying on speculative vendor claims ("99% AI accuracy"), Inkloom computes an auditable mathematical performance matrix across the labelled benchmark suite:
+
+```
+                         ACTUAL VIOLATION (Positive)     ACTUAL COMPLIANT (Negative)
+                     ┌───────────────────────────────┬───────────────────────────────┐
+PREDICTED VIOLATION  │     True Positive (TP): 47    │    False Positive (FP): 1     │
+                     ├───────────────────────────────┼───────────────────────────────┤
+PREDICTED COMPLIANT  │     False Negative (FN): 0    │     True Negative (TN): 30    │
+                     └───────────────────────────────┴───────────────────────────────┘
+```
+
+#### Mathematical Performance Metrics:
+* **Precision:** $\frac{TP}{TP + FP} = \frac{47}{47 + 1} = \mathbf{97.9\%}$ (Minimizes false alarms, ensuring creators are not slowed by bogus flags).
+* **Recall (Sensitivity):** $\frac{TP}{TP + FN} = \frac{47}{47 + 0} = \mathbf{100.0\%}$ (**Zero tolerance for missed statutory violations**).
+* **Specificity:** $\frac{TN}{TN + FP} = \frac{30}{30 + 1} = \mathbf{96.7\%}$.
+* **F1-Score:** $2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}} = \mathbf{0.989}$.
+* **Missed-Issue Rate (Statutory Hazard):** $\mathbf{0.0\%}$ ($FN = 0$).
+* **False-Positive Rate:** $\mathbf{2.1\%}$.
+
+---
+
+## 📐 Swiss International Style & Contemporary Minimalism
+
+Inkloom AI's interface is designed around the principles of **Swiss International Typographic Style** combined with **Contemporary Minimalism**—inspired by the functional discipline of the Linear method, Vercel Geist, and Raycast.
+
+In high-stakes enterprise brand governance, decorative gimmicks destroy trust. Inkloom rejects the pervasive malaise of **"AI Slop"** in favor of tool-grade physicality:
+
+```
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │                         ANTI-AI-SLOP MANIFESTO                            │
+  │                                                                           │
+  │  1. NO COSMIC GLOW ORBS         → Strict carbon depth & hairline borders  │
+  │  2. NO SPARKLES AS CRUTCH       → Purpose-built glyphs (Shield, Check)    │
+  │  3. NO FUZZY GLASSMORPHISM      → Solid, opaque, structured surfaces      │
+  │  4. NO OPACITY-0.2 HEADINGS     → WCAG AAA contrast typography            │
+  │  5. NO UNGROUNDED SCORES        → Multi-factor audit provenance           │
+  │  6. NO PASSIVE "AUTO-APPLY"     → Surgical inline diffs with human gating │
+  │  7. NO SQUISHY BORDER RADII     → Crisp 6px/8px radii, 1px precision cuts │
+  │  8. NO MARKETING BUZZWORDS      → Deterministic, legal-grade vocabulary   │
+  └───────────────────────────────────────────────────────────────────────────┘
+```
+
+### Design Physicality & Spatial Hierarchy
+
+```
+Elevation Hierarchy:
+Level 3: Drawers / Modals / Command Palette ─── #181C2B (Border: #2F3752) ─── Highest Focus
+Level 2: Cards / Tables / Action Panels   ─── #131622 (Border: #1E2333) ─── Interactive Surface
+Level 1: Sidebar / Header Chrome         ─── #0E1017 (Border: #1A1E2C) ─── Structural Frame
+Level 0: Canvas Base Background           ─── #090A10 ────────────────────── Deep Void Carbon
+```
+
+* **Mathematical Grid:** Strict 4px/8px spatial rhythm with 1px hairline borders (`#1E2333`). Never uses blurry 20px dropshadows; depth is achieved through lightness layering and inner-rim bevel highlights (`box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05)`).
+* **Functional Semantic Palette:** Colors are not decorative; they are legal-status signals:
+  * **Verified (Emerald `#10B981`):** Active clinical trial substantiation, ISO assay confirmed.
+  * **Violation (Rose `#F43F5E`):** Prohibited terminology, ungrounded health claim, statutory hazard.
+  * **Caution (Amber `#F59E0B`):** Claim nearing expiration (<30 days), tone deviation.
+  * **Registry (Technical Cyan `#06B6D4`):** DOI paper references, clinical trial IDs, SHA-256 hashes.
+  * **Precision Violet (`#7C3AED`):** Primary action triggers and keyboard focus indicators.
+* **Typographic Rigor:** Geist Sans / Inter for crisp UI text paired with Geist Mono using `font-mono tabular-nums` for all metrics, claim numbers, timestamps, and hashes—guaranteeing zero layout shift during real-time re-audits.
 
 ---
 
@@ -295,6 +399,7 @@ Enforces a non-negotiable human review boundary:
   * **FTC v. Teami:** Tests ungrounded health assertions and missing `#ad` tags.
   * **Adidas Boston Marathon:** Tests emotional insensitivity and tone drift.
   * **CNET AI Hallucinations:** Tests compound interest calculations and ungrounded financial claims.
+  * **Gap Rebrand Whiplash:** Tests tone whiplash and unauthorized terminology shifts.
 * **Real-Time Accuracy Telemetry:** Measures Precision (97.9%), Recall (100%), False-Positive Rate (2.1%), and Missed-Issue Rate (0.0%).
 
 ### 8. Governance Analytics & Risk Radar (`/analytics`)
@@ -535,7 +640,7 @@ Inkloom AI was conceived, architected, and built by **Team AGRAWALDAKSH008** for
 |---|---|---|
 | **Daksh Agrawal** | **Team Lead & Full-Stack Architect** | 8-Stage governance pipeline, Next.js 16 full-stack architecture, Gemini AI integration, embedded `InkloomStore`, and surgical diff engine |
 | **Laksh Khatri** | **Backend & AI Engineer** | Deterministic preflight regex scanner, claims retrieval engine, prompt engineering, and automated test suite |
-| **Riddhi Shah** | **Frontend & Product Designer** | High-craft dark carbon UI, dual-pane review workspace, live hero sandbox, and visual identity specification |
+| **Riddhi Shah** | **Frontend & Product Designer** | Swiss-modern design system, anti-AI-slop tokens, dual-pane review workspace, live hero sandbox, and visual identity specification |
 | **Mansoor Rupawala** | **Database & Compliance Specialist** | 25-table Supabase PostgreSQL schema, RLS policies, cascade re-review graph, and FTC/FDA regulatory rule mapping |
 
 <br />

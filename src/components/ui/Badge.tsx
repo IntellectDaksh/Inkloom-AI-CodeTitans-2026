@@ -32,9 +32,10 @@ export type DotColor =
   | "emerald"
   | "amber"
   | "rose"
+  | "cyan"
+  | "white"
   | "violet"
   | "slate"
-  | "cyan"
   | "blue"
   | "gold"
   | "turquoise";
@@ -68,123 +69,122 @@ export function Badge({
   };
 
   const variantStyles: Record<BadgeVariant, string> = {
-    // Verified Claim / Telemetry
+    // Functional Status Accents
     verified:
-      "bg-[#00F2FE]/10 text-[#00F2FE] border border-[#00F2FE]/30 shadow-[inset_0_1px_0_rgba(0,242,254,0.15)]",
+      "bg-[#0E1A1A] text-[#22D3EE] border border-[#0E3A42] shadow-[inset_0_1px_0_rgba(6,182,212,0.15)]",
     turquoise:
-      "bg-[#00F2FE]/10 text-[#00F2FE] border border-[#00F2FE]/30 shadow-[inset_0_1px_0_rgba(0,242,254,0.15)]",
+      "bg-[#0E1A1A] text-[#22D3EE] border border-[#0E3A42] shadow-[inset_0_1px_0_rgba(6,182,212,0.15)]",
     cyan:
-      "bg-[#06B6D4]/10 text-[#22D3EE] border border-[#06B6D4]/30 shadow-[inset_0_1px_0_rgba(6,182,212,0.15)]",
-
-    // Brushed Gold / Executive
-    gold:
-      "bg-[#E5A93C]/12 text-[#FBBF24] border border-[#E5A93C]/35 shadow-[inset_0_1px_0_rgba(251,191,36,0.2)]",
-
-    // Violations / Critical
-    critical:
-      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
-    high:
-      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
-    violation:
-      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
-    rejected:
-      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
-    rose:
-      "bg-rose-950/40 text-rose-300 border border-rose-500/35 shadow-[inset_0_1px_0_rgba(244,63,94,0.15)]",
-
-    // Approvals / Success
-    approved:
-      "bg-emerald-950/40 text-emerald-300 border border-emerald-500/35 shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
-    success:
-      "bg-emerald-950/40 text-emerald-300 border border-emerald-500/35 shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
-    emerald:
-      "bg-emerald-950/40 text-emerald-300 border border-emerald-500/35 shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
-
-    // Warnings / Pending
-    medium:
-      "bg-amber-950/40 text-amber-300 border border-amber-500/35 shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
-    warning:
-      "bg-amber-950/40 text-amber-300 border border-amber-500/35 shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
-    changes_requested:
-      "bg-amber-950/40 text-amber-300 border border-amber-500/35 shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
-    amber:
-      "bg-amber-950/40 text-amber-300 border border-amber-500/35 shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
-    pending:
-      "bg-[#E5A93C]/12 text-[#FBBF24] border border-[#E5A93C]/35 shadow-[inset_0_1px_0_rgba(251,191,36,0.15)]",
-
-    // Info / Neutral / Machined
-    low: "bg-[#152038] text-sky-300 border border-[#2A406E] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-    info: "bg-[#152038] text-[#CBD5E1] border border-[#1E2E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-    draft: "bg-[#0D1527] text-[#94A3B8] border border-[#1E2E50]",
-    tag: "bg-[#152038] text-[#CBD5E1] border border-[#1E2E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-    neutral: "bg-[#152038] text-[#CBD5E1] border border-[#1E2E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-    slate: "bg-[#152038] text-[#CBD5E1] border border-[#1E2E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-    blue: "bg-[#152038] text-sky-300 border border-[#2A406E] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-    violet:
-      "bg-indigo-950/40 text-indigo-300 border border-indigo-500/30 shadow-[inset_0_1px_0_rgba(99,102,241,0.15)]",
+      "bg-[#0E1A1A] text-[#22D3EE] border border-[#0E3A42] shadow-[inset_0_1px_0_rgba(6,182,212,0.15)]",
     metadata:
-      "bg-[#0D1527] text-[#22D3EE] border border-[#1E2E50] font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+      "bg-[#0C0C0C] text-[#22D3EE] border border-[#222222] font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+
+    // Critical Violations / Rose
+    critical:
+      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
+    high:
+      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
+    violation:
+      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
+    rejected:
+      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
+    rose:
+      "bg-[#1A0E10] text-[#FCA5A5] border border-[#4C1D24] shadow-[inset_0_1px_0_rgba(239,68,68,0.15)]",
+
+    // Compliant / Approvals / Emerald
+    approved:
+      "bg-[#0C1A14] text-[#86EFAC] border border-[#14422B] shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+    success:
+      "bg-[#0C1A14] text-[#86EFAC] border border-[#14422B] shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+    emerald:
+      "bg-[#0C1A14] text-[#86EFAC] border border-[#14422B] shadow-[inset_0_1px_0_rgba(16,185,129,0.15)]",
+
+    // Warnings / Review / Amber
+    medium:
+      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+    warning:
+      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+    changes_requested:
+      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+    amber:
+      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+    pending:
+      "bg-[#1C1608] text-[#FCD34D] border border-[#4A3810] shadow-[inset_0_1px_0_rgba(245,158,11,0.15)]",
+
+    // Monochromatic High-Contrast Swiss Tags
+    gold:
+      "bg-[#181818] text-white border border-[#333333] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+    low: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+    info: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+    draft: "bg-[#0C0C0C] text-[#A0A0A0] border border-[#222222]",
+    tag: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+    neutral: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+    slate: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+    blue: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+    violet: "bg-[#141414] text-[#EFEFEF] border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
   };
 
   const defaultDotColorMap: Record<BadgeVariant, DotColor> = {
     critical: "rose",
     high: "rose",
     medium: "amber",
-    low: "blue",
-    info: "slate",
+    low: "cyan",
+    info: "white",
     approved: "emerald",
-    pending: "gold",
+    pending: "amber",
     changes_requested: "amber",
     rejected: "rose",
-    draft: "slate",
-    tag: "slate",
-    neutral: "slate",
+    draft: "white",
+    tag: "white",
+    neutral: "white",
     success: "emerald",
     warning: "amber",
-    verified: "turquoise",
+    verified: "cyan",
     violation: "rose",
-    metadata: "turquoise",
+    metadata: "cyan",
     emerald: "emerald",
     amber: "amber",
     rose: "rose",
-    violet: "violet",
-    slate: "slate",
-    cyan: "turquoise",
-    blue: "blue",
-    gold: "gold",
-    turquoise: "turquoise",
+    violet: "cyan",
+    slate: "white",
+    cyan: "cyan",
+    blue: "cyan",
+    gold: "white",
+    turquoise: "cyan",
   };
 
-  const hardwareLedClasses: Record<DotColor, string> = {
-    emerald: "hardware-led hardware-led-emerald",
-    amber: "hardware-led hardware-led-amber",
-    rose: "hardware-led hardware-led-rose",
-    violet: "hardware-led hardware-led-blue",
-    slate: "hardware-led bg-slate-400",
-    cyan: "hardware-led hardware-led-turquoise",
-    blue: "hardware-led hardware-led-blue",
-    gold: "hardware-led hardware-led-gold",
-    turquoise: "hardware-led hardware-led-turquoise",
+  const statusDiodeClasses: Record<DotColor, string> = {
+    emerald: "status-diode status-diode-emerald",
+    amber: "status-diode status-diode-amber",
+    rose: "status-diode status-diode-rose",
+    cyan: "status-diode status-diode-cyan",
+    white: "status-diode status-diode-white",
+    violet: "status-diode status-diode-cyan",
+    slate: "status-diode status-diode-white",
+    blue: "status-diode status-diode-cyan",
+    gold: "status-diode status-diode-amber",
+    turquoise: "status-diode status-diode-cyan",
   };
 
   const pingColorClasses: Record<DotColor, string> = {
     emerald: "bg-emerald-400",
     amber: "bg-amber-400",
     rose: "bg-rose-400",
-    violet: "bg-indigo-400",
-    slate: "bg-slate-400",
     cyan: "bg-cyan-400",
-    blue: "bg-sky-400",
+    white: "bg-white",
+    violet: "bg-cyan-400",
+    slate: "bg-white",
+    blue: "bg-cyan-400",
     gold: "bg-amber-300",
-    turquoise: "bg-[#00F2FE]",
+    turquoise: "bg-cyan-400",
   };
 
-  const activeDotColor = dotColor || defaultDotColorMap[variant] || "slate";
+  const activeDotColor = dotColor || defaultDotColorMap[variant] || "white";
 
   return (
     <span
       className={`inline-flex items-center font-medium rounded select-none leading-none tracking-tight ${
-        mono || variant === "metadata" ? "font-mono tracking-normal tabular-nums" : "font-sans"
+        mono || variant === "metadata" ? "font-mono tracking-wider tabular-nums uppercase text-[10px]" : "font-sans"
       } ${sizeClasses[size]} ${variantStyles[variant]} ${className}`}
       {...props}
     >
@@ -192,10 +192,10 @@ export function Badge({
         <span className="relative flex items-center justify-center shrink-0">
           {pulse && (
             <span
-              className={`animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full opacity-60 ${pingColorClasses[activeDotColor]}`}
+              className={`animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-60 ${pingColorClasses[activeDotColor]}`}
             />
           )}
-          <span className={hardwareLedClasses[activeDotColor]} />
+          <span className={statusDiodeClasses[activeDotColor]} />
         </span>
       )}
       {children}

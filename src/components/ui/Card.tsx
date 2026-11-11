@@ -25,15 +25,15 @@ export function Card({
     elevated: "tactile-card-elevated",
     interactive: "tactile-card-interactive",
     glass: "tactile-card",
-    highlight: "tactile-card-turquoise",
-    gold: "tactile-card-gold",
-    turquoise: "tactile-card-turquoise",
-    well: "recessed-well p-5",
+    highlight: "tactile-card border-white/20",
+    gold: "tactile-card border-[#333333]",
+    turquoise: "tactile-card border-[#06B6D4]/30",
+    well: "milled-well p-5",
   };
 
   return (
     <div
-      className={`rounded-xl overflow-hidden transition-all duration-150 ${variantStyles[variant] || "tactile-card"} ${className}`}
+      className={`rounded-lg overflow-hidden transition-all duration-120 ${variantStyles[variant] || "tactile-card"} ${className}`}
       {...props}
     >
       {children}
@@ -53,7 +53,7 @@ export function CardHeader({
   return (
     <div
       className={`px-5 py-4 ${
-        divided ? "border-b border-[#1E2E50] bg-[#10192E]/40" : ""
+        divided ? "border-b border-[#222222] bg-[#0E0E0E]/50" : ""
       } ${className}`}
     >
       {children}
@@ -70,7 +70,7 @@ export function CardTitle({
 }) {
   return (
     <h3
-      className={`text-sm sm:text-base font-bold text-[#F8FAFC] tracking-tight ${className}`}
+      className={`text-sm sm:text-base font-bold text-white tracking-tight ${className}`}
     >
       {children}
     </h3>
@@ -85,7 +85,7 @@ export function CardDescription({
   className?: string;
 }) {
   return (
-    <p className={`text-xs text-[#94A3B8] mt-1 leading-relaxed ${className}`}>
+    <p className={`text-xs text-[#A0A0A0] mt-1 leading-relaxed ${className}`}>
       {children}
     </p>
   );
@@ -112,8 +112,8 @@ export function CardFooter({
 }) {
   return (
     <div
-      className={`px-5 py-3.5 bg-[#0A1020]/70 flex items-center ${
-        divided ? "border-t border-[#1E2E50]" : ""
+      className={`px-5 py-3.5 bg-[#080808]/70 flex items-center ${
+        divided ? "border-t border-[#222222]" : ""
       } ${className}`}
     >
       {children}

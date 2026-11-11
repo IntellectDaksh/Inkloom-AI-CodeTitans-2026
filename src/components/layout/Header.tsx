@@ -77,7 +77,7 @@ export function Header({
   };
 
   return (
-    <header className="h-14 border-b border-[#1E2E50] bg-[#080C16] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
+    <header className="h-14 border-b border-[#222222] bg-[#080808] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
       {/* Left: Breadcrumbs or Title */}
       <div className="flex items-center gap-3 min-w-0">
         {breadcrumbs && breadcrumbs.length > 0 ? (
@@ -86,18 +86,18 @@ export function Header({
               const isLast = idx === breadcrumbs.length - 1;
               return (
                 <React.Fragment key={crumb.label}>
-                  {idx > 0 && <span className="text-[#64748B] select-none">/</span>}
+                  {idx > 0 && <span className="text-[#444444] select-none">/</span>}
                   {crumb.href && !isLast ? (
                     <Link
                       href={crumb.href}
-                      className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors"
+                      className="text-[#A0A0A0] hover:text-white transition-colors"
                     >
                       {crumb.label}
                     </Link>
                   ) : (
                     <span
                       className={`font-semibold truncate ${
-                        isLast ? "text-[#F8FAFC]" : "text-[#94A3B8]"
+                        isLast ? "text-white" : "text-[#A0A0A0]"
                       }`}
                     >
                       {crumb.label}
@@ -109,20 +109,20 @@ export function Header({
           </nav>
         ) : title ? (
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-[#F8FAFC] tracking-tight truncate">
+            <h1 className="text-sm font-bold text-white tracking-tight truncate">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-[11px] text-[#94A3B8] truncate">{subtitle}</p>
+              <p className="text-[11px] text-[#A0A0A0] truncate">{subtitle}</p>
             )}
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[#64748B] font-mono text-[10px] uppercase tracking-wider">
+            <span className="text-[#737373] font-mono text-[10px] uppercase tracking-wider">
               Brand:
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-[#0D1527] border border-[#1E2E50] text-[#F8FAFC] font-semibold flex items-center gap-2 text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <span className="hardware-led hardware-led-turquoise" />
+            <span className="px-2 py-0.5 rounded bg-[#0C0C0C] border border-[#222222] text-white font-medium flex items-center gap-2 text-xs">
+              <span className="status-diode status-diode-emerald" />
               {currentBrand}
             </span>
           </div>
@@ -133,16 +133,16 @@ export function Header({
       <div className="hidden md:flex items-center flex-1 max-w-sm mx-6">
         <button
           onClick={handleSearchClick}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#0D1527] hover:bg-[#152038] border border-[#1E2E50] hover:border-[#2A406E] text-xs text-[#94A3B8] transition-all group cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+          className="w-full flex items-center justify-between px-3 py-1.5 rounded bg-[#0C0C0C] hover:bg-[#141414] border border-[#222222] hover:border-[#333333] text-xs text-[#A0A0A0] transition-all group cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
         >
           <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-[#00F2FE] group-hover:text-[#38BDF8]" />
-            <span className="text-[#94A3B8] group-hover:text-[#F8FAFC]">
+            <Search className="w-3.5 h-3.5 text-[#737373] group-hover:text-white" />
+            <span className="text-[#A0A0A0] group-hover:text-white">
               Search or jump to...
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <kbd className="text-[10px] text-[#CBD5E1] bg-[#152038] px-1.5 py-0.5 rounded border border-[#2A406E] font-mono shadow-[0_1px_1px_rgba(0,0,0,0.5)]">
+            <kbd className="text-[10px] text-[#EFEFEF] bg-[#141414] px-1.5 py-0.5 rounded border border-[#282828] font-mono">
               Ctrl+K
             </kbd>
           </div>
@@ -154,15 +154,15 @@ export function Header({
         {/* Mobile Search trigger */}
         <button
           onClick={handleSearchClick}
-          className="md:hidden p-2 rounded-lg bg-[#0D1527] hover:bg-[#152038] border border-[#1E2E50] text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
+          className="md:hidden p-2 rounded bg-[#0C0C0C] hover:bg-[#141414] border border-[#222222] text-[#A0A0A0] hover:text-white cursor-pointer"
           title="Search"
         >
-          <Search className="w-3.5 h-3.5 text-[#00F2FE]" />
+          <Search className="w-3.5 h-3.5 text-white" />
         </button>
 
         {/* Governance Guard Live Telemetry Diode */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D1527] border border-[#1E2E50] text-[10px] font-mono font-bold text-[#CBD5E1] uppercase tracking-[0.16em] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <span className="hardware-led hardware-led-turquoise" />
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-[#0C0C0C] border border-[#222222] text-[10px] font-mono font-bold text-[#EFEFEF] uppercase tracking-[0.2em]">
+          <span className="status-diode status-diode-emerald" />
           <span>Governance Engine Active</span>
         </div>
 
@@ -170,12 +170,12 @@ export function Header({
         <div className="relative">
           <button
             onClick={() => setIsNotifOpen(!isNotifOpen)}
-            className="relative p-2 rounded-lg bg-[#0D1527] hover:bg-[#152038] border border-[#1E2E50] hover:border-[#2A406E] text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+            className="relative p-2 rounded bg-[#0C0C0C] hover:bg-[#141414] border border-[#222222] hover:border-[#333333] text-[#A0A0A0] hover:text-white transition-colors cursor-pointer"
             title="Notifications"
           >
             <Bell className="w-3.5 h-3.5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E5A93C] ring-2 ring-[#080C16] shadow-[0_0_6px_rgba(229,169,60,0.8)]" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-white ring-2 ring-[#080808]" />
             )}
           </button>
 
@@ -185,14 +185,14 @@ export function Header({
                 className="fixed inset-0 z-40"
                 onClick={() => setIsNotifOpen(false)}
               />
-              <div className="absolute right-0 mt-2 w-80 sm:w-88 rounded-xl bg-[#0D1527] border border-[#2A406E] shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.1)] py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-4 py-2.5 border-b border-[#1E2E50] bg-[#152038] flex items-center justify-between">
+              <div className="absolute right-0 mt-2 w-80 sm:w-88 rounded-lg bg-[#0C0C0C] border border-[#282828] shadow-[0_12px_32px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-4 py-2.5 border-b border-[#222222] bg-[#111111] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#F8FAFC]">
-                      Governance Alerts
+                    <span className="text-xs font-bold text-white">
+                      Alerts
                     </span>
                     {unreadCount > 0 && (
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#E5A93C]/15 text-[#FBBF24] border border-[#E5A93C]/35">
+                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#1C1C1C] text-white border border-[#333333]">
                         {unreadCount} new
                       </span>
                     )}
@@ -200,41 +200,41 @@ export function Header({
                   {unreadCount > 0 && (
                     <button
                       onClick={handleClearNotifs}
-                      className="text-[10px] font-mono text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer uppercase tracking-wider"
+                      className="text-[10px] font-mono text-[#A0A0A0] hover:text-white transition-colors cursor-pointer uppercase tracking-wider"
                     >
-                      Mark all read
+                      Clear all
                     </button>
                   )}
                 </div>
 
-                <div className="divide-y divide-[#1E2E50] max-h-72 overflow-y-auto bg-[#0D1527]">
+                <div className="divide-y divide-[#222222] max-h-72 overflow-y-auto bg-[#0C0C0C]">
                   {SAMPLE_NOTIFICATIONS.map((item) => (
                     <Link
                       key={item.id}
                       href={item.href}
                       onClick={() => setIsNotifOpen(false)}
-                      className="block p-3 hover:bg-[#152038] transition-colors group"
+                      className="block p-3 hover:bg-[#141414] transition-colors group"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="text-xs font-semibold text-[#F8FAFC] group-hover:text-[#00F2FE] transition-colors">
+                        <div className="text-xs font-semibold text-white group-hover:text-white transition-colors">
                           {item.title}
                         </div>
-                        <span className="text-[10px] text-[#64748B] shrink-0 font-mono">
+                        <span className="text-[10px] text-[#737373] shrink-0 font-mono">
                           {item.time}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#94A3B8] mt-1 leading-snug line-clamp-2">
+                      <p className="text-[11px] text-[#A0A0A0] mt-1 leading-snug line-clamp-2">
                         {item.message}
                       </p>
                     </Link>
                   ))}
                 </div>
 
-                <div className="p-2 border-t border-[#1E2E50] bg-[#080C16]">
+                <div className="p-2 border-t border-[#222222] bg-[#080808]">
                   <Link
                     href="/notifications"
                     onClick={() => setIsNotifOpen(false)}
-                    className="flex items-center justify-center gap-1.5 py-1 text-xs text-[#00F2FE] hover:text-[#38BDF8] font-semibold transition-colors"
+                    className="flex items-center justify-center gap-1.5 py-1 text-xs text-white hover:text-white/80 font-medium transition-colors"
                   >
                     <span>View all notifications</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -245,11 +245,11 @@ export function Header({
           )}
         </div>
 
-        {/* Quick Review / Audit Button (Tactile Brushed Gold) */}
+        {/* Quick Review / Audit Button (Monochromatic High-Contrast White) */}
         <Link href="/submissions/new">
           <Button
             size="sm"
-            variant="gold"
+            variant="primary"
             icon={<Plus className="w-3.5 h-3.5 stroke-[2.5]" />}
             shortcut="N"
           >
