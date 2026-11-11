@@ -212,16 +212,16 @@ export default function TeamPage() {
         )}
 
         {/* Interactive 1-Click Role Switcher Bar */}
-        <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3 border-[#00F2FE]/30 bg-gradient-to-r from-[#0D1527] to-[#111C35]">
+        <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3 bg-[#141414] border border-[#303030]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-[#00F2FE]" />
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+              <UserCheck className="w-4 h-4 text-white" />
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                 Active Session Persona Switcher
               </span>
             </div>
-            <span className="text-[10px] font-mono text-slate-400">
-              CURRENT SESSION: <span className="text-[#00F2FE] font-bold">{activeUser}</span> ({activeRole.toUpperCase()})
+            <span className="text-[10px] font-mono text-[#858585]">
+              CURRENT SESSION: <span className="text-white font-bold">{activeUser}</span> ({activeRole.toUpperCase()})
             </span>
           </div>
 
@@ -241,7 +241,7 @@ export default function TeamPage() {
                 role: "Compliance Reviewer",
                 email: "laksh@uideas.digital",
                 desc: "Formal human sign-off & dispute triage",
-                accent: "turquoise",
+                accent: "neutral",
               },
               {
                 id: "creator",
@@ -259,27 +259,25 @@ export default function TeamPage() {
                   onClick={() => handleSwitchRole(p.id as any, p.name, p.email)}
                   className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between ${
                     isSelected
-                      ? "bg-[#152038] border-[#00F2FE] shadow-[0_0_12px_rgba(0,242,254,0.2)]"
-                      : "bg-[#080C16] hover:bg-[#111C35] border-[#1E2B4A] hover:border-slate-500"
+                      ? "bg-[#191919] border-white shadow-xs"
+                      : "bg-[#141414] hover:bg-[#191919] border-[#303030] hover:border-[#404040]"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span
                       className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
                         p.accent === "gold"
-                          ? "bg-[#E5A93C]/15 text-[#FBBF24] border-[#E5A93C]/30"
-                          : p.accent === "turquoise"
-                          ? "bg-[#00F2FE]/15 text-[#00F2FE] border-[#00F2FE]/30"
-                          : "bg-slate-800 text-slate-300 border-slate-700"
+                          ? "bg-[#1C1608] text-[#F59E0B] border-[#F59E0B]/30"
+                          : "bg-[#191919] text-[#B5B5B5] border-[#303030]"
                       }`}
                     >
                       {p.role.toUpperCase()}
                     </span>
-                    {isSelected && <span className="led-indicator led-turquoise" title="Active Persona" />}
+                    {isSelected && <span className="led-indicator led-emerald" title="Active Persona" />}
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-white">{p.name}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{p.desc}</div>
+                    <div className="text-[10px] text-[#858585] mt-0.5">{p.desc}</div>
                   </div>
                 </button>
               );
@@ -288,25 +286,25 @@ export default function TeamPage() {
         </div>
 
         {/* Members Directory Card */}
-        <div className="tactile-card rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
+        <div className="tactile-card rounded-xl overflow-hidden bg-[#141414] border border-[#303030]">
+          <div className="p-4 border-b border-[#303030] bg-[#191919] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#00F2FE]" />
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+              <Users className="w-4 h-4 text-white" />
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                 Organization Member Registry ({members.length} Authorized Users)
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-slate-500">TENANT: UIDEAS DIGITAL</span>
+            <span className="text-[10px] font-mono text-[#858585]">TENANT: UIDEAS DIGITAL</span>
           </div>
 
-          <div className="divide-y divide-[#162038]">
+          <div className="divide-y divide-[#303030]">
             {members.map((m) => (
               <div
                 key={m.email}
-                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#111C35]/60 transition-colors"
+                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#191919] transition-colors"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-lg bg-[#080C16] border border-[#2E416E] text-[#00F2FE] font-bold text-xs flex items-center justify-center shrink-0 font-mono shadow-inner">
+                  <div className="w-9 h-9 rounded-lg bg-[#191919] border border-[#303030] text-white font-bold text-xs flex items-center justify-center shrink-0 font-mono shadow-inner">
                     {m.avatar}
                   </div>
                   <div>
@@ -350,29 +348,29 @@ export default function TeamPage() {
         </div>
 
         {/* Role Permissions Matrix */}
-        <div className="tactile-card rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
+        <div className="tactile-card rounded-xl overflow-hidden bg-[#141414] border border-[#303030]">
+          <div className="p-4 border-b border-[#303030] bg-[#191919] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-[#E5A93C]" />
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+              <Lock className="w-4 h-4 text-[#F59E0B]" />
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                 Statutory RBAC Capability Matrix
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-slate-500">SOVEREIGN GOVERNANCE SPECIFICATION</span>
+            <span className="text-[10px] font-mono text-[#858585]">SOVEREIGN GOVERNANCE SPECIFICATION</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#080C16] border-b border-[#1E2B4A] text-[11px] uppercase tracking-wider text-slate-400">
+              <thead className="bg-[#191919] border-b border-[#303030] text-[11px] uppercase tracking-wider text-[#858585]">
                 <tr>
                   <th className="px-5 py-3">Governance Capability</th>
-                  <th className="px-4 py-3 text-center text-[#FBBF24]">Admin</th>
-                  <th className="px-4 py-3 text-center text-[#00F2FE]">Reviewer</th>
-                  <th className="px-4 py-3 text-center text-slate-300">Brand Manager</th>
-                  <th className="px-4 py-3 text-center text-slate-400">Creator</th>
+                  <th className="px-4 py-3 text-center text-[#F59E0B]">Admin</th>
+                  <th className="px-4 py-3 text-center text-white">Reviewer</th>
+                  <th className="px-4 py-3 text-center text-[#B5B5B5]">Brand Manager</th>
+                  <th className="px-4 py-3 text-center text-[#858585]">Creator</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#162038] text-slate-300">
+              <tbody className="divide-y divide-[#303030] text-[#B5B5B5]">
                 <tr>
                   <td className="px-5 py-3 font-sans font-medium text-slate-200">
                     Draft Ingestion &amp; Pre-Flight Scans

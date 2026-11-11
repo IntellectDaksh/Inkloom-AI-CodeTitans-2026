@@ -140,7 +140,7 @@ export default function NewSubmissionPage() {
               <button
                 type="button"
                 onClick={() => handleLoadPreset("nutrition")}
-                className="px-2.5 py-1.5 rounded-lg bg-[#141414] hover:bg-[#1E1E1E] text-amber-300 text-xs font-mono border border-amber-500/30 transition-colors cursor-pointer"
+                className="px-3 py-2 rounded-lg bg-[#141414] hover:bg-[#191919] text-[#B5B5B5] hover:text-white text-xs sm:text-sm font-medium border border-[#303030] hover:border-[#404040] transition-colors cursor-pointer min-h-[40px]"
                 title="1. Clinical Nutrition (Apex Nutrition) — 2x faster recovery violation"
               >
                 Preset 1: Nutrition
@@ -148,7 +148,7 @@ export default function NewSubmissionPage() {
               <button
                 type="button"
                 onClick={() => handleLoadPreset("saas")}
-                className="px-2.5 py-1.5 rounded-lg bg-[#141414] hover:bg-[#1E1E1E] text-cyan-300 text-xs font-mono border border-cyan-500/30 transition-colors cursor-pointer"
+                className="px-3 py-2 rounded-lg bg-[#141414] hover:bg-[#191919] text-[#B5B5B5] hover:text-white text-xs sm:text-sm font-medium border border-[#303030] hover:border-[#404040] transition-colors cursor-pointer min-h-[40px]"
                 title="2. Enterprise SaaS SLA (Zenith Cloud) — 100% unhackable downtime breach"
               >
                 Preset 2: SaaS SLA
@@ -156,7 +156,7 @@ export default function NewSubmissionPage() {
               <button
                 type="button"
                 onClick={() => handleLoadPreset("skincare")}
-                className="px-2.5 py-1.5 rounded-lg bg-[#141414] hover:bg-[#1E1E1E] text-rose-300 text-xs font-mono border border-rose-500/30 transition-colors cursor-pointer"
+                className="px-3 py-2 rounded-lg bg-[#141414] hover:bg-[#191919] text-[#B5B5B5] hover:text-white text-xs sm:text-sm font-medium border border-[#303030] hover:border-[#404040] transition-colors cursor-pointer min-h-[40px]"
                 title="3. Skincare & Cosmetics (Lumina) — Reverses aging in 7 days violation"
               >
                 Preset 3: Skincare
@@ -173,10 +173,10 @@ export default function NewSubmissionPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="tactile-card rounded-xl p-6 space-y-5 border-[#282828] bg-[#0E0E0E]">
-            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
+          <div className="tactile-card rounded-xl p-6 space-y-5 border-[#303030] bg-[#141414]">
+            <div className="flex items-center justify-between border-b border-[#303030] pb-3">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#00F2FE]" />
+                <FileText className="w-4 h-4 text-white" />
                 <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
                   Submission Configuration &amp; Channel Picker
                 </h2>
@@ -280,12 +280,12 @@ export default function NewSubmissionPage() {
                   placeholder="Type or paste draft marketing copy, video script lines, or packaging claims here..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="w-full bg-[#141414] border border-[#282828] focus:border-white focus:outline-none rounded-lg p-3.5 text-xs text-white font-mono leading-relaxed resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]"
+                  className="w-full bg-[#141414] border border-[#282828] focus:border-white focus:outline-none rounded-lg p-4 text-[15px] sm:text-base text-white font-sans leading-relaxed resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]"
                 />
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mt-1.5">
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#858585] mt-1.5">
                   <span>LENGTH: {content.length} CHARS · {Math.ceil(content.length / 4)} TOKENS</span>
-                  <span className="text-[#00F2FE] flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00F2FE]" />
+                  <span className="text-[#10B981] flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
                     <span>Deterministic Pre-Flight (&lt; 5ms) Enabled</span>
                   </span>
                 </div>
@@ -293,16 +293,16 @@ export default function NewSubmissionPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
             <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>Grounded in approved clinical &amp; legal evidence</span>
             </div>
 
             <Button
               type="submit"
               size="md"
-              className="gold-button"
+              className="gold-button w-full sm:w-auto min-h-[44px] justify-center"
               loading={loading}
               icon={<Play className="w-3.5 h-3.5 fill-current text-black" />}
             >

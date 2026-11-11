@@ -318,25 +318,27 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0 relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto shrink-0 relative">
               {/* Review Queue Quick Action */}
-              <Link href="/approvals">
+              <Link href="/approvals" className="w-full sm:w-auto">
                 <Button
                   size="sm"
                   variant="secondary"
                   icon={<Clock className="w-4 h-4 text-white" />}
+                  className="w-full sm:w-auto min-h-[44px] justify-center"
                 >
                   Review Queue (3)
                 </Button>
               </Link>
 
               {/* Export Audit Log Dropdown */}
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Button
                   size="sm"
                   variant="secondary"
                   icon={<Download className="w-4 h-4 text-white" />}
                   onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="w-full sm:w-auto min-h-[44px] justify-center"
                 >
                   Export Audit Log
                 </Button>
@@ -384,10 +386,10 @@ export default function DashboardPage() {
               </div>
 
               {/* New Audit Action */}
-              <Link href="/submissions/new">
+              <Link href="/submissions/new" className="w-full sm:w-auto">
                 <Button
                   size="sm"
-                  className="gold-button"
+                  className="gold-button w-full sm:w-auto min-h-[44px] justify-center"
                   icon={<Plus className="w-3.5 h-3.5 text-black" />}
                   shortcut="N"
                 >
@@ -581,7 +583,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Filter Tabs */}
-                  <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs">
+                  <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs overflow-x-auto whitespace-nowrap scrollbar-none max-w-full">
                     {[
                       { id: "all", label: "All" },
                       { id: "needs_review", label: "Needs Review" },
@@ -604,9 +606,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Data Table with Clean 14px Typography */}
+              {/* Data Table with Clean 14px Typography & Horizontal Scroll Guarantee */}
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="w-full text-left text-sm min-w-[720px]">
                   <thead className="bg-[#0D0D0D] border-b border-[#262626] text-xs font-medium uppercase tracking-wider text-[#888888]">
                     <tr>
                       <th className="px-5 py-3.5">Title</th>

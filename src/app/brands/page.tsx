@@ -159,18 +159,18 @@ export default function BrandsPage() {
             <div
               key={b.id}
               className={`tactile-card rounded-xl p-5 flex flex-col justify-between space-y-4 transition-all ${
-                b.isActive ? "border-[#00F2FE] shadow-[0_0_15px_rgba(0,242,254,0.15)]" : ""
+                b.isActive ? "border-white bg-[#191919]" : "border-[#303030] bg-[#141414]"
               }`}
             >
               <div className="space-y-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#080C16] border border-[#2E416E] text-[#00F2FE] font-bold text-sm flex items-center justify-center font-mono shadow-inner">
+                    <div className="w-10 h-10 rounded-lg bg-[#141414] border border-[#303030] text-white font-bold text-sm flex items-center justify-center font-mono shadow-inner">
                       {b.name.charAt(0)}
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-slate-100">{b.name}</h2>
-                      <div className="text-[10px] font-mono text-slate-400">{b.category}</div>
+                      <h2 className="text-sm font-bold text-white">{b.name}</h2>
+                      <div className="text-[10px] font-mono text-[#858585]">{b.category}</div>
                     </div>
                   </div>
                   {b.isActive ? (
@@ -180,40 +180,40 @@ export default function BrandsPage() {
                   ) : (
                     <button
                       onClick={() => handleSetActive(b.id, b.name)}
-                      className="text-[10px] font-mono text-slate-400 hover:text-[#00F2FE] transition-colors cursor-pointer"
+                      className="text-[10px] font-mono text-[#858585] hover:text-white transition-colors cursor-pointer"
                     >
                       Set Active
                     </button>
                   )}
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed font-sans">{b.description}</p>
+                <p className="text-xs text-[#B5B5B5] leading-relaxed font-sans">{b.description}</p>
 
-                <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-[#080C16] border border-[#1E2B4A] text-xs font-mono">
+                <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-[#0A0A0A] border border-[#303030] text-xs font-mono">
                   <div>
-                    <span className="text-slate-500 block text-[10px]">ACTIVE CLAIMS</span>
-                    <span className="text-[#00F2FE] font-semibold mt-0.5 block font-mono">
+                    <span className="text-[#858585] block text-[10px]">ACTIVE CLAIMS</span>
+                    <span className="text-[#10B981] font-semibold mt-0.5 block font-mono">
                       {b.activeClaims} verified
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[10px]">SUBMISSIONS</span>
-                    <span className="text-slate-200 font-semibold mt-0.5 block font-mono">
+                    <span className="text-[#858585] block text-[10px]">SUBMISSIONS</span>
+                    <span className="text-white font-semibold mt-0.5 block font-mono">
                       {b.submissionsCount} drafts
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[#1E2B4A] flex items-center justify-between">
+              <div className="pt-2 border-t border-[#303030] flex items-center justify-between">
                 <Link
                   href="/knowledge-base/guidelines"
-                  className="text-xs text-[#00F2FE] hover:underline font-mono"
+                  className="text-xs text-white hover:underline font-mono"
                 >
                   Voice Rules &rarr;
                 </Link>
                 <Link href="/submissions">
-                  <Button size="xs" variant={b.isActive ? "turquoise" : "secondary"}>
+                  <Button size="xs" variant={b.isActive ? "primary" : "secondary"}>
                     Open Desk
                   </Button>
                 </Link>

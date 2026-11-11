@@ -172,11 +172,11 @@ export default function SubmissionsHistoryPage() {
               placeholder="Search by title, channel, or author..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono placeholder:text-slate-600 transition-colors"
+              className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-[#858585] transition-colors"
             />
           </div>
 
-          <div className="flex items-center bg-[#080C16] border border-[#1E2B4A] rounded-lg p-0.5 text-xs font-mono font-medium overflow-x-auto">
+          <div className="flex items-center bg-[#141414] border border-[#303030] rounded-lg p-0.5 text-xs font-mono font-medium overflow-x-auto">
             {["all", "submitted", "under_review", "approved", "changes_requested"].map(
               (st) => (
                 <button
@@ -184,8 +184,8 @@ export default function SubmissionsHistoryPage() {
                   onClick={() => setStatusFilter(st)}
                   className={`px-3 py-1.5 rounded-md transition-all cursor-pointer capitalize shrink-0 ${
                     statusFilter === st
-                      ? "bg-[#162445] text-white font-semibold border border-[#2E416E] shadow-xs"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-[#191919] text-white font-semibold border border-[#303030] shadow-xs"
+                      : "text-[#858585] hover:text-white"
                   }`}
                 >
                   {st.replace("_", " ")}
@@ -196,10 +196,10 @@ export default function SubmissionsHistoryPage() {
         </div>
 
         {/* Table */}
-        <div className="tactile-card rounded-xl overflow-hidden">
+        <div className="tactile-card rounded-xl overflow-hidden bg-[#141414] border border-[#303030]">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#080C16] border-b border-[#1E2B4A] text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
+              <thead className="bg-[#191919] border-b border-[#303030] text-[11px] font-semibold uppercase tracking-wider text-[#858585] font-mono">
                 <tr>
                   <th className="px-4 py-3">Content Title</th>
                   <th className="px-3 py-3">Format / Channel</th>
@@ -209,7 +209,7 @@ export default function SubmissionsHistoryPage() {
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#162038]">
+              <tbody className="divide-y divide-[#303030]">
                 {filtered.map((sub) => {
                   const isApproved = sub.status === "approved";
                   const isPending = sub.status === "submitted" || sub.status === "under_review";
@@ -218,19 +218,19 @@ export default function SubmissionsHistoryPage() {
                   return (
                     <tr
                       key={sub.id}
-                      className="hover:bg-[#111C35]/60 transition-colors group"
+                      className="hover:bg-[#191919] transition-colors group"
                     >
-                      <td className="px-4 py-3.5 font-medium text-slate-200">
+                      <td className="px-4 py-3.5 font-medium text-white">
                         <Link
                           href={`/submissions/${sub.id}`}
-                          className="hover:text-[#00F2FE] transition-colors flex items-center gap-2.5 max-w-sm truncate"
+                          className="hover:text-white transition-colors flex items-center gap-2.5 max-w-sm truncate"
                         >
                           <span
                             className={`led-indicator ${
                               isApproved
                                 ? "led-emerald"
                                 : isPending
-                                ? "led-turquoise"
+                                ? "led-amber"
                                 : "led-amber"
                             }`}
                           />

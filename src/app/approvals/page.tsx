@@ -263,7 +263,7 @@ export default function ApprovalsPage() {
         {/* Filter Tabs and Quick Search Bar */}
         <div className="bg-[#141414] border border-[#303030] rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Segmented Tabs: Pending, Approved, Rejected */}
-          <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs font-medium">
+          <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs font-medium overflow-x-auto whitespace-nowrap scrollbar-none max-w-full">
             <button
               onClick={() => setActiveTab("pending")}
               className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-2 ${
@@ -424,12 +424,12 @@ export default function ApprovalsPage() {
                 </div>
 
                 {/* Footer Action Bar */}
-                <div className="pt-1 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div className="text-xs text-[#888888]">
                     Record ID: <span className="text-[#A0A0A0] font-mono">{item.id}</span>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full sm:w-auto">
                     {item.status === "pending" && (
                       <>
                         <Button
@@ -437,6 +437,7 @@ export default function ApprovalsPage() {
                           variant="danger"
                           onClick={() => handleOpenDecisionModal(item, "reject")}
                           loading={actionInProgress === item.id}
+                          className="flex-1 sm:flex-none min-h-[44px] justify-center"
                         >
                           Reject Draft
                         </Button>
@@ -446,17 +447,19 @@ export default function ApprovalsPage() {
                           onClick={() => handleOpenDecisionModal(item, "approve")}
                           loading={actionInProgress === item.id}
                           icon={<Check className="w-4 h-4" />}
+                          className="flex-1 sm:flex-none min-h-[44px] justify-center"
                         >
                           1-Click Approve
                         </Button>
                       </>
                     )}
 
-                    <Link href={`/submissions/${item.id}`}>
+                    <Link href={`/submissions/${item.id}`} className="w-full sm:w-auto">
                       <Button
                         size="sm"
                         variant="secondary"
                         icon={<ChevronRight className="w-4 h-4" />}
+                        className="w-full sm:w-auto min-h-[44px] justify-center"
                       >
                         Inspect Workspace
                       </Button>

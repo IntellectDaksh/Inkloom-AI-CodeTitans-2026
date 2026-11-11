@@ -177,8 +177,8 @@ export default function NotificationsPage() {
                   key={n.id}
                   className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
                     n.isRead
-                      ? "hover:bg-[#111C35]/60 bg-[#0A0F1D]/40"
-                      : "bg-[#0D1527] hover:bg-[#111C35] border-l-2 border-l-[#00F2FE]"
+                      ? "hover:bg-[#191919] bg-[#141414]"
+                      : "bg-[#191919] hover:bg-[#202020] border-l-2 border-l-white"
                   }`}
                 >
                   <div className="flex items-start gap-3.5">
@@ -191,7 +191,7 @@ export default function NotificationsPage() {
                           ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
                           : n.severity === "success"
                           ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                          : "bg-cyan-500/10 border-cyan-500/30 text-[#00F2FE]"
+                          : "bg-[#191919] border-[#303030] text-[#B5B5B5]"
                       }`}
                     >
                       {n.type === "submission" ? (

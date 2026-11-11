@@ -219,7 +219,7 @@ export default function TerminologyPage() {
               placeholder="Search prohibited or preferred vocabulary..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono placeholder:text-slate-600 transition-colors"
+              className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-white font-mono placeholder:text-[#858585] transition-colors"
             />
           </div>
         </div>
@@ -282,7 +282,7 @@ export default function TerminologyPage() {
                     <span className="font-mono text-xs font-bold text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
                       &ldquo;{p.term}&rdquo;
                     </span>
-                    <span className="text-[10px] font-mono text-[#00F2FE]">ENCOURAGED</span>
+                    <span className="text-[10px] font-mono text-[#10B981]">ENCOURAGED</span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed font-sans">{p.usage}</p>
                 </div>

@@ -162,36 +162,36 @@ export default function DocumentAssetsPage() {
         {/* Upload Dropzone */}
         <div
           onClick={handleSimulateUpload}
-          className="tactile-card rounded-xl p-8 text-center cursor-pointer hover:border-[#00F2FE]/60 transition-all space-y-3 group bg-gradient-to-b from-[#0D1527] to-[#080C16]"
+          className="tactile-card rounded-xl p-8 text-center cursor-pointer hover:border-[#404040] transition-all space-y-3 group bg-[#141414] border border-[#303030]"
         >
-          <div className="w-12 h-12 rounded-xl bg-[#080C16] border border-[#2E416E] group-hover:border-[#00F2FE] text-[#00F2FE] mx-auto flex items-center justify-center shadow-inner transition-colors">
+          <div className="w-12 h-12 rounded-xl bg-[#191919] border border-[#303030] group-hover:border-[#404040] text-white mx-auto flex items-center justify-center shadow-inner transition-colors">
             <Upload className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-slate-100 group-hover:text-white">
+            <div className="text-sm font-semibold text-white group-hover:text-white">
               Click to upload or drag and drop certified clinical trials
             </div>
-            <div className="text-xs text-slate-400 mt-1 font-mono">
+            <div className="text-xs text-[#858585] mt-1 font-mono">
               Supports PDF, DOCX, TXT up to 25MB · Text extraction and claim indexing run automatically
             </div>
           </div>
         </div>
 
         {/* Stored Documents Table */}
-        <div className="tactile-card rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
+        <div className="tactile-card rounded-xl overflow-hidden bg-[#141414] border border-[#303030]">
+          <div className="p-4 border-b border-[#303030] bg-[#191919] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FileCode2 className="w-4 h-4 text-[#00F2FE]" />
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+              <FileCode2 className="w-4 h-4 text-white" />
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                 Indexed Evidence Repository ({documents.length} Files)
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-slate-500">ISO 17025 ACCREDITED</span>
+            <span className="text-[10px] font-mono text-[#858585]">ISO 17025 ACCREDITED</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#080C16] border-b border-[#1E2B4A] text-[11px] uppercase tracking-wider text-slate-400">
+              <thead className="bg-[#191919] border-b border-[#303030] text-[11px] uppercase tracking-wider text-[#858585]">
                 <tr>
                   <th className="px-5 py-3">Document File</th>
                   <th className="px-4 py-3">Format</th>
@@ -201,15 +201,15 @@ export default function DocumentAssetsPage() {
                   <th className="px-4 py-3 text-right">Date Ingested</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#162038]">
+              <tbody className="divide-y divide-[#303030]">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-[#111C35]/60 transition-colors">
-                    <td className="px-5 py-3.5 font-sans font-medium text-slate-200 flex items-center gap-2.5">
-                      <FileText className="w-4 h-4 text-[#00F2FE] shrink-0" />
+                  <tr key={doc.id} className="hover:bg-[#191919] transition-colors">
+                    <td className="px-5 py-3.5 font-sans font-medium text-white flex items-center gap-2.5">
+                      <FileText className="w-4 h-4 text-white shrink-0" />
                       <div className="truncate max-w-sm">
                         <div className="truncate font-mono text-xs">{doc.name}</div>
                         {doc.doi && (
-                          <div className="text-[10px] text-slate-400 font-mono">
+                          <div className="text-[10px] text-[#858585] font-mono">
                             DOI: {doc.doi}
                           </div>
                         )}

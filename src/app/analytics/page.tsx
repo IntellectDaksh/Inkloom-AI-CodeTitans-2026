@@ -33,10 +33,10 @@ export default function AnalyticsPage() {
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   const severityBreakdown = [
-    { label: "Critical Statutory Violations", count: 2, percentage: 7, color: "bg-rose-500", standard: "FTC § 255 / FDA" },
-    { label: "High Risk Claims (Ungrounded)", count: 8, percentage: 29, color: "bg-[#E5A93C]", standard: "NAD Substantiation" },
-    { label: "Medium Warnings (Disclaimers)", count: 12, percentage: 43, color: "bg-[#00F2FE]", standard: "DSHEA § 403(r)" },
-    { label: "Low (Tone & Style Deviations)", count: 6, percentage: 21, color: "bg-emerald-400", standard: "Brand Voice Guide" },
+    { label: "Critical Statutory Violations", count: 2, percentage: 7, color: "bg-[#EF4444]", standard: "FTC § 255 / FDA" },
+    { label: "High Risk Claims (Ungrounded)", count: 8, percentage: 29, color: "bg-[#F59E0B]", standard: "NAD Substantiation" },
+    { label: "Medium Warnings (Disclaimers)", count: 12, percentage: 43, color: "bg-[#F59E0B]/60", standard: "DSHEA § 403(r)" },
+    { label: "Low (Tone & Style Deviations)", count: 6, percentage: 21, color: "bg-[#858585]", standard: "Brand Voice Guide" },
   ];
 
   const recurringIssues = [
@@ -152,7 +152,7 @@ export default function AnalyticsPage() {
             <Button
               size="sm"
               variant="secondary"
-              icon={<Download className="w-3.5 h-3.5 text-[#00F2FE]" />}
+              icon={<Download className="w-3.5 h-3.5 text-white" />}
               onClick={handleExportTelemetry}
             >
               Export Dataset
@@ -217,12 +217,12 @@ export default function AnalyticsPage() {
           <div className="tactile-card rounded-xl p-5 space-y-3.5">
             <div className="flex items-center justify-between text-slate-400">
               <div className="flex items-center gap-2">
-                <span className="led-indicator led-turquoise" />
+                <span className="led-indicator led-emerald" />
                 <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
                   First-Pass Approval Rate
                 </span>
               </div>
-              <CheckCircle2 className="w-4 h-4 text-[#00F2FE]" />
+              <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
             </div>
             <div className="flex items-baseline justify-between pt-1">
               <span className="text-3xl font-bold font-mono tabular-nums text-slate-100 tracking-tight">
@@ -319,38 +319,38 @@ export default function AnalyticsPage() {
                         {d.week}
                       </div>
 
-                      {/* Bar Visualization with electric turquoise and gold accents */}
+                      {/* Bar Visualization Monochromatic & Functional Accents */}
                       <div className="h-28 flex items-end justify-center gap-2 px-1">
                         <div
-                          className="w-5 bg-[#00F2FE] rounded-t shadow-[0_0_8px_rgba(0,242,254,0.3)] transition-all duration-300"
+                          className="w-5 bg-white rounded-t transition-all duration-300"
                           style={{ height: `${(d.score / 100) * 90}px` }}
                           title={`Compliance Score: ${d.score}%`}
                         />
                         <div
-                          className="w-3 bg-[#E5A93C]/80 rounded-t transition-all duration-300"
+                          className="w-3 bg-[#EF4444] rounded-t transition-all duration-300"
                           style={{ height: `${d.violations * 9}px` }}
                           title={`Statutory Violations: ${d.violations}`}
                         />
                       </div>
 
-                      <div className="text-xs font-mono font-bold tabular-nums text-slate-200">
+                      <div className="text-xs font-mono font-bold tabular-nums text-white">
                         {d.score}%
                       </div>
-                      <div className="text-[10px] font-mono text-slate-500">
+                      <div className="text-[10px] font-mono text-[#858585]">
                         {d.violations} Flags
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-[#1E2B4A]">
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#858585] pt-2 border-t border-[#303030]">
                   <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-xs bg-[#00F2FE] inline-block shadow-[0_0_6px_#00F2FE]" />
+                      <span className="w-2.5 h-2.5 rounded-xs bg-white inline-block" />
                       <span>Compliance Score (%)</span>
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-xs bg-[#E5A93C] inline-block" />
+                      <span className="w-2.5 h-2.5 rounded-xs bg-[#EF4444] inline-block" />
                       <span>Statutory Flags</span>
                     </span>
                   </div>

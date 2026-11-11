@@ -37,7 +37,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "relative inline-flex items-center justify-center font-medium transition-colors duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] shrink-0";
+    "relative inline-flex items-center justify-center font-medium transition-colors duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] shrink-0 touch-manipulation";
 
   // Height 44px for primary interactive buttons (.btn-primary and .btn-secondary), readable 14–15px font
   const sizeStyles = {
