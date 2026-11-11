@@ -86,6 +86,34 @@ function PrototypeNoticeContent() {
           badge: "RESEARCH WHITE-PAPER · CODETITANS INDIA 2026",
           icon: Layers,
         };
+      case "veeva-sync":
+        return {
+          title: "Veeva Vault & SAP PharmaSync Integration",
+          subtitle: "Automated bidirectional sync for enterprise medical, legal, and regulatory (MLR) approvals.",
+          badge: "ENTERPRISE CONNECTOR · VEEVA PROMO MATS / SAP",
+          icon: Server,
+        };
+      case "certified_pdf_engine":
+        return {
+          title: "Cryptographically Signed Audit Certificate PDF",
+          subtitle: "Automated export of ISO/IEC 27001 verified compliance certificates with SHA-256 seal.",
+          badge: "COMPLIANCE EXPORT · 21 CFR PART 11 SEAL",
+          icon: ShieldCheck,
+        };
+      case "create-brand":
+        return {
+          title: "Dedicated Tenant & Brand Workspace Provisioning",
+          subtitle: "Automated PostgreSQL Row-Level Security tenant partition deployment with custom clinical truth library.",
+          badge: "MULTI-TENANCY · ISOLATED RLS CONTAINER",
+          icon: Building2,
+        };
+      case "team-invite":
+        return {
+          title: "Enterprise Directory & RBAC Provisioning",
+          subtitle: "SCIM / Active Directory team onboarding with cryptographic role gating and audit logging.",
+          badge: "RBAC DIRECTORY · SCIM 2.0 / OKTA",
+          icon: UserCheck,
+        };
       case "pilot":
       default:
         return {

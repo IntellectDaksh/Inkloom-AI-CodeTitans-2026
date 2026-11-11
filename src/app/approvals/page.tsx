@@ -21,6 +21,7 @@ import {
   Lock,
   Download,
   Sparkles,
+  X,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -35,6 +36,7 @@ interface ApprovalItem {
   type: string;
   channel: string;
   status: "pending" | "approved" | "changes_requested";
+  severity: "critical" | "high" | "medium";
   score: number;
   criticalIssues: number;
   submittedAt: string;
@@ -54,6 +56,7 @@ const INITIAL_APPROVAL_ITEMS: ApprovalItem[] = [
     type: "Video Script",
     channel: "Instagram Reel",
     status: "pending",
+    severity: "critical",
     score: 18,
     criticalIssues: 3,
     submittedAt: "14m ago",
@@ -72,6 +75,7 @@ const INITIAL_APPROVAL_ITEMS: ApprovalItem[] = [
     type: "Social Copy",
     channel: "LinkedIn Feed",
     status: "pending",
+    severity: "high",
     score: 58,
     criticalIssues: 1,
     submittedAt: "42m ago",
@@ -90,6 +94,7 @@ const INITIAL_APPROVAL_ITEMS: ApprovalItem[] = [
     type: "Ad Copy",
     channel: "Meta Ads",
     status: "pending",
+    severity: "medium",
     score: 72,
     criticalIssues: 1,
     submittedAt: "1.2h ago",
@@ -108,6 +113,7 @@ const INITIAL_APPROVAL_ITEMS: ApprovalItem[] = [
     type: "Social Copy",
     channel: "Instagram Carousel",
     status: "approved",
+    severity: "medium",
     score: 96,
     criticalIssues: 0,
     submittedAt: "3h ago",
@@ -124,6 +130,7 @@ const INITIAL_APPROVAL_ITEMS: ApprovalItem[] = [
     type: "Web Copy",
     channel: "Homepage Hero",
     status: "changes_requested",
+    severity: "high",
     score: 34,
     criticalIssues: 2,
     submittedAt: "5h ago",
@@ -141,34 +148,48 @@ export default function ApprovalsPage() {
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
 
-  // Optimistic Quick Approve action
-  const handleQuickApprove = (id: string, title: string) => {
-    setActionInProgress(id);
-    setTimeout(() => {
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, status: "approved" as const, score: 96, criticalIssues: 0 } : item
-        )
-      );
-      setActionInProgress(null);
-      setFeedbackBanner(`Submission "${title}" approved and cleared for release under 21 CFR Part 11.`);
-      setTimeout(() => setFeedbackBanner(null), 3500);
-    }, 350);
+  // Modal State for 1-Click Approve / Reject with audit note input
+  const [modalItem, setModalItem] = useState<{ item: ApprovalItem; action: "approve" | "reject" } | null>(null);
+  const [auditNote, setAuditNote] = useState("");
+  const [reviewerSigner, setReviewerSigner] = useState("Daksh Agrawal (Admin / Brand Director)");
+
+  const handleOpenDecisionModal = (item: ApprovalItem, action: "approve" | "reject") => {
+    setModalItem({ item, action });
+    setAuditNote(
+      action === "approve"
+        ? "Verified against ISO 22196 clinical records. Formally cleared under 21 CFR Part 11 electronic signature."
+        : "Unsubstantiated superlative metrics detected. Changes required before publication approval."
+    );
   };
 
-  // Optimistic Quick Request Changes action
-  const handleQuickReject = (id: string, title: string) => {
-    setActionInProgress(id);
+  const handleConfirmDecision = () => {
+    if (!modalItem) return;
+    const { item, action } = modalItem;
+    setActionInProgress(item.id);
+
     setTimeout(() => {
       setItems((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, status: "changes_requested" as const } : item
+        prev.map((i) =>
+          i.id === item.id
+            ? {
+                ...i,
+                status: action === "approve" ? ("approved" as const) : ("changes_requested" as const),
+                score: action === "approve" ? 96 : i.score,
+                criticalIssues: action === "approve" ? 0 : i.criticalIssues,
+              }
+            : i
         )
       );
+
+      setFeedbackBanner(
+        action === "approve"
+          ? `Submission "${item.title}" successfully approved with audit note: "${auditNote}".`
+          : `Changes requested for "${item.title}". Submitter notified with audit note.`
+      );
       setActionInProgress(null);
-      setFeedbackBanner(`Changes requested for "${title}". Submitter notified with required revisions.`);
-      setTimeout(() => setFeedbackBanner(null), 3500);
-    }, 350);
+      setModalItem(null);
+      setTimeout(() => setFeedbackBanner(null), 4000);
+    }, 400);
   };
 
   const pendingCount = items.filter((i) => i.status === "pending").length;
@@ -195,7 +216,7 @@ export default function ApprovalsPage() {
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="led-indicator led-amber" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
                 Human Sign-off &amp; Approvals Triage
               </h1>
               <Badge variant="metadata" size="xs">
@@ -211,7 +232,7 @@ export default function ApprovalsPage() {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
-            <Link href="/prototype-notice">
+            <Link href="/prototype-notice?feature=veeva_sap_bridge">
               <Button
                 size="sm"
                 variant="secondary"
@@ -240,26 +261,26 @@ export default function ApprovalsPage() {
         )}
 
         {/* Filter Tabs and Quick Search Bar */}
-        <div className="tactile-card rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Workflow Tabs: Pending, Approved, Changes Req. */}
-          <div className="flex items-center bg-[#080C16] border border-[#1E2B4A] rounded-lg p-0.5 text-xs font-mono font-medium">
+        <div className="tactile-card rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-[#282828] bg-[#0E0E0E]">
+          {/* Segmented Tabs: Pending (3), Approved (12), Rejected (2) */}
+          <div className="flex items-center bg-[#080808] border border-[#282828] rounded-lg p-0.5 text-xs font-mono font-medium">
             <button
               onClick={() => setActiveTab("pending")}
               className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "pending"
-                  ? "bg-[#162445] text-[#F3BA54] font-semibold border border-[#2E416E] shadow-xs"
+                  ? "bg-[#222222] text-[#F3BA54] font-semibold border border-[#333333] shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
               <span className="led-indicator led-amber" />
-              <span>Pending Action ({pendingCount})</span>
+              <span>Pending ({pendingCount})</span>
             </button>
 
             <button
               onClick={() => setActiveTab("approved")}
               className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "approved"
-                  ? "bg-[#162445] text-emerald-300 font-semibold border border-[#2E416E] shadow-xs"
+                  ? "bg-[#222222] text-emerald-300 font-semibold border border-[#333333] shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -271,12 +292,12 @@ export default function ApprovalsPage() {
               onClick={() => setActiveTab("changes_requested")}
               className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "changes_requested"
-                  ? "bg-[#162445] text-rose-300 font-semibold border border-[#2E416E] shadow-xs"
+                  ? "bg-[#222222] text-rose-300 font-semibold border border-[#333333] shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
               <span className="led-indicator led-rose" />
-              <span>Changes Req. ({rejectedCount})</span>
+              <span>Rejected ({rejectedCount})</span>
             </button>
           </div>
 
@@ -288,34 +309,46 @@ export default function ApprovalsPage() {
               placeholder="Filter queue by copy or author..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono placeholder:text-slate-600 transition-colors"
+              className="w-full bg-[#080808] border border-[#282828] focus:border-white focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono placeholder:text-slate-600 transition-colors"
             />
           </div>
         </div>
 
-        {/* Approvals Queue Cards with Tactile Skeuomorphism */}
+        {/* Approvals Queue Cards with Monochromatic Tactile Skeuomorphism */}
         <div className="space-y-4">
           {displayItems.length > 0 ? (
             displayItems.map((item) => (
               <div
                 key={item.id}
-                className="tactile-card rounded-xl p-5 space-y-4"
+                className="tactile-card rounded-xl p-5 space-y-4 border-[#282828] bg-[#0E0E0E]"
               >
                 {/* Header Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E2B4A] pb-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222222] pb-3.5">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/submissions/${item.id}`}
-                        className="text-sm font-semibold text-slate-100 hover:text-[#00F2FE] transition-colors"
+                        className="text-sm font-semibold text-white hover:text-[#00F2FE] transition-colors"
                       >
                         {item.title}
                       </Link>
                       <Badge variant="tag" size="xs">
                         {item.type}
                       </Badge>
-                      <span className="px-2 py-0.5 rounded bg-[#080C16] text-[10px] font-mono text-cyan-300 border border-[#1E2B4A]">
+                      <span className="px-2 py-0.5 rounded bg-[#141414] text-[10px] font-mono text-cyan-300 border border-[#282828]">
                         {item.channel}
+                      </span>
+                      {/* Severity Badge from SECTION_INVENTORY.md */}
+                      <span
+                        className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold ${
+                          item.severity === "critical"
+                            ? "bg-rose-500/10 text-rose-300 border-rose-500/30"
+                            : item.severity === "high"
+                            ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                            : "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
+                        }`}
+                      >
+                        {item.severity}
                       </span>
                     </div>
 
@@ -362,21 +395,21 @@ export default function ApprovalsPage() {
                       {item.status === "approved"
                         ? "Approved"
                         : item.status === "changes_requested"
-                        ? "Changes Req."
-                        : "Needs Review"}
+                        ? "Rejected"
+                        : "Pending"}
                     </Badge>
                   </div>
                 </div>
 
                 {/* Content snippet with red-line highlight preview */}
-                <div className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] text-xs text-slate-300 font-sans leading-relaxed">
+                <div className="p-3.5 rounded-lg bg-[#141414] border border-[#282828] text-xs text-slate-300 font-sans leading-relaxed shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]">
                   <div className="text-[10px] font-mono text-slate-500 mb-1.5 uppercase font-medium">
                     SUBMITTED MARKETING PHRASING:
                   </div>
                   <p className="text-slate-200">&ldquo;{item.summary}&rdquo;</p>
 
                   {item.flaggedText && item.suggestedFix && (
-                    <div className="mt-3 pt-2.5 border-t border-[#162038] font-mono text-[11px] space-y-1.5">
+                    <div className="mt-3 pt-2.5 border-t border-[#222222] font-mono text-[11px] space-y-1.5">
                       <div className="text-rose-400 flex items-center gap-2">
                         <span className="font-bold select-none text-rose-500">-</span>
                         <span className="line-through decoration-rose-500/50">{item.flaggedText}</span>
@@ -389,7 +422,7 @@ export default function ApprovalsPage() {
                   )}
                 </div>
 
-                {/* Footer action bar */}
+                {/* Footer Action Bar with 1-Click Modal Triggers */}
                 <div className="pt-1 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="text-[11px] font-mono text-slate-500">
                     SUBMISSION ID: {item.id} · TENANT: APEX NUTRITION
@@ -401,19 +434,19 @@ export default function ApprovalsPage() {
                         <Button
                           size="xs"
                           variant="destructive"
-                          onClick={() => handleQuickReject(item.id, item.title)}
+                          onClick={() => handleOpenDecisionModal(item, "reject")}
                           loading={actionInProgress === item.id}
                         >
-                          Request Changes
+                          Reject Draft
                         </Button>
                         <Button
                           size="xs"
                           variant="approve"
-                          onClick={() => handleQuickApprove(item.id, item.title)}
+                          onClick={() => handleOpenDecisionModal(item, "approve")}
                           loading={actionInProgress === item.id}
                           icon={<Check className="w-3.5 h-3.5" />}
                         >
-                          Quick Approve
+                          1-Click Approve
                         </Button>
                       </>
                     )}
@@ -432,11 +465,85 @@ export default function ApprovalsPage() {
               </div>
             ))
           ) : (
-            <div className="tactile-card rounded-xl p-12 text-center text-slate-500 font-mono text-xs">
+            <div className="tactile-card rounded-xl p-12 text-center text-slate-500 font-mono text-xs border-[#282828] bg-[#0E0E0E]">
               QUEUE CLEAR: NO SUBMISSIONS IN THIS STATUS
             </div>
           )}
         </div>
+
+        {/* 1-Click Decision Modal with Required Audit Note Input */}
+        {modalItem && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="tactile-card rounded-xl max-w-lg w-full p-6 space-y-5 border-[#282828] bg-[#0E0E0E] shadow-2xl animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-[#222222] pb-3.5">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#00F2FE]" />
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-white font-mono">
+                    {modalItem.action === "approve" ? "Record Formal Human Sign-off" : "Confirm Rejection & Revisions"}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setModalItem(null)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4 text-xs font-mono">
+                <div>
+                  <span className="text-slate-500 block uppercase text-[10px]">SUBMISSION RECORD:</span>
+                  <span className="text-white font-semibold block text-sm mt-0.5">{modalItem.item.title}</span>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[10px]">
+                    REVIEWER ELECTRONIC SIGNATURE (21 CFR PART 11):
+                  </label>
+                  <input
+                    type="text"
+                    value={reviewerSigner}
+                    onChange={(e) => setReviewerSigner(e.target.value)}
+                    className="w-full bg-[#141414] border border-[#282828] focus:border-white focus:outline-none rounded-lg p-2.5 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[10px]">
+                    AUDIT NOTE / LEGAL JUSTIFICATION *:
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={auditNote}
+                    onChange={(e) => setAuditNote(e.target.value)}
+                    placeholder="Enter statutory justification, verified citation ID, or required revision notes..."
+                    className="w-full bg-[#141414] border border-[#282828] focus:border-white focus:outline-none rounded-lg p-3 text-white resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] font-sans leading-relaxed"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setModalItem(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={modalItem.action === "approve" ? "approve" : "destructive"}
+                    onClick={handleConfirmDecision}
+                    loading={actionInProgress === modalItem.item.id}
+                    icon={modalItem.action === "approve" ? <Check className="w-3.5 h-3.5" /> : undefined}
+                  >
+                    {modalItem.action === "approve" ? "Commit 21 CFR Sign-off" : "Confirm Rejection"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

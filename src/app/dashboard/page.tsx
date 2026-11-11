@@ -25,8 +25,9 @@ import {
   FileCode2,
   Sparkles,
   Command,
-  Scale,
-  Award,
+  Building2,
+  User,
+  ShieldAlert,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -36,6 +37,7 @@ import { openCommandK } from "@/components/ui/CommandK";
 interface SubmissionItem {
   id: string;
   title: string;
+  brand: string;
   type: string;
   channel: string;
   issuesCount: number;
@@ -49,6 +51,7 @@ const INITIAL_SUBMISSIONS: SubmissionItem[] = [
   {
     id: "sub_reel_script",
     title: "Q4 Campaign – Clinical Protein Reel Script",
+    brand: "Apex Nutrition",
     type: "Video Script",
     channel: "Instagram Reel",
     issuesCount: 3,
@@ -60,6 +63,7 @@ const INITIAL_SUBMISSIONS: SubmissionItem[] = [
   {
     id: "sub_insta_launch",
     title: "Product Launch – Recovery Blend Carousel",
+    brand: "Apex Nutrition",
     type: "Social Copy",
     channel: "Instagram Carousel",
     issuesCount: 0,
@@ -71,6 +75,7 @@ const INITIAL_SUBMISSIONS: SubmissionItem[] = [
   {
     id: "sub_banner_v2",
     title: "Global Website Banner – Winter Immunity V2",
+    brand: "Apex Nutrition",
     type: "Web Copy",
     channel: "Homepage Hero",
     issuesCount: 1,
@@ -82,6 +87,7 @@ const INITIAL_SUBMISSIONS: SubmissionItem[] = [
   {
     id: "sub_email_promo",
     title: "Enterprise SaaS SLA Email Announcement",
+    brand: "Zenith Cloud",
     type: "Email Direct",
     channel: "B2B Newsletter",
     issuesCount: 0,
@@ -93,6 +99,7 @@ const INITIAL_SUBMISSIONS: SubmissionItem[] = [
   {
     id: "sub_clinical_whitepaper",
     title: "Bio-Peptide Cutaneous Efficacy Study Summary",
+    brand: "Apex Nutrition",
     type: "Whitepaper",
     channel: "Healthcare Portal",
     issuesCount: 2,
@@ -105,6 +112,7 @@ const INITIAL_SUBMISSIONS: SubmissionItem[] = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [selectedBrand, setSelectedBrand] = useState<string>("Apex Nutrition");
   const [submissions, setSubmissions] = useState<SubmissionItem[]>(INITIAL_SUBMISSIONS);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -116,7 +124,7 @@ export default function DashboardPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.submissions && data.submissions.length > 0) {
-          // Merge or supplement if available
+          // Merge or supplement
         }
       })
       .catch(() => {});
@@ -167,24 +175,37 @@ export default function DashboardPage() {
   ];
 
   const filteredSubmissions = submissions.filter((sub) => {
-    const matchesFilter = filterStatus === "all" ? true : sub.status === filterStatus;
+    let matchesFilter = true;
+    if (filterStatus === "needs_review") {
+      matchesFilter = sub.status === "pending";
+    } else if (filterStatus === "approved") {
+      matchesFilter = sub.status === "approved";
+    } else if (filterStatus === "flagged") {
+      matchesFilter = sub.status === "changes_requested" || sub.issuesCount > 0;
+    }
+
+    const matchesBrand = selectedBrand === "All Brands" ? true : sub.brand === selectedBrand;
+
     const matchesSearch =
       sub.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.author.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sub.channel.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+      sub.channel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sub.brand.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesFilter && matchesBrand && matchesSearch;
   });
 
   // Client-side direct JSON export
   const handleExportJSON = () => {
     const exportData = {
       timestamp: new Date().toISOString(),
-      organization: "Apex Nutrition (brand_apex)",
-      totalAudited: 36,
-      approvedRate: "77.8%",
+      organization: `${selectedBrand} Workspace`,
+      totalAudited: 34,
+      healthScore: "84/100",
       submissions: submissions.map((s) => ({
         id: s.id,
         title: s.title,
+        brand: s.brand,
         channel: s.channel,
         score: `${s.score}%`,
         status: s.status,
@@ -218,10 +239,11 @@ export default function DashboardPage() {
 
   // Client-side direct CSV export
   const handleExportCSV = () => {
-    const headers = ["ID", "Title", "Channel", "Compliance Score", "Status", "Flags Count", "Author", "Submitted"];
+    const headers = ["ID", "Title", "Brand", "Channel", "Compliance Score", "Status", "Flags Count", "Author", "Submitted"];
     const rows = submissions.map((s) => [
       s.id,
       `"${s.title.replace(/"/g, '""')}"`,
+      `"${s.brand}"`,
       `"${s.channel}"`,
       `${s.score}%`,
       s.status,
@@ -248,38 +270,66 @@ export default function DashboardPage() {
   // Route to Prototype notice for RFC-3161 PDF certification
   const handleExportAdvancedPDF = () => {
     setShowExportMenu(false);
-    router.push("/prototype-notice");
+    router.push("/prototype-notice?feature=certified_pdf_engine");
   };
 
   return (
     <AppLayout
-      title="Governance Overview"
+      title="Governance Cockpit"
       subtitle="Operational brand claims, active pre-flight queue, and regulatory telemetry."
     >
-      <div className="space-y-7">
-        {/* Top Operational Status Bar with Swiss Grid and Classic Navy Depth */}
-        <div className="tactile-card rounded-xl p-5 sm:p-6 space-y-4">
+      <div className="space-y-6">
+        {/* Workspace Header: Active Brand Switcher, User Badge, Quick Actions */}
+        <div className="tactile-card rounded-xl p-5 space-y-4 border-[#282828] bg-[#0E0E0E]">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="led-indicator led-turquoise" title="Pre-flight active" />
-                <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
-                  Governance Workspace Overview
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="led-indicator led-turquoise" title="Deterministic Engine Online" />
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                  Brand Governance Cockpit
                 </h1>
-                <span className="gold-badge text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded tracking-wider uppercase">
-                  APEX NUTRITION
-                </span>
-                <span className="text-[11px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2 py-0.5 rounded">
-                  RLS SCOPE: TENANT-VERIFIED
-                </span>
+
+                {/* Active Brand Switcher */}
+                <div className="flex items-center gap-1.5 bg-[#141414] border border-[#282828] rounded-lg px-2.5 py-1 text-xs font-mono">
+                  <Building2 className="w-3.5 h-3.5 text-[#00F2FE]" />
+                  <span className="text-slate-400">BRAND:</span>
+                  <select
+                    value={selectedBrand}
+                    onChange={(e) => setSelectedBrand(e.target.value)}
+                    className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
+                  >
+                    <option value="Apex Nutrition" className="bg-[#141414] text-white">Apex Nutrition</option>
+                    <option value="Zenith Cloud" className="bg-[#141414] text-white">Zenith Cloud</option>
+                    <option value="All Brands" className="bg-[#141414] text-white">All Brands</option>
+                  </select>
+                </div>
+
+                {/* User Badge */}
+                <div className="flex items-center gap-1.5 bg-[#141414] border border-[#282828] rounded-lg px-2.5 py-1 text-xs font-mono text-slate-300">
+                  <User className="w-3.5 h-3.5 text-[#E5A93C]" />
+                  <span className="font-semibold text-white">Daksh Agrawal</span>
+                  <span className="text-[10px] px-1 py-0.2 rounded bg-white/10 text-slate-300">ADMIN</span>
+                </div>
               </div>
+
               <p className="text-xs text-slate-400 leading-relaxed max-w-3xl">
-                Organization telemetry: <span className="font-mono text-slate-300 font-medium">32 verified claims</span> · <span className="text-emerald-400 font-mono font-medium">0 statutory breaches</span> · Deterministic pre-flight active with ISO 22196 &amp; FTC § 255.2 guardrails.
+                Multi-tenant telemetry: <span className="font-mono text-white font-medium">32 verified claims</span> · <span className="text-emerald-400 font-mono font-medium">0 statutory breaches</span> · Real-time pre-flight inspection active under FTC § 255 &amp; FDA 21 CFR § 101.93.
               </p>
             </div>
 
-            {/* Action Buttons: Export Audit Log + Review Content */}
+            {/* Quick Actions */}
             <div className="flex flex-wrap items-center gap-2.5 shrink-0 relative">
+              {/* Review Queue Quick Action */}
+              <Link href="/approvals">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Clock className="w-3.5 h-3.5 text-[#E5A93C]" />}
+                >
+                  Review Queue (3)
+                </Button>
+              </Link>
+
               {/* Export Audit Log Dropdown */}
               <div className="relative">
                 <Button
@@ -292,39 +342,39 @@ export default function DashboardPage() {
                 </Button>
 
                 {showExportMenu && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#080C16] border border-[#1E2B4A] shadow-2xl p-1.5 z-30 space-y-1 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 border-b border-[#162038]">
+                  <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#0E0E0E] border border-[#282828] shadow-2xl p-1.5 z-30 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 border-b border-[#222222]">
                       CHOOSE EXPORT FORMAT
                     </div>
                     <button
                       onClick={handleExportJSON}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-[#111C35] hover:text-[#00F2FE] transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-[#1A1A1A] hover:text-[#00F2FE] transition-colors cursor-pointer text-left"
                     >
                       <FileCode2 className="w-4 h-4 text-[#00F2FE]" />
                       <div>
-                        <div className="font-medium">Direct JSON Export</div>
+                        <div className="font-medium text-white">Direct JSON Export</div>
                         <div className="text-[10px] text-slate-500 font-mono">Full provenance dossier (.json)</div>
                       </div>
                     </button>
                     <button
                       onClick={handleExportCSV}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-[#111C35] hover:text-[#E5A93C] transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-[#1A1A1A] hover:text-[#E5A93C] transition-colors cursor-pointer text-left"
                     >
                       <FileSpreadsheet className="w-4 h-4 text-[#E5A93C]" />
                       <div>
-                        <div className="font-medium">Direct CSV Spreadsheet</div>
+                        <div className="font-medium text-white">Direct CSV Spreadsheet</div>
                         <div className="text-[10px] text-slate-500 font-mono">Tabular audit rows (.csv)</div>
                       </div>
                     </button>
                     <button
                       onClick={handleExportAdvancedPDF}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-[#111C35] hover:text-emerald-400 transition-colors cursor-pointer text-left border-t border-[#162038] pt-2"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-[#1A1A1A] hover:text-emerald-400 transition-colors cursor-pointer text-left border-t border-[#222222] pt-2"
                     >
                       <ShieldCheck className="w-4 h-4 text-emerald-400" />
                       <div>
-                        <div className="font-medium flex items-center gap-1.5">
+                        <div className="font-medium text-white flex items-center gap-1.5">
                           <span>Certified PDF Dossier</span>
-                          <span className="text-[9px] px-1 py-0.2 rounded bg-violet-500/20 text-violet-300 font-mono">PKI</span>
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-white/10 text-white font-mono">PKI</span>
                         </div>
                         <div className="text-[10px] text-slate-500 font-mono">RFC-3161 Timestamped PDF</div>
                       </div>
@@ -333,15 +383,15 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Review Content button linking to /submissions/new */}
+              {/* New Audit Action */}
               <Link href="/submissions/new">
                 <Button
                   size="sm"
                   className="gold-button"
-                  icon={<Plus className="w-3.5 h-3.5 text-[#080C16]" />}
+                  icon={<Plus className="w-3.5 h-3.5 text-black" />}
                   shortcut="N"
                 >
-                  Review Content
+                  New Audit
                 </Button>
               </Link>
             </div>
@@ -364,88 +414,100 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Central Motto Banner (Proposal Page 1) */}
-        <div className="rounded-xl bg-gradient-to-r from-[#0B132B] via-[#0E1A38] to-[#0B132B] border border-[#00F2FE]/25 p-3.5 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+        {/* Impending Claims Expiry Alert Banner with 1-Click Jump */}
+        <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-[#141414] to-[#141414] border border-amber-500/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="w-2 h-2 rounded-full bg-[#00F2FE] shadow-[0_0_8px_#00F2FE] shrink-0" />
-            <div className="text-xs">
-              <span className="font-mono text-slate-400 uppercase tracking-wider text-[10px] mr-2">CORE MOTTO:</span>
-              <strong className="text-white tracking-wide font-sans">&ldquo;CHECK THE CLAIM. SHOW THE SOURCE. KEEP PEOPLE IN CONTROL.&rdquo;</strong>
-              <span className="text-slate-400 ml-2 hidden md:inline text-[11px]">· Team AGRAWALDAKSH008 (CodeTitans 2026)</span>
+            <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider font-mono">
+                  IMPENDING CLAIMS EXPIRATION WATCHLIST (&lt;30 DAYS)
+                </span>
+                <span className="led-indicator led-amber" />
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Claim <span className="font-mono text-cyan-300 font-semibold">CLM-APX-002</span> (&ldquo;Informed-Sport Certified&rdquo;) expires in <span className="text-amber-400 font-bold font-mono">17 days</span>. 2 active drafts depend on this substantiation.
+              </p>
             </div>
           </div>
-          <Link
-            href="/evaluations"
-            className="text-[11px] font-mono text-[#00F2FE] hover:underline flex items-center gap-1 shrink-0 self-end sm:self-auto font-medium"
-          >
-            <span>Live Evaluations Bench (97.9% Precision)</span>
-            <ArrowRight className="w-3 h-3" />
+
+          <Link href="/knowledge-base/claims" className="shrink-0">
+            <Button
+              size="xs"
+              variant="secondary"
+              className="border-amber-500/40 text-amber-300 hover:text-white hover:bg-amber-500/20"
+              icon={<ArrowRight className="w-3.5 h-3.5" />}
+            >
+              Jump to Claims Library
+            </Button>
           </Link>
         </div>
 
-        {/* 4 Tactile Skeuomorphic Metric Cards with Monospace Tabular Numerals */}
+        {/* 4 Core KPI Telemetry Cards with Monospace Tabular Numerals */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: 36 Reviewed */}
-          <div className="tactile-card rounded-xl p-5 space-y-3.5">
+          {/* Card 1: Content Audited */}
+          <div className="tactile-card rounded-xl p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
             <div className="flex items-center justify-between text-slate-400">
               <div className="flex items-center gap-2">
                 <span className="led-indicator led-turquoise" />
                 <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Drafts Reviewed
+                  Content Audited
                 </span>
               </div>
               <FileText className="w-4 h-4 text-[#00F2FE]" />
             </div>
 
             <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-slate-100 tracking-tight">
-                36
+              <span className="text-3xl font-bold font-mono tabular-nums text-white tracking-tight">
+                34
               </span>
               <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-0.5">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +24%
+                <ArrowUpRight className="w-3.5 h-3.5" /> +12% this week
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#1E2B4A] pt-2.5 flex items-center justify-between">
-              <span>VS. LAST 7 DAYS</span>
-              <span className="text-slate-300 font-medium">29 PREV</span>
+            <div className="text-[11px] font-mono text-slate-500 border-t border-[#222222] pt-2.5 flex items-center justify-between">
+              <span>ACTIVE PIPELINE</span>
+              <span className="text-slate-300 font-medium">ORGANIZATION TOTAL</span>
             </div>
           </div>
 
-          {/* Card 2: 28 Approved */}
-          <div className="tactile-card rounded-xl p-5 space-y-3.5">
+          {/* Card 2: Average Compliance Health Score */}
+          <div className="tactile-card rounded-xl p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
             <div className="flex items-center justify-between text-slate-400">
               <div className="flex items-center gap-2">
                 <span className="led-indicator led-emerald" />
                 <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Approved Grounded
+                  Compliance Score
                 </span>
               </div>
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
 
             <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-slate-100 tracking-tight">
-                28
+              <span className="text-3xl font-bold font-mono tabular-nums text-emerald-400 tracking-tight">
+                84/100
               </span>
               <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-0.5">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +18%
+                <ArrowUpRight className="w-3.5 h-3.5" /> +6 pts
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#1E2B4A] pt-2.5 flex items-center justify-between">
+            <div className="text-[11px] font-mono text-slate-500 border-t border-[#222222] pt-2.5 flex items-center justify-between">
               <span>PASS-THROUGH RATE</span>
               <span className="text-emerald-400 font-bold tabular-nums">77.8%</span>
             </div>
           </div>
 
-          {/* Card 3: 5 Pending */}
-          <div className="tactile-card rounded-xl p-5 space-y-3.5">
+          {/* Card 3: Pending Human Approvals */}
+          <div className="tactile-card rounded-xl p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
             <div className="flex items-center justify-between text-slate-400">
               <div className="flex items-center gap-2">
                 <span className="led-indicator led-amber" />
                 <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Pending Sign-off
+                  Pending Approvals
                 </span>
               </div>
               <Clock className="w-4 h-4 text-[#E5A93C]" />
@@ -453,60 +515,60 @@ export default function DashboardPage() {
 
             <div className="flex items-baseline justify-between pt-1">
               <span className="text-3xl font-bold font-mono tabular-nums text-[#F3BA54] tracking-tight">
-                5
+                3 queued
               </span>
-              <span className="text-[11px] font-mono text-[#E5A93C] font-medium bg-[#E5A93C]/10 px-1.5 py-0.5 rounded border border-[#E5A93C]/20">
-                Awaiting Gate
+              <span className="text-[11px] font-mono text-rose-400 font-semibold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/25">
+                1 critical
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#1E2B4A] pt-2.5 flex items-center justify-between">
+            <div className="text-[11px] font-mono text-slate-500 border-t border-[#222222] pt-2.5 flex items-center justify-between">
               <span>AVG TURNAROUND</span>
               <span className="text-slate-200 font-semibold tabular-nums">1.2 HRS</span>
             </div>
           </div>
 
-          {/* Card 4: 4 Recurring Issues */}
-          <div className="tactile-card rounded-xl p-5 space-y-3.5">
+          {/* Card 4: Impending Claims Expirations */}
+          <div className="tactile-card rounded-xl p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
             <div className="flex items-center justify-between text-slate-400">
               <div className="flex items-center gap-2">
                 <span className="led-indicator led-gold" />
                 <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Recurring Issues
+                  Claims Expirations
                 </span>
               </div>
               <AlertTriangle className="w-4 h-4 text-[#E5A93C]" />
             </div>
 
             <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-slate-100 tracking-tight">
-                4
+              <span className="text-3xl font-bold font-mono tabular-nums text-white tracking-tight">
+                2 claims
               </span>
-              <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-0.5">
-                <ArrowDownRight className="w-3.5 h-3.5" /> -33%
+              <span className="text-xs font-mono font-medium text-amber-400 flex items-center gap-0.5">
+                &lt;30 days
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#1E2B4A] pt-2.5 flex items-center justify-between">
-              <span>RISK VELOCITY</span>
-              <span className="text-emerald-400 font-semibold tracking-wide">IMPROVING</span>
+            <div className="text-[11px] font-mono text-slate-500 border-t border-[#222222] pt-2.5 flex items-center justify-between">
+              <span>CASCADE RISK</span>
+              <span className="text-amber-400 font-semibold tracking-wide">QUARANTINE READY</span>
             </div>
           </div>
         </div>
 
-        {/* Two-Column Swiss Layout: Filterable Submissions Table (8 cols) & Governance Telemetry (4 cols) */}
+        {/* Two-Column Swiss Layout: Filterable Submissions Table (8 cols) & High-Risk Watchlist Panel (4 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (8 cols): Filterable Recent Submissions Table */}
           <div className="lg:col-span-8 space-y-3">
-            <div className="tactile-card rounded-xl overflow-hidden">
+            <div className="tactile-card rounded-xl overflow-hidden border-[#282828] bg-[#0E0E0E]">
               {/* Header and Filter Toolbar */}
-              <div className="p-4 border-b border-[#1E2B4A] bg-[#0A0F1D] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-4 border-b border-[#222222] bg-[#141414] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <span className="led-indicator led-turquoise" />
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-200">
                     Recent Submissions
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400 bg-[#111C35] px-2 py-0.5 rounded border border-[#1E2B4A]">
+                  <span className="text-[11px] font-mono text-slate-400 bg-[#0E0E0E] px-2 py-0.5 rounded border border-[#282828]">
                     {filteredSubmissions.length} OF {submissions.length} ROWS
                   </span>
                 </div>
@@ -520,31 +582,31 @@ export default function DashboardPage() {
                       placeholder="Filter submissions..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-md pl-8 pr-12 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 w-44 sm:w-52 font-mono transition-colors"
+                      className="bg-[#080808] border border-[#282828] focus:border-white focus:outline-none rounded-md pl-8 pr-12 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 w-44 sm:w-52 font-mono transition-colors"
                     />
                     <button
                       onClick={openCommandK}
                       title="Trigger Global Command Bar (⌘K)"
-                      className="absolute right-1 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 bg-[#111C35] hover:text-white rounded border border-[#1E2B4A] cursor-pointer"
+                      className="absolute right-1 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 bg-[#161616] hover:text-white rounded border border-[#282828] cursor-pointer"
                     >
                       ⌘K
                     </button>
                   </div>
 
-                  {/* Filter Tabs: All, Pending, Approved, Changes Req. */}
-                  <div className="flex items-center bg-[#080C16] border border-[#1E2B4A] rounded-lg p-1 text-[11px] font-medium">
+                  {/* Filter Tabs matching SECTION_INVENTORY.md: All, Needs Review, Approved, Flagged */}
+                  <div className="flex items-center bg-[#080808] border border-[#282828] rounded-lg p-1 text-[11px] font-medium">
                     {[
                       { id: "all", label: "All" },
-                      { id: "pending", label: "Pending" },
+                      { id: "needs_review", label: "Needs Review" },
                       { id: "approved", label: "Approved" },
-                      { id: "changes_requested", label: "Changes Req." },
+                      { id: "flagged", label: "Flagged" },
                     ].map((tab) => (
                       <button
                         key={tab.id}
                         onClick={() => setFilterStatus(tab.id)}
                         className={`px-2.5 py-1 rounded-md transition-all cursor-pointer font-sans ${
                           filterStatus === tab.id
-                            ? "bg-[#162445] text-white font-semibold shadow-xs border border-[#2E416E]"
+                            ? "bg-[#222222] text-white font-semibold shadow-xs border border-[#333333]"
                             : "text-slate-400 hover:text-slate-200"
                         }`}
                       >
@@ -558,18 +620,19 @@ export default function DashboardPage() {
               {/* Data Table with Swiss Density and Status LEDs */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#080C16] border-b border-[#1E2B4A] text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
+                  <thead className="bg-[#080808] border-b border-[#222222] text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
                     <tr>
-                      <th className="px-4 py-3">Submission Record</th>
-                      <th className="px-3 py-3">Channel / Context</th>
+                      <th className="px-4 py-3">Title</th>
+                      <th className="px-3 py-3">Channel</th>
+                      <th className="px-3 py-3">Brand</th>
+                      <th className="px-3 py-3">Issues Found</th>
                       <th className="px-3 py-3 text-center">Score</th>
-                      <th className="px-3 py-3">Audit Findings</th>
-                      <th className="px-3 py-3">Author</th>
-                      <th className="px-3 py-3">Status Gate</th>
-                      <th className="px-4 py-3 text-right">Action</th>
+                      <th className="px-3 py-3">Status</th>
+                      <th className="px-3 py-3">Timestamp</th>
+                      <th className="px-4 py-3 text-right">Action Link</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#162038]">
+                  <tbody className="divide-y divide-[#1C1C1C]">
                     {filteredSubmissions.length > 0 ? (
                       filteredSubmissions.map((sub) => {
                         const isApproved = sub.status === "approved";
@@ -578,13 +641,13 @@ export default function DashboardPage() {
                         return (
                           <tr
                             key={sub.id}
-                            className="hover:bg-[#111C35]/60 transition-colors group"
+                            className="hover:bg-[#141414] transition-colors group"
                           >
                             {/* Title with LED Status Indicator */}
                             <td className="px-4 py-3.5 font-medium text-slate-200">
                               <Link
                                 href={`/submissions/${sub.id}`}
-                                className="hover:text-[#00F2FE] transition-colors flex items-center gap-2.5 max-w-xs truncate"
+                                className="hover:text-[#00F2FE] transition-colors flex items-center gap-2 max-w-[200px] truncate"
                               >
                                 <span
                                   className={`led-indicator ${
@@ -601,12 +664,32 @@ export default function DashboardPage() {
 
                             {/* Channel */}
                             <td className="px-3 py-3.5 text-slate-400 font-mono text-[11px]">
-                              <span className="px-2 py-0.5 rounded bg-[#080C16] border border-[#1E2B4A] text-slate-300">
+                              <span className="px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-slate-300">
                                 {sub.channel}
                               </span>
                             </td>
 
-                            {/* Monospace Tabular Score */}
+                            {/* Brand */}
+                            <td className="px-3 py-3.5 text-slate-300 text-xs font-mono">
+                              {sub.brand}
+                            </td>
+
+                            {/* Issues Found */}
+                            <td className="px-3 py-3.5">
+                              {sub.issuesCount > 0 ? (
+                                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/25">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+                                  {sub.issuesCount} Flags
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                                  0 Flags
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Score */}
                             <td className="px-3 py-3.5 text-center">
                               <span
                                 className={`font-mono font-semibold tabular-nums text-xs px-2 py-0.5 rounded ${
@@ -619,33 +702,6 @@ export default function DashboardPage() {
                               >
                                 {sub.score}%
                               </span>
-                            </td>
-
-                            {/* Findings */}
-                            <td className="px-3 py-3.5">
-                              {sub.issuesCount > 0 ? (
-                                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/25">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-                                  {sub.issuesCount} Flags
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                                  Cleared
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Author */}
-                            <td className="px-3 py-3.5 text-slate-300 text-xs">
-                              <div className="flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded bg-[#111C35] border border-[#1E2B4A] flex items-center justify-center text-[10px] font-mono text-[#E5A93C] font-semibold">
-                                  {sub.author.initials}
-                                </span>
-                                <span className="text-[11px] text-slate-300 truncate max-w-[85px]">
-                                  {sub.author.name}
-                                </span>
-                              </div>
                             </td>
 
                             {/* Status */}
@@ -663,12 +719,17 @@ export default function DashboardPage() {
                                 {sub.status === "approved"
                                   ? "Approved"
                                   : sub.status === "pending"
-                                  ? "In Review"
-                                  : "Changes Req."}
+                                  ? "Needs Review"
+                                  : "Flagged"}
                               </Badge>
                             </td>
 
-                            {/* Action Button linking to /submissions/[id] */}
+                            {/* Timestamp */}
+                            <td className="px-3 py-3.5 text-slate-400 font-mono text-[11px]">
+                              {sub.submittedAt}
+                            </td>
+
+                            {/* Action Link to /submissions/[id] */}
                             <td className="px-4 py-3.5 text-right">
                               <Link href={`/submissions/${sub.id}`}>
                                 <Button
@@ -685,7 +746,7 @@ export default function DashboardPage() {
                     ) : (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-4 py-10 text-center text-slate-500 font-mono text-xs"
                         >
                           NO SUBMISSIONS FOUND MATCHING ACTIVE FILTER
@@ -697,7 +758,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Table Footer */}
-              <div className="px-4 py-3 bg-[#080C16] border-t border-[#1E2B4A] flex items-center justify-between text-[11px] font-mono text-slate-500">
+              <div className="px-4 py-3 bg-[#080808] border-t border-[#222222] flex items-center justify-between text-[11px] font-mono text-slate-500">
                 <span>SHOWING {filteredSubmissions.length} OF {submissions.length} SUBMISSIONS</span>
                 <Link
                   href="/submissions"
@@ -710,17 +771,17 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right Column (4 cols): Recurring Flags & Truth Library Ledger */}
+          {/* Right Column (4 cols): High-Risk Issues Panel & Watchlist */}
           <div className="lg:col-span-4 space-y-4">
-            {/* Recurring Flags Frequency Chart */}
-            <div className="tactile-card rounded-xl overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-[#1E2B4A] bg-[#0A0F1D] flex items-center justify-between">
+            {/* High-Risk Issues Panel with Statutory Citation and Frequency Counter */}
+            <div className="tactile-card rounded-xl overflow-hidden border-[#282828] bg-[#0E0E0E]">
+              <div className="px-4 py-3.5 border-b border-[#222222] bg-[#141414] flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
-                    Recurring Governance Flags
+                    High-Risk Issues &amp; Watchlist
                   </h3>
                   <p className="text-[10px] font-mono text-slate-500 mt-0.5">
-                    FREQUENCY DISTRIBUTION (THIS WEEK)
+                    FREQUENCY DISTRIBUTION (STATUTORY FLAGS)
                   </p>
                 </div>
                 <span className="font-mono text-xs tabular-nums text-[#E5A93C] bg-[#E5A93C]/10 border border-[#E5A93C]/25 px-2 py-0.5 rounded font-semibold">
@@ -741,7 +802,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="font-mono text-xs font-bold tabular-nums text-slate-100">
+                        <span className="font-mono text-xs font-bold tabular-nums text-white">
                           {issue.count}
                         </span>
                         <span className="text-[10px] font-mono text-slate-500 ml-1">
@@ -751,7 +812,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full h-1.5 bg-[#080C16] rounded-full overflow-hidden border border-[#1E2B4A]">
+                    <div className="w-full h-1.5 bg-[#080808] rounded-full overflow-hidden border border-[#222222]">
                       <div
                         className={`h-full ${issue.color} rounded-full`}
                         style={{ width: `${issue.percentage}%` }}
@@ -760,10 +821,10 @@ export default function DashboardPage() {
                   </div>
                 ))}
 
-                <div className="pt-3 border-t border-[#1E2B4A]">
+                <div className="pt-3 border-t border-[#222222]">
                   <Link
                     href="/analytics"
-                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#080C16] hover:bg-[#111C35] border border-[#1E2B4A] text-xs font-medium text-slate-200 hover:text-white transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] border border-[#282828] text-xs font-medium text-slate-200 hover:text-white transition-colors"
                   >
                     <Activity className="w-3.5 h-3.5 text-[#00F2FE]" />
                     <span>Open Compliance Analytics</span>
@@ -773,11 +834,11 @@ export default function DashboardPage() {
             </div>
 
             {/* Claims Health Ledger Card */}
-            <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3">
+            <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  Claims Health Ledger
+                  Claims Truth Ledger
                 </span>
                 <Badge variant="verified" size="xs">
                   32 ACTIVE
@@ -785,10 +846,10 @@ export default function DashboardPage() {
               </div>
 
               <p className="text-xs text-slate-400 leading-relaxed">
-                All 32 claims indexed for Apex Nutrition are mapped to verified clinical or USPTO assay records. 2 claims require renewal within 30 days.
+                All 32 claims indexed for {selectedBrand} are mapped to verified clinical or USPTO assay records. 2 claims require renewal within 30 days.
               </p>
 
-              <div className="pt-2 border-t border-[#1E2B4A] flex items-center justify-between text-[11px] font-mono">
+              <div className="pt-2 border-t border-[#222222] flex items-center justify-between text-[11px] font-mono">
                 <span className="text-[#E5A93C] font-semibold flex items-center gap-1.5">
                   <span className="led-indicator led-gold" />
                   2 EXPIRING SOON
@@ -798,68 +859,6 @@ export default function DashboardPage() {
                   className="text-[#00F2FE] hover:underline font-sans flex items-center gap-1"
                 >
                   Manage Truth Library &rarr;
-                </Link>
-              </div>
-            </div>
-
-            {/* Real-World Case Studies Audit Benchmark Card (Proposal Page 2 & Round 3 Improvement #3) */}
-            <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3.5 border-l-2 border-l-[#00F2FE]">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                  <Scale className="w-4 h-4 text-[#00F2FE]" />
-                  Real-World Case Audits
-                </span>
-                <span className="text-[10px] font-mono text-[#FBBF24] bg-[#E5A93C]/15 border border-[#E5A93C]/30 px-2 py-0.5 rounded font-semibold">
-                  PROPOSAL PG 2
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-400 leading-relaxed">
-                4 canonical industry failures tested in our deterministic evaluation test bench:
-              </p>
-
-              <div className="space-y-2 text-xs">
-                <div className="p-2 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-rose-400">FTC v. Teami (2020)</span>
-                    <span className="font-mono text-[10px] text-slate-500">$15.2M Order</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">Deceptive health claim + missing #ad disclosure caught by regex filter.</p>
-                </div>
-
-                <div className="p-2 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-amber-400">Adidas Boston (2017)</span>
-                    <span className="font-mono text-[10px] text-slate-500">Tone Crisis</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">Tragedy phrase &ldquo;survived race&rdquo; blocked by contextual sensitivity rules.</p>
-                </div>
-
-                <div className="p-2 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-sky-400">CNET Finance (2023)</span>
-                    <span className="font-mono text-[10px] text-slate-500">AI Hallucination</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">Compound interest calculation error flagged as ungrounded claim.</p>
-                </div>
-
-                <div className="p-2 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-violet-400">Gap Rebrand (2010)</span>
-                    <span className="font-mono text-[10px] text-slate-500">$100M Loss</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">Unvetted identity change prevented by Two-Key Human Approval Gate.</p>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-[#1E2B4A] flex items-center justify-between text-[11px] font-mono">
-                <span className="text-emerald-400 font-semibold">97.9% PRECISION · 0.0% MISSED</span>
-                <Link
-                  href="/evaluations"
-                  className="text-[#00F2FE] hover:underline font-sans flex items-center gap-1 font-medium"
-                >
-                  <span>Run Live Bench</span>
-                  <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>
