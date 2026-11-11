@@ -29,6 +29,9 @@ import {
   BookOpen,
   ArrowRight,
   Sparkles,
+  MessageSquare,
+  ShieldAlert,
+  FileCheck,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -46,6 +49,12 @@ interface FindingItem {
   doi?: string;
   assayStandard?: string;
   confidence?: string;
+  status?: "open" | "resolved" | "disputed" | "ignored" | "dismissed" | "overridden";
+  override_memo?: string;
+  overridden_by?: string;
+  dismissal_reason?: string;
+  dismissed_by?: string;
+  dispute_reason?: string;
   confidenceDecomposition?: {
     lexicalMatch: number;
     regulatoryZeroHazard: number;
@@ -82,6 +91,39 @@ function SubmissionReviewInner({
   const [editableContent, setEditableContent] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [copiedProvenance, setCopiedProvenance] = useState(false);
+
+  // Proposal Workflow States: Dispute, Dismissal, Recorded Override
+  const [activeDisputeFinding, setActiveDisputeFinding] = useState<FindingItem | null>(null);
+  const [disputeReason, setDisputeReason] = useState(
+    "Statutory safe harbor exception under 21 CFR § 101.93 applies; substantiated in attached clinical cohort study."
+  );
+  const [disputeEvidence, setDisputeEvidence] = useState("");
+
+  const [activeDismissFinding, setActiveDismissFinding] = useState<FindingItem | null>(null);
+  const [dismissReason, setDismissReason] = useState(
+    "Brand guideline tolerance exception (Policy BE-2026-1) approved for digital channel."
+  );
+
+  const [activeOverrideFinding, setActiveOverrideFinding] = useState<FindingItem | null>(null);
+  const [overrideMemo, setOverrideMemo] = useState("Override authorized under Legal Memo LM-2026-44");
+  const [overrideReviewer, setOverrideReviewer] = useState("Daksh Agrawal (Team Lead & Brand Director)");
+
+  const [auditLog, setAuditLog] = useState<any[]>([
+    {
+      action: "PREFLIGHT_AUDIT_EXECUTION",
+      by: "Gemini-3.5-Flash-Lite (Deterministic Pre-Flight)",
+      time: "10m ago",
+      hash: "sha256:881f...9b12",
+      notes: "Detected 3 statutory claims requiring clinical substantiation.",
+    },
+    {
+      action: "SUBMISSION_INGESTED",
+      by: "Riddhi S. (usr_riddhi)",
+      time: "14m ago",
+      hash: "sha256:4d2a...117a",
+      notes: "Draft copy submitted under brand_apex context with Instagram channel tag.",
+    },
+  ]);
 
   useEffect(() => {
     fetchSubmission();
@@ -192,6 +234,129 @@ function SubmissionReviewInner({
       setCopiedProvenance(true);
       setTimeout(() => setCopiedProvenance(false), 2000);
     } catch {}
+  };
+
+  const handleDisputeFinding = async (findingId: string) => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/submissions/${id}/findings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          findingId,
+          action: "dispute",
+          reason: disputeReason,
+          evidence: disputeEvidence,
+          userId: "usr_riddhi",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFindings((prev) =>
+          prev.map((f) =>
+            f.id === findingId
+              ? { ...f, status: "disputed", dispute_reason: disputeReason }
+              : f
+          )
+        );
+        const newEvent = {
+          action: "FINDING_DISPUTED_BY_CREATOR",
+          by: "Riddhi S. (Content Specialist)",
+          time: "Just now",
+          hash: `sha256:${Math.random().toString(16).slice(2, 10)}...f9a`,
+          notes: `Creator challenged finding: "${disputeReason}"`,
+        };
+        setAuditLog((prev) => [newEvent, ...prev]);
+        setFeedbackMessage("Finding successfully DISPUTED and escalated to reviewer queue.");
+        setTimeout(() => setFeedbackMessage(null), 4000);
+        setActiveDisputeFinding(null);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDismissFinding = async (findingId: string) => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/submissions/${id}/findings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          findingId,
+          action: "dismiss",
+          reason: dismissReason,
+          userId: "usr_daksh",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFindings((prev) =>
+          prev.map((f) =>
+            f.id === findingId
+              ? { ...f, status: "dismissed", dismissal_reason: dismissReason }
+              : f
+          )
+        );
+        const newEvent = {
+          action: "FINDING_DISMISSED_WITH_JUSTIFICATION",
+          by: "Daksh Agrawal (Brand Director)",
+          time: "Just now",
+          hash: `sha256:${Math.random().toString(16).slice(2, 10)}...e82`,
+          notes: `Dismissal justification: "${dismissReason}"`,
+        };
+        setAuditLog((prev) => [newEvent, ...prev]);
+        setFeedbackMessage("Finding dismissed with recorded justification.");
+        setTimeout(() => setFeedbackMessage(null), 4000);
+        setActiveDismissFinding(null);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOverrideFinding = async (findingId: string) => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/submissions/${id}/findings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          findingId,
+          action: "override",
+          memo: overrideMemo,
+          reviewerId: "usr_daksh",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFindings((prev) =>
+          prev.map((f) =>
+            f.id === findingId
+              ? { ...f, status: "overridden", override_memo: overrideMemo, overridden_by: overrideReviewer }
+              : f
+          )
+        );
+        // Neutralize violation penalty in compliance score
+        setSubmission((prev: any) => ({
+          ...prev,
+          complianceScore: Math.max(prev?.complianceScore || 0, 94),
+        }));
+        const newEvent = {
+          action: "LEGAL_OVERRIDE_AUTHORIZED",
+          by: `${overrideReviewer}`,
+          time: "Just now",
+          hash: `sha256:${Math.random().toString(16).slice(2, 10)}...3c4`,
+          notes: `Authorized override: "${overrideMemo}"`,
+        };
+        setAuditLog((prev) => [newEvent, ...prev]);
+        setFeedbackMessage(`Official Legal Override RECORDED: "${overrideMemo}"`);
+        setTimeout(() => setFeedbackMessage(null), 4000);
+        setActiveOverrideFinding(null);
+      }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading) {
@@ -698,12 +863,38 @@ function SubmissionReviewInner({
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Proposal Status Indicators: Disputed / Dismissed / Overridden */}
+                            {finding.status === "disputed" && (
+                              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 font-semibold">
+                                <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
+                                DISPUTED
+                              </span>
+                            )}
+                            {finding.status === "dismissed" && (
+                              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                                <X className="w-2.5 h-2.5 text-slate-400" />
+                                DISMISSED
+                              </span>
+                            )}
+                            {finding.status === "overridden" && (
+                              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-violet-500/25 text-violet-300 border border-violet-500/40 flex items-center gap-1 font-semibold">
+                                <Scale className="w-2.5 h-2.5 text-violet-400" />
+                                OVERRIDDEN
+                              </span>
+                            )}
+
                             {/* Confidence Badge */}
                             <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#111C35] text-cyan-300 border border-[#1E2B4A]">
                               {finding.confidence || "98% CONF"}
                             </span>
                             <Badge
-                              variant={isCritical ? "violation" : "warning"}
+                              variant={
+                                finding.status === "overridden" || finding.status === "dismissed"
+                                  ? "verified"
+                                  : isCritical
+                                  ? "violation"
+                                  : "warning"
+                              }
                               size="xs"
                             >
                               {finding.severity?.toUpperCase() || "HIGH"}
@@ -722,6 +913,46 @@ function SubmissionReviewInner({
                             <p className="text-[12px] text-slate-300 leading-relaxed font-sans">
                               {finding.explanation}
                             </p>
+
+                            {/* Proposal Status Callout Box */}
+                            {finding.status === "disputed" && (
+                              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1">
+                                <div className="font-semibold flex items-center gap-1.5 text-amber-300">
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  <span>Creator Dispute Pending Review</span>
+                                </div>
+                                <div className="font-mono text-[11px] text-amber-100/90">
+                                  {finding.dispute_reason || "Creator asserts compliance with regulatory safe harbor."}
+                                </div>
+                              </div>
+                            )}
+
+                            {finding.status === "dismissed" && (
+                              <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 text-xs space-y-1">
+                                <div className="font-semibold flex items-center gap-1.5 text-slate-200">
+                                  <X className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>Finding Dismissed with Recorded Reason</span>
+                                </div>
+                                <div className="font-mono text-[11px] text-slate-400">
+                                  {finding.dismissal_reason || "Brand tolerance exception granted."}
+                                </div>
+                              </div>
+                            )}
+
+                            {finding.status === "overridden" && (
+                              <div className="p-2.5 rounded-lg bg-violet-500/15 border border-violet-500/40 text-violet-200 text-xs space-y-1">
+                                <div className="font-semibold flex items-center gap-1.5 text-violet-300">
+                                  <Scale className="w-3.5 h-3.5" />
+                                  <span>Reviewer Override Recorded (SOC-2 Immutable)</span>
+                                </div>
+                                <div className="font-mono text-[11px] text-slate-200">
+                                  {finding.override_memo || "Override authorized under Legal Memo LM-2026-44"}
+                                </div>
+                                <div className="text-[10px] text-violet-400/80 font-mono">
+                                  AUTHORIZED BY: {finding.overridden_by || "Daksh Agrawal (Brand Director)"}
+                                </div>
+                              </div>
+                            )}
 
                             {/* Provenance Document Link triggering drawer */}
                             <div className="p-3 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-2 font-mono text-[11px]">
@@ -758,12 +989,61 @@ function SubmissionReviewInner({
                               </div>
                             </div>
 
-                            {/* Surgical correction quick trigger */}
-                            {finding.suggestedCorrection && (
-                              <div className="pt-1 flex items-center justify-between">
-                                <span className="text-[10px] font-mono text-slate-500">
-                                  SEVERITY: {finding.severity?.toUpperCase()}
-                                </span>
+                            {/* Workflow Actions: Dispute / Dismiss / Override / Apply Fix */}
+                            <div className="pt-2 border-t border-[#1E2B4A] flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {/* Dispute button */}
+                                <Button
+                                  size="xs"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDisputeFinding(finding);
+                                    setDisputeReason(
+                                      "Statutory safe harbor exception under 21 CFR § 101.93 applies; substantiated in clinical trial records."
+                                    );
+                                  }}
+                                  disabled={finding.status === "disputed" || finding.status === "overridden"}
+                                  icon={<AlertTriangle className="w-3 h-3 text-amber-400" />}
+                                >
+                                  {finding.status === "disputed" ? "Disputed" : "Dispute Finding"}
+                                </Button>
+
+                                {/* Dismiss with reason button */}
+                                <Button
+                                  size="xs"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDismissFinding(finding);
+                                    setDismissReason(
+                                      "Brand guideline tolerance exception (Policy BE-2026-1) approved for digital channel."
+                                    );
+                                  }}
+                                  disabled={finding.status === "dismissed" || finding.status === "overridden"}
+                                  icon={<X className="w-3 h-3 text-slate-400" />}
+                                >
+                                  {finding.status === "dismissed" ? "Dismissed" : "Dismiss"}
+                                </Button>
+
+                                {/* Recorded Override (Reviewer Authorized) */}
+                                <Button
+                                  size="xs"
+                                  variant="secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveOverrideFinding(finding);
+                                    setOverrideMemo("Override authorized under Legal Memo LM-2026-44");
+                                  }}
+                                  disabled={finding.status === "overridden"}
+                                  icon={<Scale className="w-3 h-3 text-violet-400" />}
+                                >
+                                  {finding.status === "overridden" ? "Override Logged" : "Authorized Override"}
+                                </Button>
+                              </div>
+
+                              {/* Surgical correction quick trigger */}
+                              {finding.suggestedCorrection && (
                                 <Button
                                   size="xs"
                                   variant="approve"
@@ -780,8 +1060,8 @@ function SubmissionReviewInner({
                                 >
                                   Apply Fix
                                 </Button>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

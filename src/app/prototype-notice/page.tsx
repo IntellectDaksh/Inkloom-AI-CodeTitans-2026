@@ -8,19 +8,11 @@ import {
   AlertTriangle,
   ArrowRight,
   ArrowLeft,
-  CheckCircle2,
-  Server,
-  Cpu,
-  KeyRound,
-  CreditCard,
   UserCheck,
-  ShieldAlert,
-  Sparkles,
   Terminal,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
 
 interface MockRole {
   id: "admin" | "reviewer" | "creator";

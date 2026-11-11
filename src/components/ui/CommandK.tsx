@@ -193,7 +193,7 @@ export function CommandK({
   const isControlled = controlledIsOpen !== undefined;
   const isOpen = isControlled ? controlledIsOpen : internalIsOpen;
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     if (isControlled && controlledOnClose) {
       controlledOnClose();
     } else {
@@ -201,7 +201,7 @@ export function CommandK({
     }
     setQuery("");
     setSelectedIndex(0);
-  };
+  }, [isControlled, controlledOnClose]);
 
   // Global Keyboard listener for Ctrl+K / Cmd+K and custom trigger
   useEffect(() => {
@@ -236,7 +236,7 @@ export function CommandK({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("inkloom:open-command-k", handleCustomTrigger);
     };
-  }, [isOpen, isControlled, controlledOnClose]);
+  }, [isOpen, isControlled, controlledOnClose, handleClose]);
 
   // Focus input when dialog opens
   useEffect(() => {
