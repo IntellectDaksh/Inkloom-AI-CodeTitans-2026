@@ -261,111 +261,112 @@ export default function ApprovalsPage() {
         )}
 
         {/* Filter Tabs and Quick Search Bar */}
-        <div className="tactile-card rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-[#282828] bg-[#0E0E0E]">
-          {/* Segmented Tabs: Pending (3), Approved (12), Rejected (2) */}
-          <div className="flex items-center bg-[#080808] border border-[#282828] rounded-lg p-0.5 text-xs font-mono font-medium">
+        <div className="bg-[#141414] border border-[#303030] rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Segmented Tabs: Pending, Approved, Rejected */}
+          <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs font-medium">
             <button
               onClick={() => setActiveTab("pending")}
-              className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-2 ${
                 activeTab === "pending"
-                  ? "bg-[#222222] text-[#F3BA54] font-semibold border border-[#333333] shadow-xs"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#222222] text-amber-400 font-semibold"
+                  : "text-[#888888] hover:text-white"
               }`}
             >
-              <span className="led-indicator led-amber" />
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
               <span>Pending ({pendingCount})</span>
             </button>
 
             <button
               onClick={() => setActiveTab("approved")}
-              className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-2 ${
                 activeTab === "approved"
-                  ? "bg-[#222222] text-emerald-300 font-semibold border border-[#333333] shadow-xs"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#222222] text-emerald-400 font-semibold"
+                  : "text-[#888888] hover:text-white"
               }`}
             >
-              <span className="led-indicator led-emerald" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span>Approved ({approvedCount})</span>
             </button>
 
             <button
               onClick={() => setActiveTab("changes_requested")}
-              className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-2 ${
                 activeTab === "changes_requested"
-                  ? "bg-[#222222] text-rose-300 font-semibold border border-[#333333] shadow-xs"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#222222] text-rose-400 font-semibold"
+                  : "text-[#888888] hover:text-white"
               }`}
             >
-              <span className="led-indicator led-rose" />
+              <span className="w-2 h-2 rounded-full bg-rose-400" />
               <span>Rejected ({rejectedCount})</span>
             </button>
           </div>
 
           {/* Quick Search */}
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#737373]" />
             <input
               type="text"
               placeholder="Filter queue by copy or author..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#080808] border border-[#282828] focus:border-white focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono placeholder:text-slate-600 transition-colors"
+              className="w-full bg-[#0A0A0A] border border-[#2E2E2E] focus:border-white focus:outline-none rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder:text-[#666666] transition-colors"
             />
           </div>
         </div>
 
-        {/* Approvals Queue Cards with Monochromatic Tactile Skeuomorphism */}
+        {/* Approvals Queue Cards */}
         <div className="space-y-4">
           {displayItems.length > 0 ? (
             displayItems.map((item) => (
               <div
                 key={item.id}
-                className="tactile-card rounded-xl p-5 space-y-4 border-[#282828] bg-[#0E0E0E]"
+                className="bg-[#141414] border border-[#303030] rounded-xl p-6 space-y-5 shadow-sm"
               >
                 {/* Header Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222222] pb-3.5">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#262626] pb-4">
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <Link
                         href={`/submissions/${item.id}`}
-                        className="text-sm font-semibold text-white hover:text-[#00F2FE] transition-colors"
+                        className="text-base font-semibold text-white hover:underline transition-colors"
                       >
                         {item.title}
                       </Link>
-                      <Badge variant="tag" size="xs">
+                      <Badge variant="neutral" size="xs">
                         {item.type}
                       </Badge>
-                      <span className="px-2 py-0.5 rounded bg-[#141414] text-[10px] font-mono text-cyan-300 border border-[#282828]">
+                      <span className="px-2 py-0.5 rounded bg-[#191919] text-xs text-[#A0A0A0] border border-[#2E2E2E]">
                         {item.channel}
                       </span>
-                      {/* Severity Badge from SECTION_INVENTORY.md */}
-                      <span
-                        className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold ${
+                      {/* Functional Severity Badge */}
+                      <Badge
+                        variant={
                           item.severity === "critical"
-                            ? "bg-rose-500/10 text-rose-300 border-rose-500/30"
+                            ? "critical"
                             : item.severity === "high"
-                            ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
-                            : "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
-                        }`}
+                            ? "high"
+                            : "medium"
+                        }
+                        size="xs"
                       >
-                        {item.severity}
-                      </span>
+                        {item.severity.toUpperCase()}
+                      </Badge>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-slate-400">
-                      <span>AUTHOR: {item.author}</span>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-[#888888]">
+                      <span>Author: <strong className="text-white font-medium">{item.author}</strong></span>
                       <span>•</span>
-                      <span>REVIEWER: {item.reviewer}</span>
+                      <span>Reviewer: <strong className="text-[#D4D4D4] font-medium">{item.reviewer}</strong></span>
                       <span>•</span>
-                      <span className="text-slate-500">{item.timestamp}</span>
+                      <span>{item.timestamp}</span>
                     </div>
                   </div>
 
-                  {/* Monospace Tabular Score */}
-                  <div className="flex items-center gap-3 self-start sm:self-center">
+                  {/* Score & Status */}
+                  <div className="flex items-center gap-4 self-start sm:self-center">
                     <div className="text-right">
                       <div
-                        className={`font-mono text-sm font-bold tabular-nums ${
+                        className={`text-base font-bold ${
                           item.score >= 80
                             ? "text-emerald-400"
                             : item.score >= 50
@@ -373,22 +374,22 @@ export default function ApprovalsPage() {
                             : "text-rose-400"
                         }`}
                       >
-                        {item.score}% SCORE
+                        {item.score}% Score
                       </div>
-                      <div className="text-[10px] font-mono text-slate-500">
+                      <div className="text-xs text-[#888888]">
                         {item.criticalIssues > 0
-                          ? `${item.criticalIssues} HIGH RISK FLAGS`
-                          : "ZERO STATUTORY FLAGS"}
+                          ? `${item.criticalIssues} High Risk Flags`
+                          : "Zero Statutory Flags"}
                       </div>
                     </div>
 
                     <Badge
                       variant={
                         item.status === "approved"
-                          ? "verified"
+                          ? "approved"
                           : item.status === "changes_requested"
-                          ? "violation"
-                          : "warning"
+                          ? "rejected"
+                          : "pending"
                       }
                       size="sm"
                     >
@@ -401,50 +402,50 @@ export default function ApprovalsPage() {
                   </div>
                 </div>
 
-                {/* Content snippet with red-line highlight preview */}
-                <div className="p-3.5 rounded-lg bg-[#141414] border border-[#282828] text-xs text-slate-300 font-sans leading-relaxed shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]">
-                  <div className="text-[10px] font-mono text-slate-500 mb-1.5 uppercase font-medium">
-                    SUBMITTED MARKETING PHRASING:
+                {/* Content snippet with clean readable 15px typography */}
+                <div className="p-5 rounded-xl bg-[#0D0D0D] border border-[#262626] text-[15px] text-[#EDEDED] leading-relaxed">
+                  <div className="text-xs text-[#888888] mb-2 uppercase font-semibold tracking-wider">
+                    Submitted Copy Payload:
                   </div>
-                  <p className="text-slate-200">&ldquo;{item.summary}&rdquo;</p>
+                  <p className="italic text-white">&ldquo;{item.summary}&rdquo;</p>
 
                   {item.flaggedText && item.suggestedFix && (
-                    <div className="mt-3 pt-2.5 border-t border-[#222222] font-mono text-[11px] space-y-1.5">
+                    <div className="mt-4 pt-3 border-t border-[#242424] text-sm space-y-2">
                       <div className="text-rose-400 flex items-center gap-2">
-                        <span className="font-bold select-none text-rose-500">-</span>
-                        <span className="line-through decoration-rose-500/50">{item.flaggedText}</span>
+                        <span className="font-bold select-none">-</span>
+                        <span className="line-through decoration-rose-500/70">{item.flaggedText}</span>
                       </div>
-                      <div className="text-emerald-300 flex items-center gap-2">
-                        <span className="font-bold select-none text-emerald-500">+</span>
-                        <span className="font-medium">{item.suggestedFix}</span>
+                      <div className="text-emerald-300 flex items-center gap-2 font-medium">
+                        <span className="font-bold select-none">+</span>
+                        <span>{item.suggestedFix}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Footer Action Bar with 1-Click Modal Triggers */}
+                {/* Footer Action Bar */}
                 <div className="pt-1 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="text-[11px] font-mono text-slate-500">
-                    SUBMISSION ID: {item.id} · TENANT: APEX NUTRITION
+                  <div className="text-xs text-[#888888]">
+                    Record ID: <span className="text-[#A0A0A0] font-mono">{item.id}</span>
                   </div>
 
                   <div className="flex items-center gap-2.5">
                     {item.status === "pending" && (
                       <>
                         <Button
-                          size="xs"
-                          variant="destructive"
+                          size="sm"
+                          variant="danger"
                           onClick={() => handleOpenDecisionModal(item, "reject")}
                           loading={actionInProgress === item.id}
                         >
                           Reject Draft
                         </Button>
                         <Button
-                          size="xs"
-                          variant="approve"
+                          size="sm"
+                          variant="success"
                           onClick={() => handleOpenDecisionModal(item, "approve")}
                           loading={actionInProgress === item.id}
-                          icon={<Check className="w-3.5 h-3.5" />}
+                          icon={<Check className="w-4 h-4" />}
                         >
                           1-Click Approve
                         </Button>
@@ -453,9 +454,9 @@ export default function ApprovalsPage() {
 
                     <Link href={`/submissions/${item.id}`}>
                       <Button
-                        size="xs"
+                        size="sm"
                         variant="secondary"
-                        icon={<ChevronRight className="w-3.5 h-3.5" />}
+                        icon={<ChevronRight className="w-4 h-4" />}
                       >
                         Inspect Workspace
                       </Button>
@@ -465,52 +466,52 @@ export default function ApprovalsPage() {
               </div>
             ))
           ) : (
-            <div className="tactile-card rounded-xl p-12 text-center text-slate-500 font-mono text-xs border-[#282828] bg-[#0E0E0E]">
-              QUEUE CLEAR: NO SUBMISSIONS IN THIS STATUS
+            <div className="bg-[#141414] border border-[#303030] rounded-xl p-12 text-center text-[#888888] text-sm">
+              Queue clear: No submissions in this status.
             </div>
           )}
         </div>
 
-        {/* 1-Click Decision Modal with Required Audit Note Input */}
+        {/* 1-Click Decision Modal with Clean Typography */}
         {modalItem && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-lg w-full p-6 space-y-5 border-[#282828] bg-[#0E0E0E] shadow-2xl animate-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-[#222222] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#00F2FE]" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-white font-mono">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#141414] border border-[#303030] rounded-xl max-w-lg w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-[#262626] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  <h2 className="text-base font-semibold text-white tracking-tight">
                     {modalItem.action === "approve" ? "Record Formal Human Sign-off" : "Confirm Rejection & Revisions"}
                   </h2>
                 </div>
                 <button
                   onClick={() => setModalItem(null)}
-                  className="text-slate-400 hover:text-white cursor-pointer"
+                  className="text-[#888888] hover:text-white cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-4 text-xs font-mono">
+              <div className="space-y-4 text-sm">
                 <div>
-                  <span className="text-slate-500 block uppercase text-[10px]">SUBMISSION RECORD:</span>
-                  <span className="text-white font-semibold block text-sm mt-0.5">{modalItem.item.title}</span>
+                  <span className="text-xs uppercase tracking-wider text-[#888888] font-semibold block">Submission Record</span>
+                  <span className="text-white font-semibold text-base mt-1 block">{modalItem.item.title}</span>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[10px]">
-                    REVIEWER ELECTRONIC SIGNATURE (21 CFR PART 11):
+                  <label className="block text-xs uppercase tracking-wider text-[#888888] font-semibold mb-2">
+                    Reviewer Electronic Signature (21 CFR Part 11):
                   </label>
                   <input
                     type="text"
                     value={reviewerSigner}
                     onChange={(e) => setReviewerSigner(e.target.value)}
-                    className="w-full bg-[#141414] border border-[#282828] focus:border-white focus:outline-none rounded-lg p-2.5 text-white"
+                    className="w-full bg-[#0D0D0D] border border-[#2E2E2E] focus:border-white focus:outline-none rounded-lg p-3 text-white text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1.5 uppercase text-[10px]">
-                    AUDIT NOTE / LEGAL JUSTIFICATION *:
+                  <label className="block text-xs uppercase tracking-wider text-[#888888] font-semibold mb-2">
+                    Audit Note / Legal Justification *:
                   </label>
                   <textarea
                     required
@@ -518,11 +519,11 @@ export default function ApprovalsPage() {
                     value={auditNote}
                     onChange={(e) => setAuditNote(e.target.value)}
                     placeholder="Enter statutory justification, verified citation ID, or required revision notes..."
-                    className="w-full bg-[#141414] border border-[#282828] focus:border-white focus:outline-none rounded-lg p-3 text-white resize-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] font-sans leading-relaxed"
+                    className="w-full bg-[#0D0D0D] border border-[#2E2E2E] focus:border-white focus:outline-none rounded-lg p-3 text-white text-sm resize-none leading-relaxed"
                   />
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2.5">
+                <div className="pt-2 flex items-center justify-end gap-3">
                   <Button
                     size="sm"
                     variant="secondary"
@@ -532,10 +533,10 @@ export default function ApprovalsPage() {
                   </Button>
                   <Button
                     size="sm"
-                    variant={modalItem.action === "approve" ? "approve" : "destructive"}
+                    variant={modalItem.action === "approve" ? "primary" : "danger"}
                     onClick={handleConfirmDecision}
                     loading={actionInProgress === modalItem.item.id}
-                    icon={modalItem.action === "approve" ? <Check className="w-3.5 h-3.5" /> : undefined}
+                    icon={modalItem.action === "approve" ? <Check className="w-4 h-4" /> : undefined}
                   >
                     {modalItem.action === "approve" ? "Commit 21 CFR Sign-off" : "Confirm Rejection"}
                   </Button>

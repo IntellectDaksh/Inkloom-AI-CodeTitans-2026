@@ -294,17 +294,17 @@ export default function TerminologyPage() {
         {/* Add Term Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-cyan-500/40">
-              <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3">
+            <div className="tactile-card rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-[#303030] bg-[#141414]">
+              <div className="flex items-center justify-between border-b border-[#303030] pb-3">
                 <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-[#00F2FE]" />
-                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100">
+                  <Tag className="w-4 h-4 text-white" />
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                     Add Vocabulary Rule
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="text-slate-400 hover:text-white cursor-pointer"
+                  className="text-[#858585] hover:text-white cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -319,8 +319,8 @@ export default function TerminologyPage() {
                       onClick={() => setRuleType("prohibited")}
                       className={`py-2 rounded-lg border font-semibold transition-all cursor-pointer ${
                         ruleType === "prohibited"
-                          ? "bg-rose-500/20 text-rose-300 border-rose-500/50"
-                          : "bg-[#080C16] text-slate-400 border-[#1E2B4A]"
+                          ? "bg-red-500/20 text-red-400 border-red-500/50"
+                          : "bg-[#0A0A0A] text-[#858585] border-[#303030]"
                       }`}
                     >
                       Prohibited Term
@@ -330,8 +330,8 @@ export default function TerminologyPage() {
                       onClick={() => setRuleType("preferred")}
                       className={`py-2 rounded-lg border font-semibold transition-all cursor-pointer ${
                         ruleType === "preferred"
-                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                          : "bg-[#080C16] text-slate-400 border-[#1E2B4A]"
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50"
+                          : "bg-[#0A0A0A] text-[#858585] border-[#303030]"
                       }`}
                     >
                       Preferred Term
@@ -340,25 +340,25 @@ export default function TerminologyPage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">WORD OR PHRASE *</label>
+                  <label className="block text-[#858585] mb-1">WORD OR PHRASE *</label>
                   <input
                     type="text"
                     required
                     placeholder={ruleType === "prohibited" ? "e.g. miracle cure" : "e.g. bio-available"}
                     value={termInput}
                     onChange={(e) => setTermInput(e.target.value)}
-                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-2.5 text-slate-200 font-mono"
+                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-mono"
                   />
                 </div>
 
                 {ruleType === "prohibited" && (
                   <>
                     <div>
-                      <label className="block text-slate-400 mb-1">SEVERITY LEVEL</label>
+                      <label className="block text-[#858585] mb-1">SEVERITY LEVEL</label>
                       <select
                         value={severityInput}
                         onChange={(e) => setSeverityInput(e.target.value as any)}
-                        className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-2.5 text-slate-200 cursor-pointer"
+                        className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] cursor-pointer"
                       >
                         <option value="critical">Critical (Statutory Red-Line)</option>
                         <option value="high">High (Substantiation Required)</option>
@@ -367,14 +367,14 @@ export default function TerminologyPage() {
                     </div>
 
                     <div>
-                      <label className="block text-slate-400 mb-1">APPROVED COMPLIANT ALTERNATIVE *</label>
+                      <label className="block text-[#858585] mb-1">APPROVED COMPLIANT ALTERNATIVE *</label>
                       <input
                         type="text"
                         required
                         placeholder="e.g. clinically tested formulation"
                         value={replacementInput}
                         onChange={(e) => setReplacementInput(e.target.value)}
-                        className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-2.5 text-slate-200 font-sans"
+                        className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-sans"
                       />
                     </div>
                   </>
@@ -394,11 +394,11 @@ export default function TerminologyPage() {
                     }
                     value={reasonInput}
                     onChange={(e) => setReasonInput(e.target.value)}
-                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-2.5 text-slate-200 font-sans resize-none"
+                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] font-sans resize-none"
                   />
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#1E2B4A]">
+                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
                   <Button
                     type="button"
                     size="sm"

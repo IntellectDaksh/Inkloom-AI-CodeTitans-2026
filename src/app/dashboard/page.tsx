@@ -280,51 +280,51 @@ export default function DashboardPage() {
     >
       <div className="space-y-6">
         {/* Workspace Header: Active Brand Switcher, User Badge, Quick Actions */}
-        <div className="tactile-card rounded-xl p-5 space-y-4 border-[#282828] bg-[#0E0E0E]">
+        <div className="bg-[#141414] border border-[#303030] rounded-xl p-6 space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="led-indicator led-turquoise" title="Deterministic Engine Online" />
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" title="Engine Online" />
+                <h1 className="text-2xl font-bold tracking-tight text-white">
                   Brand Governance Cockpit
                 </h1>
 
                 {/* Active Brand Switcher */}
-                <div className="flex items-center gap-1.5 bg-[#141414] border border-[#282828] rounded-lg px-2.5 py-1 text-xs font-mono">
-                  <Building2 className="w-3.5 h-3.5 text-[#00F2FE]" />
-                  <span className="text-slate-400">BRAND:</span>
+                <div className="flex items-center gap-2 bg-[#191919] border border-[#303030] rounded-lg px-3 py-1.5 text-xs">
+                  <Building2 className="w-4 h-4 text-white" />
+                  <span className="text-[#888888] font-medium">BRAND:</span>
                   <select
                     value={selectedBrand}
                     onChange={(e) => setSelectedBrand(e.target.value)}
                     className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
                   >
-                    <option value="Apex Nutrition" className="bg-[#141414] text-white">Apex Nutrition</option>
-                    <option value="Zenith Cloud" className="bg-[#141414] text-white">Zenith Cloud</option>
-                    <option value="All Brands" className="bg-[#141414] text-white">All Brands</option>
+                    <option value="Apex Nutrition" className="bg-[#191919] text-white">Apex Nutrition</option>
+                    <option value="Zenith Cloud" className="bg-[#191919] text-white">Zenith Cloud</option>
+                    <option value="All Brands" className="bg-[#191919] text-white">All Brands</option>
                   </select>
                 </div>
 
                 {/* User Badge */}
-                <div className="flex items-center gap-1.5 bg-[#141414] border border-[#282828] rounded-lg px-2.5 py-1 text-xs font-mono text-slate-300">
-                  <User className="w-3.5 h-3.5 text-[#E5A93C]" />
+                <div className="flex items-center gap-2 bg-[#191919] border border-[#303030] rounded-lg px-3 py-1.5 text-xs text-[#D4D4D4]">
+                  <User className="w-4 h-4 text-[#A0A0A0]" />
                   <span className="font-semibold text-white">Daksh Agrawal</span>
-                  <span className="text-[10px] px-1 py-0.2 rounded bg-white/10 text-slate-300">ADMIN</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">ADMIN</span>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-400 leading-relaxed max-w-3xl">
-                Multi-tenant telemetry: <span className="font-mono text-white font-medium">32 verified claims</span> · <span className="text-emerald-400 font-mono font-medium">0 statutory breaches</span> · Real-time pre-flight inspection active under FTC § 255 &amp; FDA 21 CFR § 101.93.
+              <p className="text-sm sm:text-[15px] text-[#A0A0A0] leading-relaxed max-w-3xl">
+                Multi-tenant telemetry: <span className="text-white font-medium">32 verified claims</span> · <span className="text-emerald-400 font-medium">0 statutory breaches</span> · Real-time pre-flight inspection active under FTC § 255 &amp; FDA 21 CFR § 101.93.
               </p>
             </div>
 
             {/* Quick Actions */}
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0 relative">
+            <div className="flex flex-wrap items-center gap-3 shrink-0 relative">
               {/* Review Queue Quick Action */}
               <Link href="/approvals">
                 <Button
                   size="sm"
                   variant="secondary"
-                  icon={<Clock className="w-3.5 h-3.5 text-[#E5A93C]" />}
+                  icon={<Clock className="w-4 h-4 text-white" />}
                 >
                   Review Queue (3)
                 </Button>
@@ -335,35 +335,35 @@ export default function DashboardPage() {
                 <Button
                   size="sm"
                   variant="secondary"
-                  icon={<Download className="w-3.5 h-3.5 text-[#00F2FE]" />}
+                  icon={<Download className="w-4 h-4 text-white" />}
                   onClick={() => setShowExportMenu(!showExportMenu)}
                 >
                   Export Audit Log
                 </Button>
 
                 {showExportMenu && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#0E0E0E] border border-[#282828] shadow-2xl p-1.5 z-30 space-y-1 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 border-b border-[#222222]">
+                  <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#141414] border border-[#303030] shadow-2xl p-1.5 z-30 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[#888888] border-b border-[#282828]">
                       CHOOSE EXPORT FORMAT
                     </div>
                     <button
                       onClick={handleExportJSON}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-[#1A1A1A] hover:text-[#00F2FE] transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-[#E0E0E0] hover:bg-[#1E1E1E] hover:text-white transition-colors cursor-pointer text-left"
                     >
-                      <FileCode2 className="w-4 h-4 text-[#00F2FE]" />
+                      <FileCode2 className="w-4 h-4 text-white" />
                       <div>
                         <div className="font-medium text-white">Direct JSON Export</div>
-                        <div className="text-[10px] text-slate-500 font-mono">Full provenance dossier (.json)</div>
+                        <div className="text-xs text-[#888888]">Full provenance dossier (.json)</div>
                       </div>
                     </button>
                     <button
                       onClick={handleExportCSV}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-[#1A1A1A] hover:text-[#E5A93C] transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-[#E0E0E0] hover:bg-[#1E1E1E] hover:text-white transition-colors cursor-pointer text-left"
                     >
-                      <FileSpreadsheet className="w-4 h-4 text-[#E5A93C]" />
+                      <FileSpreadsheet className="w-4 h-4 text-white" />
                       <div>
                         <div className="font-medium text-white">Direct CSV Spreadsheet</div>
-                        <div className="text-[10px] text-slate-500 font-mono">Tabular audit rows (.csv)</div>
+                        <div className="text-xs text-[#888888]">Tabular audit rows (.csv)</div>
                       </div>
                     </button>
                     <button
@@ -445,113 +445,101 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* 4 Core KPI Telemetry Cards with Monospace Tabular Numerals */}
+        {/* 4 Core KPI Telemetry Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Content Audited */}
-          <div className="tactile-card rounded-xl p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
-            <div className="flex items-center justify-between text-slate-400">
-              <div className="flex items-center gap-2">
-                <span className="led-indicator led-turquoise" />
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Content Audited
-                </span>
-              </div>
-              <FileText className="w-4 h-4 text-[#00F2FE]" />
+          <div className="bg-[#141414] border border-[#303030] rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between text-[#888888]">
+              <span className="text-xs uppercase tracking-wider text-[#858585] font-medium">
+                Content Audited
+              </span>
+              <FileText className="w-4 h-4 text-white" />
             </div>
 
             <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-white tracking-tight">
+              <span className="text-3xl font-bold text-white tracking-tight">
                 34
               </span>
-              <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-0.5">
+              <span className="text-xs font-medium text-emerald-400 flex items-center gap-0.5">
                 <ArrowUpRight className="w-3.5 h-3.5" /> +12% this week
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#222222] pt-2.5 flex items-center justify-between">
-              <span>ACTIVE PIPELINE</span>
-              <span className="text-slate-300 font-medium">ORGANIZATION TOTAL</span>
+            <div className="text-xs text-[#858585] border-t border-[#262626] pt-2.5 flex items-center justify-between">
+              <span>Active Pipeline</span>
+              <span className="text-[#D4D4D4] font-medium">Organization Total</span>
             </div>
           </div>
 
           {/* Card 2: Average Compliance Health Score */}
-          <div className="tactile-card rounded-xl p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
-            <div className="flex items-center justify-between text-slate-400">
-              <div className="flex items-center gap-2">
-                <span className="led-indicator led-emerald" />
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Compliance Score
-                </span>
-              </div>
+          <div className="bg-[#141414] border border-[#303030] rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between text-[#888888]">
+              <span className="text-xs uppercase tracking-wider text-[#858585] font-medium">
+                Compliance Score
+              </span>
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
 
             <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-emerald-400 tracking-tight">
+              <span className="text-3xl font-bold text-emerald-400 tracking-tight">
                 84/100
               </span>
-              <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-0.5">
+              <span className="text-xs font-medium text-emerald-400 flex items-center gap-0.5">
                 <ArrowUpRight className="w-3.5 h-3.5" /> +6 pts
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#222222] pt-2.5 flex items-center justify-between">
-              <span>PASS-THROUGH RATE</span>
-              <span className="text-emerald-400 font-bold tabular-nums">77.8%</span>
+            <div className="text-xs text-[#858585] border-t border-[#262626] pt-2.5 flex items-center justify-between">
+              <span>Pass-Through Rate</span>
+              <span className="text-emerald-400 font-semibold">77.8%</span>
             </div>
           </div>
 
           {/* Card 3: Pending Human Approvals */}
-          <div className="tactile-card rounded-xl p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
-            <div className="flex items-center justify-between text-slate-400">
-              <div className="flex items-center gap-2">
-                <span className="led-indicator led-amber" />
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Pending Approvals
-                </span>
-              </div>
-              <Clock className="w-4 h-4 text-[#E5A93C]" />
+          <div className="bg-[#141414] border border-[#303030] rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between text-[#888888]">
+              <span className="text-xs uppercase tracking-wider text-[#858585] font-medium">
+                Pending Approvals
+              </span>
+              <Clock className="w-4 h-4 text-amber-400" />
             </div>
 
             <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-[#F3BA54] tracking-tight">
+              <span className="text-3xl font-bold text-amber-400 tracking-tight">
                 3 queued
               </span>
-              <span className="text-[11px] font-mono text-rose-400 font-semibold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/25">
+              <span className="text-xs text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/25">
                 1 critical
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#222222] pt-2.5 flex items-center justify-between">
-              <span>AVG TURNAROUND</span>
-              <span className="text-slate-200 font-semibold tabular-nums">1.2 HRS</span>
+            <div className="text-xs text-[#858585] border-t border-[#262626] pt-2.5 flex items-center justify-between">
+              <span>Avg Turnaround</span>
+              <span className="text-[#D4D4D4] font-medium">1.2 hrs</span>
             </div>
           </div>
 
           {/* Card 4: Impending Claims Expirations */}
-          <div className="tactile-card rounded-xl p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
-            <div className="flex items-center justify-between text-slate-400">
-              <div className="flex items-center gap-2">
-                <span className="led-indicator led-gold" />
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Claims Expirations
-                </span>
-              </div>
-              <AlertTriangle className="w-4 h-4 text-[#E5A93C]" />
+          <div className="bg-[#141414] border border-[#303030] rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between text-[#888888]">
+              <span className="text-xs uppercase tracking-wider text-[#858585] font-medium">
+                Claims Expirations
+              </span>
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
             </div>
 
             <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-white tracking-tight">
+              <span className="text-3xl font-bold text-white tracking-tight">
                 2 claims
               </span>
-              <span className="text-xs font-mono font-medium text-amber-400 flex items-center gap-0.5">
+              <span className="text-xs font-medium text-amber-400 flex items-center gap-0.5">
                 &lt;30 days
               </span>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 border-t border-[#222222] pt-2.5 flex items-center justify-between">
-              <span>CASCADE RISK</span>
-              <span className="text-amber-400 font-semibold tracking-wide">QUARANTINE READY</span>
+            <div className="text-xs text-[#858585] border-t border-[#262626] pt-2.5 flex items-center justify-between">
+              <span>Cascade Risk</span>
+              <span className="text-amber-400 font-medium">Quarantine Ready</span>
             </div>
           </div>
         </div>
@@ -560,41 +548,40 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (8 cols): Filterable Recent Submissions Table */}
           <div className="lg:col-span-8 space-y-3">
-            <div className="tactile-card rounded-xl overflow-hidden border-[#282828] bg-[#0E0E0E]">
+            <div className="bg-[#141414] border border-[#303030] rounded-xl overflow-hidden shadow-sm">
               {/* Header and Filter Toolbar */}
-              <div className="p-4 border-b border-[#222222] bg-[#141414] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="led-indicator led-turquoise" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-200">
+              <div className="p-4 sm:p-5 border-b border-[#262626] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-white">
                     Recent Submissions
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400 bg-[#0E0E0E] px-2 py-0.5 rounded border border-[#282828]">
-                    {filteredSubmissions.length} OF {submissions.length} ROWS
+                  <span className="text-xs text-[#888888] bg-[#1E1E1E] px-2.5 py-0.5 rounded-full border border-[#2E2E2E]">
+                    {filteredSubmissions.length} of {submissions.length} items
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5">
-                  {/* Search Bar triggering CommandK or filtering rows */}
+                  {/* Search Bar */}
                   <div className="relative flex items-center">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-500 pointer-events-none" />
+                    <Search className="w-4 h-4 absolute left-3 text-[#737373] pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Filter submissions..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-[#080808] border border-[#282828] focus:border-white focus:outline-none rounded-md pl-8 pr-12 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 w-44 sm:w-52 font-mono transition-colors"
+                      className="bg-[#0A0A0A] border border-[#2E2E2E] focus:border-white focus:outline-none rounded-lg pl-9 pr-10 py-1.5 text-xs text-white placeholder:text-[#666666] w-48 sm:w-56 transition-colors"
                     />
                     <button
                       onClick={openCommandK}
-                      title="Trigger Global Command Bar (⌘K)"
-                      className="absolute right-1 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 bg-[#161616] hover:text-white rounded border border-[#282828] cursor-pointer"
+                      title="Trigger Global Command Bar (Ctrl+K)"
+                      className="absolute right-1.5 px-1.5 py-0.5 text-xs text-[#888888] bg-[#161616] hover:text-white rounded border border-[#2E2E2E] cursor-pointer"
                     >
                       ⌘K
                     </button>
                   </div>
 
-                  {/* Filter Tabs matching SECTION_INVENTORY.md: All, Needs Review, Approved, Flagged */}
-                  <div className="flex items-center bg-[#080808] border border-[#282828] rounded-lg p-1 text-[11px] font-medium">
+                  {/* Filter Tabs */}
+                  <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs">
                     {[
                       { id: "all", label: "All" },
                       { id: "needs_review", label: "Needs Review" },
@@ -604,10 +591,10 @@ export default function DashboardPage() {
                       <button
                         key={tab.id}
                         onClick={() => setFilterStatus(tab.id)}
-                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer font-sans ${
+                        className={`px-3 py-1 rounded-md transition-colors cursor-pointer font-medium ${
                           filterStatus === tab.id
-                            ? "bg-[#222222] text-white font-semibold shadow-xs border border-[#333333]"
-                            : "text-slate-400 hover:text-slate-200"
+                            ? "bg-[#222222] text-white shadow-xs"
+                            : "text-[#888888] hover:text-white"
                         }`}
                       >
                         {tab.label}
@@ -617,22 +604,22 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Data Table with Swiss Density and Status LEDs */}
+              {/* Data Table with Clean 14px Typography */}
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#080808] border-b border-[#222222] text-[11px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#0D0D0D] border-b border-[#262626] text-xs font-medium uppercase tracking-wider text-[#888888]">
                     <tr>
-                      <th className="px-4 py-3">Title</th>
-                      <th className="px-3 py-3">Channel</th>
-                      <th className="px-3 py-3">Brand</th>
-                      <th className="px-3 py-3">Issues Found</th>
-                      <th className="px-3 py-3 text-center">Score</th>
-                      <th className="px-3 py-3">Status</th>
-                      <th className="px-3 py-3">Timestamp</th>
-                      <th className="px-4 py-3 text-right">Action Link</th>
+                      <th className="px-5 py-3.5">Title</th>
+                      <th className="px-3.5 py-3.5">Channel</th>
+                      <th className="px-3.5 py-3.5">Brand</th>
+                      <th className="px-3.5 py-3.5">Issues Found</th>
+                      <th className="px-3.5 py-3.5 text-center">Score</th>
+                      <th className="px-3.5 py-3.5">Status</th>
+                      <th className="px-3.5 py-3.5">Timestamp</th>
+                      <th className="px-5 py-3.5 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1C1C1C]">
+                  <tbody className="divide-y divide-[#222222]">
                     {filteredSubmissions.length > 0 ? (
                       filteredSubmissions.map((sub) => {
                         const isApproved = sub.status === "approved";
@@ -641,48 +628,48 @@ export default function DashboardPage() {
                         return (
                           <tr
                             key={sub.id}
-                            className="hover:bg-[#141414] transition-colors group"
+                            className="hover:bg-[#181818] transition-colors"
                           >
-                            {/* Title with LED Status Indicator */}
-                            <td className="px-4 py-3.5 font-medium text-slate-200">
+                            {/* Title with Clean Status Indicator */}
+                            <td className="px-5 py-4 font-medium text-white">
                               <Link
                                 href={`/submissions/${sub.id}`}
-                                className="hover:text-[#00F2FE] transition-colors flex items-center gap-2 max-w-[200px] truncate"
+                                className="hover:text-neutral-300 transition-colors flex items-center gap-2.5 max-w-[220px] truncate"
                               >
                                 <span
-                                  className={`led-indicator ${
+                                  className={`w-2 h-2 rounded-full shrink-0 ${
                                     isApproved
-                                      ? "led-emerald"
+                                      ? "bg-emerald-400"
                                       : isPending
-                                      ? "led-turquoise"
-                                      : "led-amber"
+                                      ? "bg-amber-400"
+                                      : "bg-rose-400"
                                   }`}
                                 />
-                                <span className="truncate font-sans">{sub.title}</span>
+                                <span className="truncate">{sub.title}</span>
                               </Link>
                             </td>
 
                             {/* Channel */}
-                            <td className="px-3 py-3.5 text-slate-400 font-mono text-[11px]">
-                              <span className="px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-slate-300">
+                            <td className="px-3.5 py-4 text-xs text-[#A0A0A0]">
+                              <span className="px-2 py-0.5 rounded bg-[#191919] border border-[#2E2E2E] text-[#D4D4D4]">
                                 {sub.channel}
                               </span>
                             </td>
 
                             {/* Brand */}
-                            <td className="px-3 py-3.5 text-slate-300 text-xs font-mono">
+                            <td className="px-3.5 py-4 text-xs text-[#D4D4D4]">
                               {sub.brand}
                             </td>
 
                             {/* Issues Found */}
-                            <td className="px-3 py-3.5">
+                            <td className="px-3.5 py-4">
                               {sub.issuesCount > 0 ? (
-                                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/25">
+                                <span className="inline-flex items-center gap-1.5 text-xs text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/25 font-medium">
                                   <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
                                   {sub.issuesCount} Flags
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
+                                <span className="inline-flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25 font-medium">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                                   0 Flags
                                 </span>
@@ -690,9 +677,9 @@ export default function DashboardPage() {
                             </td>
 
                             {/* Score */}
-                            <td className="px-3 py-3.5 text-center">
+                            <td className="px-3.5 py-4 text-center">
                               <span
-                                className={`font-mono font-semibold tabular-nums text-xs px-2 py-0.5 rounded ${
+                                className={`font-semibold text-xs px-2 py-0.5 rounded ${
                                   sub.score >= 80
                                     ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/25"
                                     : sub.score >= 50
@@ -705,11 +692,11 @@ export default function DashboardPage() {
                             </td>
 
                             {/* Status */}
-                            <td className="px-3 py-3.5">
+                            <td className="px-3.5 py-4">
                               <Badge
                                 variant={
                                   sub.status === "approved"
-                                    ? "verified"
+                                    ? "approved"
                                     : sub.status === "pending"
                                     ? "pending"
                                     : "warning"
@@ -725,12 +712,12 @@ export default function DashboardPage() {
                             </td>
 
                             {/* Timestamp */}
-                            <td className="px-3 py-3.5 text-slate-400 font-mono text-[11px]">
+                            <td className="px-3.5 py-4 text-xs text-[#888888]">
                               {sub.submittedAt}
                             </td>
 
                             {/* Action Link to /submissions/[id] */}
-                            <td className="px-4 py-3.5 text-right">
+                            <td className="px-5 py-4 text-right">
                               <Link href={`/submissions/${sub.id}`}>
                                 <Button
                                   size="xs"
@@ -747,9 +734,9 @@ export default function DashboardPage() {
                       <tr>
                         <td
                           colSpan={8}
-                          className="px-4 py-10 text-center text-slate-500 font-mono text-xs"
+                          className="px-4 py-12 text-center text-[#888888] text-sm"
                         >
-                          NO SUBMISSIONS FOUND MATCHING ACTIVE FILTER
+                          No submissions found matching active filter.
                         </td>
                       </tr>
                     )}
@@ -758,14 +745,14 @@ export default function DashboardPage() {
               </div>
 
               {/* Table Footer */}
-              <div className="px-4 py-3 bg-[#080808] border-t border-[#222222] flex items-center justify-between text-[11px] font-mono text-slate-500">
-                <span>SHOWING {filteredSubmissions.length} OF {submissions.length} SUBMISSIONS</span>
+              <div className="px-5 py-3.5 bg-[#0D0D0D] border-t border-[#262626] flex items-center justify-between text-xs text-[#888888]">
+                <span>Showing {filteredSubmissions.length} of {submissions.length} submissions</span>
                 <Link
                   href="/submissions"
-                  className="text-[#00F2FE] hover:underline font-sans flex items-center gap-1"
+                  className="text-white hover:underline font-medium flex items-center gap-1.5"
                 >
                   <span>Open Full Submissions Desk</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>
@@ -773,46 +760,46 @@ export default function DashboardPage() {
 
           {/* Right Column (4 cols): High-Risk Issues Panel & Watchlist */}
           <div className="lg:col-span-4 space-y-4">
-            {/* High-Risk Issues Panel with Statutory Citation and Frequency Counter */}
-            <div className="tactile-card rounded-xl overflow-hidden border-[#282828] bg-[#0E0E0E]">
-              <div className="px-4 py-3.5 border-b border-[#222222] bg-[#141414] flex items-center justify-between">
+            {/* High-Risk Issues Panel */}
+            <div className="bg-[#141414] border border-[#303030] rounded-xl overflow-hidden shadow-sm">
+              <div className="px-5 py-4 border-b border-[#262626] flex items-center justify-between">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
-                    High-Risk Issues &amp; Watchlist
+                  <h3 className="text-sm font-semibold text-white">
+                    High-Risk Issues Watchlist
                   </h3>
-                  <p className="text-[10px] font-mono text-slate-500 mt-0.5">
-                    FREQUENCY DISTRIBUTION (STATUTORY FLAGS)
+                  <p className="text-xs text-[#888888] mt-0.5">
+                    Statutory frequency distribution
                   </p>
                 </div>
-                <span className="font-mono text-xs tabular-nums text-[#E5A93C] bg-[#E5A93C]/10 border border-[#E5A93C]/25 px-2 py-0.5 rounded font-semibold">
-                  28 TOTAL
+                <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-md font-semibold">
+                  28 Total
                 </span>
               </div>
 
-              <div className="p-4 space-y-4">
+              <div className="p-5 space-y-4">
                 {topIssues.map((issue) => (
                   <div key={issue.title} className="space-y-1.5">
                     <div className="flex items-start justify-between text-xs gap-2">
                       <div className="space-y-0.5">
-                        <div className="text-slate-200 font-medium text-xs leading-tight">
+                        <div className="text-white font-medium text-xs leading-snug">
                           {issue.title}
                         </div>
-                        <div className="text-[10px] font-mono text-slate-500">
+                        <div className="text-xs text-[#888888]">
                           {issue.code} · {issue.category}
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="font-mono text-xs font-bold tabular-nums text-white">
+                        <span className="text-xs font-semibold text-white">
                           {issue.count}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500 ml-1">
+                        <span className="text-xs text-[#888888] ml-1">
                           ({issue.percentage}%)
                         </span>
                       </div>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full h-1.5 bg-[#080808] rounded-full overflow-hidden border border-[#222222]">
+                    <div className="w-full h-1.5 bg-[#0A0A0A] rounded-full overflow-hidden border border-[#262626]">
                       <div
                         className={`h-full ${issue.color} rounded-full`}
                         style={{ width: `${issue.percentage}%` }}
@@ -821,12 +808,12 @@ export default function DashboardPage() {
                   </div>
                 ))}
 
-                <div className="pt-3 border-t border-[#222222]">
+                <div className="pt-3 border-t border-[#262626]">
                   <Link
                     href="/analytics"
-                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] border border-[#282828] text-xs font-medium text-slate-200 hover:text-white transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-[#191919] hover:bg-[#222222] border border-[#303030] text-xs font-medium text-white transition-colors"
                   >
-                    <Activity className="w-3.5 h-3.5 text-[#00F2FE]" />
+                    <Activity className="w-3.5 h-3.5 text-white" />
                     <span>Open Compliance Analytics</span>
                   </Link>
                 </div>
@@ -834,29 +821,29 @@ export default function DashboardPage() {
             </div>
 
             {/* Claims Health Ledger Card */}
-            <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3 border-[#282828] bg-[#0E0E0E]">
+            <div className="bg-[#141414] border border-[#303030] rounded-xl p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <span className="text-sm font-semibold text-white flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   Claims Truth Ledger
                 </span>
-                <Badge variant="verified" size="xs">
+                <Badge variant="approved" size="xs">
                   32 ACTIVE
                 </Badge>
               </div>
 
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-[14px] text-[#A0A0A0] leading-relaxed">
                 All 32 claims indexed for {selectedBrand} are mapped to verified clinical or USPTO assay records. 2 claims require renewal within 30 days.
               </p>
 
-              <div className="pt-2 border-t border-[#222222] flex items-center justify-between text-[11px] font-mono">
-                <span className="text-[#E5A93C] font-semibold flex items-center gap-1.5">
-                  <span className="led-indicator led-gold" />
-                  2 EXPIRING SOON
+              <div className="pt-3 border-t border-[#262626] flex items-center justify-between text-xs">
+                <span className="text-amber-400 font-medium flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  2 expiring soon
                 </span>
                 <Link
                   href="/knowledge-base/claims"
-                  className="text-[#00F2FE] hover:underline font-sans flex items-center gap-1"
+                  className="text-white hover:underline font-medium flex items-center gap-1"
                 >
                   Manage Truth Library &rarr;
                 </Link>

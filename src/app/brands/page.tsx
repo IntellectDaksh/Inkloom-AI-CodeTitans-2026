@@ -225,17 +225,17 @@ export default function BrandsPage() {
         {/* Create Brand Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-cyan-500/40">
-              <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3">
+            <div className="tactile-card rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-[#303030] bg-[#141414]">
+              <div className="flex items-center justify-between border-b border-[#303030] pb-3">
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-[#00F2FE]" />
-                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100">
+                  <Building2 className="w-4 h-4 text-white" />
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                     Deploy Brand Workspace
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="text-slate-400 hover:text-white cursor-pointer"
+                  className="text-[#858585] hover:text-white cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -243,41 +243,41 @@ export default function BrandsPage() {
 
               <form onSubmit={handleCreateBrand} className="space-y-3.5 text-xs font-mono">
                 <div>
-                  <label className="block text-slate-400 mb-1">BRAND NAME *</label>
+                  <label className="block text-[#858585] mb-1">BRAND NAME *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Apex Performance Labs"
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-2.5 text-slate-200 font-sans"
+                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-sans"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">INDUSTRY / SECTOR</label>
+                  <label className="block text-[#858585] mb-1">INDUSTRY / SECTOR</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Clinical Nutrition & Dietary Supplements"
                     value={categoryInput}
                     onChange={(e) => setCategoryInput(e.target.value)}
-                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-2.5 text-slate-200 font-sans"
+                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-sans"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">BRAND DESCRIPTION</label>
+                  <label className="block text-[#858585] mb-1">BRAND DESCRIPTION</label>
                   <textarea
                     rows={3}
                     placeholder="Mission, product line, and regulatory requirements..."
                     value={descriptionInput}
                     onChange={(e) => setDescriptionInput(e.target.value)}
-                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-[#00F2FE] focus:outline-none rounded-lg p-2.5 text-slate-200 font-sans resize-none"
+                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] font-sans resize-none"
                   />
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#1E2B4A]">
+                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
                   <Button
                     type="button"
                     size="sm"

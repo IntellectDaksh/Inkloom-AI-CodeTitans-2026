@@ -23,6 +23,8 @@ import {
   Cpu,
   ArrowUpRight,
   Zap,
+  Menu,
+  X,
 } from "lucide-react";
 
 // Interactive Presets for the Live Audit Workbench
@@ -251,6 +253,7 @@ export default function LandingPage() {
   const [isDiffApplied, setIsDiffApplied] = useState<boolean>(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [copiedProvenance, setCopiedProvenance] = useState<boolean>(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
 
   const currentPreset = PRESETS.find((p) => p.id === selectedPresetId) || PRESETS[0];
   const activeScore = isDiffApplied ? currentPreset.clearedScore : currentPreset.initialScore;
@@ -352,7 +355,7 @@ export default function LandingPage() {
           </div>
 
           {/* Action Controls & Active Status Indicator */}
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-[#A0A0A0]">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Zero-Tolerance Policy Active</span>
@@ -360,19 +363,93 @@ export default function LandingPage() {
 
             <Link
               href="/auth/login"
-              className="text-sm font-medium text-[#A0A0A0] hover:text-white transition-colors px-3 py-1.5"
+              className="hidden sm:inline-flex text-sm font-medium text-[#A0A0A0] hover:text-white transition-colors px-3 py-1.5 min-h-[44px] items-center"
             >
               Sign In
             </Link>
             <Link
               href="/dashboard"
-              className="h-10 px-4 rounded-lg bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all active:scale-95 flex items-center gap-2"
+              className="h-10 px-3.5 sm:px-4 rounded-lg bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 sm:gap-2 min-h-[44px]"
             >
-              <span>Launch App</span>
+              <span className="hidden xs:inline sm:inline">Launch App</span>
+              <span className="xs:hidden sm:hidden">Launch</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
+
+            {/* Mobile Hamburger Toggle Button (min 44px touch target) */}
+            <button
+              type="button"
+              onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+              className="lg:hidden p-2.5 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] border border-white/[0.1] text-white cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileNavOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Dropdown Menu */}
+        {isMobileNavOpen && (
+          <div className="lg:hidden bg-[#0C0C0C] border-b border-white/[0.1] px-5 py-5 space-y-4 animate-in fade-in duration-150">
+            <div className="flex flex-col divide-y divide-white/[0.06]">
+              <button
+                onClick={() => {
+                  scrollToWorkbench();
+                  setIsMobileNavOpen(false);
+                }}
+                className="text-left text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
+              >
+                Workbench
+              </button>
+              <a
+                href="#architecture"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
+              >
+                Architecture
+              </a>
+              <a
+                href="#sectors"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
+              >
+                Sectors
+              </a>
+              <Link
+                href="/evaluations"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
+              >
+                Evaluations &amp; Benchmarks
+              </Link>
+              <Link
+                href="/knowledge-base/claims"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
+              >
+                Claims Library
+              </Link>
+            </div>
+
+            <div className="pt-3 flex flex-col gap-2.5">
+              <Link
+                href="/auth/login"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="w-full h-11 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] text-white border border-white/[0.1] text-sm font-semibold flex items-center justify-center transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/dashboard"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="w-full h-11 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+              >
+                <span>Launch App</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* 2. HERO SECTION — Dominant Typography & Clean Clearance Preview */}
@@ -399,11 +476,11 @@ export default function LandingPage() {
                 and legal registers with token-level diffing.
               </p>
 
-              {/* Two Distinct 44px Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
+              {/* Responsive 44px Buttons: Full-width on mobile, inline on tablet/desktop */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 pt-2">
                 <button
                   onClick={scrollToWorkbench}
-                  className="h-11 px-6 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all active:scale-95 flex items-center gap-2.5 cursor-pointer shadow-lg shadow-white/5"
+                  className="h-11 px-6 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer shadow-lg shadow-white/5 w-full sm:w-auto min-h-[44px]"
                 >
                   <FileSearch className="w-4 h-4 text-black" />
                   <span>Launch Live Audit Sandbox</span>
@@ -411,7 +488,7 @@ export default function LandingPage() {
 
                 <Link
                   href="/dashboard"
-                  className="h-11 px-6 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] text-white border border-white/[0.12] hover:border-white/30 text-sm font-semibold transition-all active:scale-95 flex items-center gap-2"
+                  className="h-11 px-6 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] text-white border border-white/[0.12] hover:border-white/30 text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 w-full sm:w-auto min-h-[44px]"
                 >
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   <span>Enter App</span>
@@ -419,7 +496,7 @@ export default function LandingPage() {
 
                 <Link
                   href="/evaluations"
-                  className="text-sm font-medium text-[#A0A0A0] hover:text-white transition-colors flex items-center gap-1.5 px-3 py-2"
+                  className="text-sm font-medium text-[#A0A0A0] hover:text-white transition-colors flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 min-h-[44px]"
                 >
                   <span>Explore Benchmarks</span>
                   <ArrowUpRight className="w-4 h-4" />
@@ -591,7 +668,7 @@ export default function LandingPage() {
                 />
 
                 {/* Action Bar with Prominent 44px Button */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
                   <div className="flex items-center gap-3 text-xs font-mono text-[#888]">
                     <span>{currentText.length} CHARACTERS</span>
                     <span>•</span>
@@ -601,7 +678,7 @@ export default function LandingPage() {
                   <button
                     onClick={triggerAudit}
                     disabled={isAuditing}
-                    className="h-11 px-6 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all active:scale-95 flex items-center gap-2.5 cursor-pointer shadow-md disabled:opacity-75"
+                    className="h-11 px-6 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer shadow-md disabled:opacity-75 w-full sm:w-auto min-h-[44px]"
                   >
                     {isAuditing ? (
                       <>
@@ -670,7 +747,7 @@ export default function LandingPage() {
                     {!isDiffApplied ? (
                       <button
                         onClick={handleApplyDiff}
-                        className="h-11 px-5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs sm:text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm"
+                        className="h-11 px-5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs sm:text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto shrink-0 shadow-sm min-h-[44px]"
                       >
                         <Check className="w-4 h-4 text-black" />
                         <span>Apply Surgical Fix (Score: {currentPreset.clearedScore}/100)</span>
@@ -1002,7 +1079,7 @@ export default function LandingPage() {
           </div>
 
           {/* Minimal-Border Editorial Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {[
               {
                 caseNum: "CASE 01",
@@ -1051,13 +1128,13 @@ export default function LandingPage() {
             ].map((c) => (
               <div
                 key={c.caseNum}
-                className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-8 space-y-6 shadow-xl flex flex-col justify-between transition-all"
+                className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-5 sm:p-7 lg:p-8 space-y-6 shadow-xl flex flex-col justify-between transition-all"
               >
                 <div className="space-y-4">
                   {/* Subtle Status Badges */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-mono font-semibold text-[#888]">{c.caseNum}</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 font-medium">
                         {c.costBadge}
                       </span>
@@ -1083,7 +1160,7 @@ export default function LandingPage() {
                   <div className="text-xs text-[#A0A0A0]">
                     <span className="font-semibold text-white">Governing Rule:</span> {c.rule}
                   </div>
-                  <div className="p-3.5 rounded-xl bg-[#0A0A0A] border border-white/[0.06] text-xs text-emerald-300 leading-relaxed">
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-[#0A0A0A] border border-white/[0.06] text-xs sm:text-sm text-emerald-300 leading-relaxed">
                     <span className="font-semibold text-white">Inkloom Remedy: </span>
                     {c.howInkloomPrevents}
                   </div>
