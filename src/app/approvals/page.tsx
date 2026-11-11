@@ -236,7 +236,7 @@ export default function ApprovalsPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                icon={<Lock className="w-3.5 h-3.5 text-[#00F2FE]" />}
+                icon={<Lock className="w-3.5 h-3.5 text-white" />}
               >
                 Veeva / SAP Sync
               </Button>

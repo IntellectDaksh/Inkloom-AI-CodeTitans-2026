@@ -889,13 +889,13 @@ export default function LandingPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-[10px] font-mono text-[#777] truncate max-w-[220px]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
+                      <span className="text-[11px] font-mono text-[#777] break-all sm:truncate max-w-full sm:max-w-[220px]">
                         SHA-256: {currentPreset.provenance.sha256}
                       </span>
                       <button
                         onClick={handleCopyProvenance}
-                        className="text-xs text-white hover:text-emerald-400 flex items-center gap-1.5 cursor-pointer transition-colors"
+                        className="text-xs text-white hover:text-emerald-400 flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 min-h-[36px]"
                       >
                         {copiedProvenance ? (
                           <>

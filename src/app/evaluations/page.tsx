@@ -178,12 +178,13 @@ export default function EvaluationsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto shrink-0">
             <Button
               variant="secondary"
               size="sm"
               onClick={handleExportJson}
               icon={<Download className="w-4 h-4 text-[#B5B5B5]" />}
+              className="min-h-[44px] w-full sm:w-auto justify-center"
             >
               Export Benchmark Data
             </Button>
@@ -193,55 +194,56 @@ export default function EvaluationsPage() {
               onClick={() => runBenchmarkSuite()}
               disabled={isRunning}
               icon={<Play className="w-4 h-4 fill-current" />}
+              className="min-h-[44px] w-full sm:w-auto justify-center"
             >
               {isRunning ? "Running Suite..." : "Execute All Benchmarks"}
             </Button>
           </div>
         </div>
 
-        {/* Top Telemetry Gauges */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="rounded-xl p-5 space-y-1 bg-[#141414] border border-[#303030]">
+        {/* Top Telemetry Gauges (Responsive 2-col on mobile, 3-col on tablet, 5-col on desktop) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030]">
             <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
               Precision
             </div>
-            <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
+            <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
               97.9%
             </div>
             <div className="text-xs text-[#10B981]">2.1% False Alarm Rate</div>
           </div>
 
-          <div className="rounded-xl p-5 space-y-1 bg-[#141414] border border-[#303030]">
+          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030]">
             <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
               Recall
             </div>
-            <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
+            <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
               100.0%
             </div>
             <div className="text-xs text-[#10B981]">0 Missed Violations</div>
           </div>
 
-          <div className="rounded-xl p-5 space-y-1 bg-[#141414] border border-[#303030]">
+          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030]">
             <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
               Missed Issues
             </div>
-            <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
+            <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
               0.0%
             </div>
             <div className="text-xs text-[#B5B5B5]">Zero Critical Leakage</div>
           </div>
 
-          <div className="rounded-xl p-5 space-y-1 bg-[#141414] border border-[#303030]">
+          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030]">
             <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
               Latency (P95)
             </div>
-            <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
+            <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
               420ms
             </div>
             <div className="text-xs text-[#B5B5B5]">Deterministic Preflight</div>
           </div>
 
-          <div className="rounded-xl p-5 space-y-1 bg-[#141414] border border-[#303030] col-span-2 md:col-span-1">
+          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030] col-span-2 sm:col-span-1">
             <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
               Test Status
             </div>
@@ -435,7 +437,7 @@ export default function EvaluationsPage() {
                   <span className="text-[#10B981] font-bold">F1 SCORE: 1.000</span>
                 </div>
 
-                <div className="grid grid-cols-4 gap-3 text-center">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                   <div className="p-3.5 rounded-lg bg-[#191919] border border-[#303030]">
                     <div className="text-xs text-[#858585] uppercase tracking-wider">True Positive</div>
                     <div className="text-xl font-bold text-[#10B981] mt-1 tabular-nums">47</div>
@@ -473,8 +475,13 @@ export default function EvaluationsPage() {
             </p>
           </div>
 
-          <Link href="/submissions/new" className="shrink-0">
-            <Button variant="primary" size="sm" icon={<ArrowRight className="w-4 h-4 text-black" />}>
+          <Link href="/submissions/new" className="w-full sm:w-auto shrink-0">
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<ArrowRight className="w-4 h-4 text-black" />}
+              className="w-full sm:w-auto min-h-[44px] justify-center"
+            >
               Submit New Content
             </Button>
           </Link>

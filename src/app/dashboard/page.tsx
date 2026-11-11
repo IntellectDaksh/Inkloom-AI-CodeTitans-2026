@@ -160,7 +160,7 @@ export default function DashboardPage() {
       percentage: 18,
       trend: "0 unchanged",
       trendUp: false,
-      color: "bg-[#00F2FE]",
+      color: "bg-white",
     },
     {
       title: "Inconsistent Trademark / Terminology",
@@ -427,8 +427,8 @@ export default function DashboardPage() {
                 </span>
                 <span className="led-indicator led-amber" />
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Claim <span className="font-mono text-cyan-300 font-semibold">CLM-APX-002</span> (&ldquo;Informed-Sport Certified&rdquo;) expires in <span className="text-amber-400 font-bold font-mono">17 days</span>. 2 active drafts depend on this substantiation.
+              <p className="text-xs text-[#B5B5B5] mt-0.5">
+                Claim <span className="font-mono text-white font-semibold">CLM-APX-002</span> (&ldquo;Informed-Sport Certified&rdquo;) expires in <span className="text-[#F59E0B] font-bold font-mono">17 days</span>. 2 active drafts depend on this substantiation.
               </p>
             </div>
           </div>
