@@ -17,6 +17,8 @@ import {
   Check,
   Plus,
   Info,
+  Scale,
+  Users,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -95,11 +97,25 @@ export function Sidebar({
       shortcut: "5",
     },
     {
+      name: "Evaluations",
+      href: "/evaluations",
+      icon: Scale,
+      active: pathname.startsWith("/evaluations"),
+      shortcut: "6",
+    },
+    {
+      name: "Team & RBAC",
+      href: "/team",
+      icon: Users,
+      active: pathname.startsWith("/team"),
+      shortcut: "7",
+    },
+    {
       name: "Brand Workspaces",
       href: "/brands",
       icon: ShieldCheck,
       active: pathname.startsWith("/brands"),
-      shortcut: "6",
+      shortcut: "8",
     },
   ];
 

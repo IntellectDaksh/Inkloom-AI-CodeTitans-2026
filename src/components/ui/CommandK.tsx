@@ -17,6 +17,8 @@ import {
   ArrowRight,
   X,
   Info,
+  Scale,
+  Users,
 } from "lucide-react";
 
 export interface CommandItem {
@@ -102,6 +104,24 @@ const DEFAULT_COMMANDS: CommandItem[] = [
     description: "Issue breakdown, pass rates, and compliance trends",
     href: "/analytics",
     icon: BarChart3,
+  },
+  {
+    id: "nav-evaluations",
+    title: "Evaluation Benchmark Suite",
+    category: "Navigation",
+    description: "Empirical regulatory accuracy tests (FTC, Adidas, CNET cases)",
+    href: "/evaluations",
+    icon: Scale,
+    shortcut: "G E",
+  },
+  {
+    id: "nav-team",
+    title: "Team & Permissions (RBAC)",
+    category: "Navigation",
+    description: "Manage brand directors, reviewers, agency creators, and role permissions",
+    href: "/team",
+    icon: Users,
+    shortcut: "G T",
   },
   {
     id: "nav-settings",

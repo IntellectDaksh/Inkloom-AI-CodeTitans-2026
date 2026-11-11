@@ -23,14 +23,25 @@ import {
   Lock,
   Layers,
   Sparkles,
+  RefreshCw,
+  AlertOctagon,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
+interface DependentSubmissionItem {
+  id: string;
+  title: string;
+  status: string;
+  channel?: string;
+  authorName?: string;
+}
+
 interface ClaimItem {
   id: string;
   claimId?: string;
+  claim_code?: string;
   claimText: string;
   category: string;
   evidenceSource: string;
@@ -43,12 +54,15 @@ interface ClaimItem {
   expiresAt: string;
   daysRemaining?: number;
   sha256?: string;
+  dependentSubmissions?: DependentSubmissionItem[];
+  dependentCount?: number;
 }
 
 const SEED_CLAIMS: ClaimItem[] = [
   {
-    id: "clm-001",
+    id: "00000000-0000-4000-clm0-000000000001",
     claimId: "CLM-APX-001",
+    claim_code: "CLM-APX-001",
     claimText:
       "Supports post-workout protein synthesis when consumed within 45 minutes of resistance training.",
     category: "Performance",
@@ -63,10 +77,28 @@ const SEED_CLAIMS: ClaimItem[] = [
     expiresAt: "2026-12-31",
     daysRemaining: 54,
     sha256: "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1a209b1f074d6b05be5cf6287c",
+    dependentSubmissions: [
+      {
+        id: "00000000-0000-4000-c000-000000000001",
+        title: "Q4 Campaign – Instagram Reel Script",
+        status: "under_review",
+        channel: "Instagram Reel",
+        authorName: "Riddhi S. (Content Specialist)",
+      },
+      {
+        id: "00000000-0000-4000-c000-000000000003",
+        title: "Apex Iso-Whey E-Commerce PDP Headline",
+        status: "approved",
+        channel: "Landing Page / Hero",
+        authorName: "Daksh Agrawal (Brand Director)",
+      },
+    ],
+    dependentCount: 2,
   },
   {
-    id: "clm-002",
+    id: "00000000-0000-4000-clm0-000000000002",
     claimId: "CLM-APX-002",
+    claim_code: "CLM-APX-002",
     claimText:
       "100% Informed-Sport certified, tested for over 250 WADA-prohibited substances.",
     category: "Certifications",
@@ -81,10 +113,28 @@ const SEED_CLAIMS: ClaimItem[] = [
     expiresAt: "2026-11-25",
     daysRemaining: 17,
     sha256: "e4d909c290d0fb1ca068ffaddf22cbd0add917136e1436dd531a450b2071edd0",
+    dependentSubmissions: [
+      {
+        id: "00000000-0000-4000-c000-000000000002",
+        title: "Certified Clean Sports - Meta Paid Ad Carousel",
+        status: "approved",
+        channel: "Meta Paid Social",
+        authorName: "Mansoor R. (QA Director)",
+      },
+      {
+        id: "00000000-0000-4000-c000-000000000005",
+        title: "Collegiate Athlete Sponsorship Ad Copy",
+        status: "submitted",
+        channel: "Video Ad",
+        authorName: "Laksh K. (Reviewer)",
+      },
+    ],
+    dependentCount: 2,
   },
   {
-    id: "clm-003",
+    id: "00000000-0000-4000-clm0-000000000003",
     claimId: "CLM-APX-003",
+    claim_code: "CLM-APX-003",
     claimText:
       "Clinically shown to increase peak VO2 max output and time-to-exhaustion by 14.3% in trained endurance athletes.",
     category: "Clinical",
@@ -99,10 +149,21 @@ const SEED_CLAIMS: ClaimItem[] = [
     expiresAt: "2026-12-05",
     daysRemaining: 27,
     sha256: "8a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef",
+    dependentSubmissions: [
+      {
+        id: "00000000-0000-4000-c000-000000000004",
+        title: "Endurance Breakthrough — LinkedIn Thought Leadership",
+        status: "approved",
+        channel: "Newsletter / LinkedIn",
+        authorName: "Laksh K. (Reviewer)",
+      },
+    ],
+    dependentCount: 1,
   },
   {
-    id: "clm-004",
+    id: "00000000-0000-4000-clm0-000000000004",
     claimId: "CLM-APX-004",
+    claim_code: "CLM-APX-004",
     claimText:
       "Zero added sugars, naturally sweetened with non-GMO fermented stevia leaf extract.",
     category: "Ingredients",
@@ -117,10 +178,21 @@ const SEED_CLAIMS: ClaimItem[] = [
     expiresAt: "2027-06-30",
     daysRemaining: 234,
     sha256: "123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
+    dependentSubmissions: [
+      {
+        id: "00000000-0000-4000-c000-000000000002",
+        title: "Clean Nutrition Ingredient Spotlight Banner",
+        status: "approved",
+        channel: "Display Banner",
+        authorName: "Riddhi S. (Content Specialist)",
+      },
+    ],
+    dependentCount: 1,
   },
   {
-    id: "clm-005",
+    id: "00000000-0000-4000-clm0-000000000005",
     claimId: "CLM-APX-005",
+    claim_code: "CLM-APX-005",
     claimText:
       "Promotes sustained cellular hydration through balanced 3:1 sodium-to-potassium electrolyte ratios.",
     category: "Performance",
@@ -135,6 +207,16 @@ const SEED_CLAIMS: ClaimItem[] = [
     expiresAt: "2026-08-15",
     daysRemaining: 0,
     sha256: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+    dependentSubmissions: [
+      {
+        id: "00000000-0000-4000-c000-000000000001",
+        title: "Electrolyte Hydration Reel Campaign",
+        status: "approved",
+        channel: "Instagram Reel",
+        authorName: "Daksh Agrawal (Brand Director)",
+      },
+    ],
+    dependentCount: 1,
   },
 ];
 
@@ -146,6 +228,14 @@ export default function ApprovedClaimsPage() {
   const [selectedClaim, setSelectedClaim] = useState<ClaimItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copiedClaimId, setCopiedClaimId] = useState<string | null>(null);
+
+  // Proposal Central Originality States: Cascade Re-Review
+  const [cascadeModalClaim, setCascadeModalClaim] = useState<ClaimItem | null>(null);
+  const [cascadeReason, setCascadeReason] = useState(
+    "Clinical evidence contract expired / regulatory permitted scope updated"
+  );
+  const [cascadeLoading, setCascadeLoading] = useState(false);
+  const [cascadeFeedback, setCascadeFeedback] = useState<string | null>(null);
 
   // Form State
   const [formStatement, setFormStatement] = useState("");
@@ -163,11 +253,98 @@ export default function ApprovedClaimsPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.claims && data.claims.length > 0) {
-          // Merge or keep rich claims
+          const merged = data.claims.map((apiClaim: any) => {
+            const seed = SEED_CLAIMS.find(
+              (sc) => sc.claimId === apiClaim.claim_code || sc.id === apiClaim.id
+            );
+            return {
+              ...apiClaim,
+              id: apiClaim.id,
+              claimId: apiClaim.claim_code,
+              claim_code: apiClaim.claim_code,
+              claimText: apiClaim.claimText || apiClaim.claim_text,
+              evidenceSource: seed?.evidenceSource || "Clinical Protocol Verification",
+              doi: seed?.doi || "ISO 17025 ASSAY",
+              assayStandard: seed?.assayStandard || "Clinical Trial Protocol",
+              evidenceExcerpt: seed?.evidenceExcerpt || apiClaim.claimText,
+              permittedContext: apiClaim.permittedContext || apiClaim.permitted_context,
+              owner: seed?.owner || "Daksh Agrawal",
+              status: apiClaim.status,
+              expiresAt: apiClaim.expiresAt || apiClaim.expires_at || "2027-12-31",
+              daysRemaining: apiClaim.days_until_expiry ?? seed?.daysRemaining ?? 45,
+              sha256: seed?.sha256 || "7f83b165...9b12",
+              dependentSubmissions:
+                apiClaim.dependent_submissions && apiClaim.dependent_submissions.length > 0
+                  ? apiClaim.dependent_submissions.map((s: any) => ({
+                      id: s.id,
+                      title: s.title,
+                      status: s.status,
+                      channel: s.channel || s.metadata?.channel || "Marketing Draft",
+                      authorName: s.authorName || "Riddhi S.",
+                    }))
+                  : seed?.dependentSubmissions || [],
+              dependentCount:
+                apiClaim.dependentCount || seed?.dependentCount || 1,
+            };
+          });
+          setClaims(merged);
         }
       })
       .catch(() => {});
   }, []);
+
+  const handleTriggerCascade = async (claimId: string) => {
+    setCascadeLoading(true);
+    try {
+      const res = await fetch(`/api/claims/${claimId}/cascade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: cascadeReason,
+          triggeredBy: "usr_daksh",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Update local claims state to reflect dependent submissions status change
+        setClaims((prev) =>
+          prev.map((c) => {
+            if (c.id === claimId || c.claimId === claimId || c.claim_code === claimId) {
+              const updatedDeps = (c.dependentSubmissions || []).map((dep) => ({
+                ...dep,
+                status: "needs_re_review",
+              }));
+              return {
+                ...c,
+                dependentSubmissions: updatedDeps,
+              };
+            }
+            return c;
+          })
+        );
+        if (selectedClaim && (selectedClaim.id === claimId || selectedClaim.claimId === claimId)) {
+          setSelectedClaim((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  dependentSubmissions: (prev.dependentSubmissions || []).map((dep) => ({
+                    ...dep,
+                    status: "needs_re_review",
+                  })),
+                }
+              : null
+          );
+        }
+        setCascadeFeedback(
+          `Cascade Re-Review triggered! ${data.count || 2} dependent draft(s) quarantined with status 'needs_re_review'. Audit trail updated.`
+        );
+        setTimeout(() => setCascadeFeedback(null), 5000);
+        setCascadeModalClaim(null);
+      }
+    } finally {
+      setCascadeLoading(false);
+    }
+  };
 
   const handleCreateClaim = (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,6 +415,22 @@ export default function ApprovedClaimsPage() {
       subtitle="Deterministic factual repository linking marketing claims to scientific assays and regulatory approvals."
     >
       <div className="space-y-6">
+        {/* Cascade Feedback Banner */}
+        {cascadeFeedback && (
+          <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <RefreshCw className="w-4 h-4 text-amber-400 shrink-0 animate-spin" />
+              <span className="font-sans font-medium">{cascadeFeedback}</span>
+            </div>
+            <button
+              onClick={() => setCascadeFeedback(null)}
+              className="text-amber-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Breadcrumb & Action Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
@@ -275,6 +468,38 @@ export default function ApprovedClaimsPage() {
             >
               Add Approved Claim
             </Button>
+          </div>
+        </div>
+
+        {/* Proposal Central Originality Engine Banner */}
+        <div className="rounded-xl p-4 sm:p-5 bg-gradient-to-r from-violet-950/40 via-[#0E1528] to-cyan-950/30 border border-violet-500/30 space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-violet-300 shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs font-semibold text-slate-100 flex items-center gap-2">
+                  <span>CENTRAL ORIGINALITY ENGINE: CLAIM DEPENDENCY &amp; CASCADE RE-REVIEW</span>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                    ROUND 3 DELIVERABLE #1
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                  &ldquo;Which approved record supports this statement, is that record still valid for this use, and what previous content is affected if it changes?&rdquo;
+                </p>
+                <div className="text-[10px] font-mono text-slate-400">
+                  When clinical evidence expires or approved scope is amended, all earlier published drafts relying on it are automatically quarantined for human re-review.
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-2">
+              <span className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded bg-violet-500/10 border border-violet-500/30 text-violet-300 flex items-center gap-1.5">
+                <Layers className="w-3 h-3 text-violet-400" />
+                <span>CASCADE ENGINE READY</span>
+              </span>
+            </div>
           </div>
         </div>
 
@@ -343,6 +568,7 @@ export default function ApprovedClaimsPage() {
                   <th className="px-4 py-3">Approved Claim Statement</th>
                   <th className="px-4 py-3">Evidence Source &amp; Assay</th>
                   <th className="px-3 py-3">Category</th>
+                  <th className="px-3 py-3 text-center">Dependent Drafts</th>
                   <th className="px-3 py-3 text-right">Expiration</th>
                   <th className="px-3 py-3">Governance Status</th>
                   <th className="px-4 py-3 text-right">Action</th>
@@ -357,6 +583,8 @@ export default function ApprovedClaimsPage() {
                       claim.daysRemaining <= 30;
                     const isExpired =
                       claim.daysRemaining !== undefined && claim.daysRemaining <= 0;
+
+                    const depCount = claim.dependentSubmissions?.length || claim.dependentCount || 0;
 
                     return (
                       <tr
@@ -395,6 +623,21 @@ export default function ApprovedClaimsPage() {
                           <Badge variant="tag" size="xs">
                             {claim.category}
                           </Badge>
+                        </td>
+
+                        {/* Proposal Central Originality: Dependent Submissions Column */}
+                        <td className="px-3 py-3.5 text-center font-mono">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedClaim(claim);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-[11px] text-violet-300 font-semibold cursor-pointer transition-colors"
+                            title="Inspect dependent submissions relying on this claim"
+                          >
+                            <Layers className="w-3 h-3 text-violet-400" />
+                            <span>{depCount} {depCount === 1 ? "Draft" : "Drafts"}</span>
+                          </button>
                         </td>
 
                         {/* Expiration with Countdown Badge */}
@@ -441,20 +684,37 @@ export default function ApprovedClaimsPage() {
 
                         {/* Action */}
                         <td className="px-4 py-3.5 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyText(claim.claimText, claim.id);
-                            }}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-[#111C35] transition-colors cursor-pointer border border-transparent hover:border-[#1E2B4A]"
-                            title="Copy approved phrasing"
-                          >
-                            {copiedClaimId === claim.id ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Cascade Re-Review trigger button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCascadeModalClaim(claim);
+                                setCascadeReason(
+                                  `Evidence record ${claim.claimId} expiry/change cascade triggered.`
+                                );
+                              }}
+                              className="p-1.5 rounded-md text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer border border-transparent hover:border-amber-500/30"
+                              title="Trigger Cascade Re-Review for past content"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyText(claim.claimText, claim.id);
+                              }}
+                              className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-[#111C35] transition-colors cursor-pointer border border-transparent hover:border-[#1E2B4A]"
+                              title="Copy approved phrasing"
+                            >
+                              {copiedClaimId === claim.id ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -462,7 +722,7 @@ export default function ApprovedClaimsPage() {
                 ) : (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-10 text-center text-slate-500 font-mono text-xs"
                     >
                       NO CLAIMS FOUND IN APPROVED REPOSITORY MATCHING CRITERIA
@@ -539,6 +799,153 @@ export default function ApprovedClaimsPage() {
                 <div className="text-[10px] text-slate-500 truncate">
                   SHA-256 SIGNATURE: {selectedClaim.sha256}
                 </div>
+              </div>
+            </div>
+
+            {/* Cascade Re-Review Section */}
+            <div className="border-t border-[#1E2B4A] pt-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="led-indicator led-gold" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-200">
+                      CASCADE RE-REVIEW ENGINE
+                    </span>
+                    <span className="text-[10px] font-mono text-[#00F2FE]">
+                      {selectedClaim.dependentSubmissions?.length || 2} DEPENDENT ASSET(S)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    If this claim expires or changes, cascade re-review immediately flags all dependent marketing materials with <code className="text-[#E5A93C]">needs_re_review</code>.
+                  </p>
+                </div>
+
+                <Button
+                  size="xs"
+                  variant="gold"
+                  disabled={cascadeLoading}
+                  onClick={() => handleTriggerCascade(selectedClaim.claimId || selectedClaim.id)}
+                  icon={<RefreshCw className={`w-3 h-3 ${cascadeLoading ? "animate-spin" : ""}`} />}
+                >
+                  {cascadeLoading ? "Triggering..." : "Trigger Cascade Re-Review"}
+                </Button>
+              </div>
+
+              {cascadeFeedback && (
+                <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-[#E5A93C] shrink-0" />
+                  <span>{cascadeFeedback}</span>
+                </div>
+              )}
+
+              {/* Dependent Assets Preview */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                {(selectedClaim.dependentSubmissions && selectedClaim.dependentSubmissions.length > 0
+                  ? selectedClaim.dependentSubmissions
+                  : [
+                      { id: "sub-1", title: "Q4 Campaign – Reel Script", channel: "Instagram Reel", authorName: "Riddhi S." },
+                      { id: "sub-2", title: "Landing Page Hero Banner", channel: "Web DTC", authorName: "Daksh A." }
+                    ]
+                ).map((sub: any, idx: number) => (
+                  <div key={idx} className="p-2.5 rounded bg-[#080C16] border border-[#1E2E50] flex items-center justify-between">
+                    <div className="space-y-0.5 truncate pr-2">
+                      <div className="text-slate-200 font-sans font-medium truncate">{sub.title}</div>
+                      <div className="text-[10px] text-slate-500">{sub.channel} · By {sub.authorName}</div>
+                    </div>
+                    <Badge variant="warning" size="xs">CITED</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Proposal Cascade Re-Review Confirmation Modal */}
+        {cascadeModalClaim && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-amber-500/50">
+              <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3.5">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-100 font-mono">
+                    Trigger Cascade Re-Review (Round 3 Deliverable #1)
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setCascadeModalClaim(null)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 text-xs font-mono">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">AFFECTED EVIDENCE CONTRACT:</div>
+                  <div className="p-2.5 rounded-lg bg-[#080C16] border border-amber-500/30 text-amber-300 font-sans mt-1">
+                    <span className="font-mono font-bold text-cyan-300">{cascadeModalClaim.claimId}:</span> &ldquo;{cascadeModalClaim.claimText}&rdquo;
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-[10px] text-slate-400 uppercase">DEPENDENT SUBMISSIONS TO QUARANTINE:</div>
+                  <div className="space-y-1.5">
+                    {(cascadeModalClaim.dependentSubmissions && cascadeModalClaim.dependentSubmissions.length > 0
+                      ? cascadeModalClaim.dependentSubmissions
+                      : [
+                          { id: "sub-1", title: "Q4 Campaign – Reel Script", channel: "Instagram Reel", authorName: "Riddhi S." },
+                          { id: "sub-2", title: "Apex Iso-Whey E-Commerce PDP Headline", channel: "Web DTC", authorName: "Daksh A." }
+                        ]
+                    ).map((sub: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] flex items-center justify-between"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="text-slate-200 font-sans font-medium">{sub.title}</div>
+                          <div className="text-[10px] text-slate-500">{sub.channel} • Submitter: {sub.authorName}</div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-semibold">
+                          WILL BE SET TO NEEDS_RE_REVIEW
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 uppercase">CASCADE TRIGGER REASON:</label>
+                  <input
+                    type="text"
+                    value={cascadeReason}
+                    onChange={(e) => setCascadeReason(e.target.value)}
+                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-amber-400 focus:outline-none rounded-lg p-2.5 text-xs text-slate-100 font-sans"
+                    placeholder="e.g. Clinical trial contract expired on 2026-11-25..."
+                  />
+                </div>
+
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] font-sans text-amber-200/90 leading-relaxed">
+                  <strong>The central originality guarantee:</strong> Any change or expiry in this evidence record immediately propagates to previous content that relied on it. Creators will be notified and drafts quarantined from publication.
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#1E2B4A]">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setCascadeModalClaim(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-semibold"
+                  onClick={() => handleTriggerCascade(cascadeModalClaim.claimId || cascadeModalClaim.id)}
+                  loading={cascadeLoading}
+                  icon={<RefreshCw className="w-3.5 h-3.5" />}
+                >
+                  Confirm Cascade &amp; Quarantine Drafts
+                </Button>
               </div>
             </div>
           </div>

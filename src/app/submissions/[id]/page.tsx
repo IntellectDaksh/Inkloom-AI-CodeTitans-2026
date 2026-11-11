@@ -1111,26 +1111,19 @@ function SubmissionReviewInner({
         {/* TAB 3: AUDIT TRAIL LEDGER */}
         {activeTab === "history" && (
           <div className="tactile-card rounded-xl p-6 space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
-              Cryptographic Audit Trail Ledger
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200">
+                Cryptographic Audit Trail Ledger (SOC-2 Immutable)
+              </h3>
+              <Badge variant="verified" size="xs">
+                {auditLog.length} EVENTS RECORDED
+              </Badge>
+            </div>
+            <p className="text-xs text-slate-400">
+              Complete, tamper-proof record of every preflight check, finding dispute, dismissal reason, and authorized legal override.
+            </p>
             <div className="space-y-3 font-mono text-xs">
-              {[
-                {
-                  action: "PREFLIGHT_AUDIT_EXECUTION",
-                  by: "Gemini-2.5-Flash (Deterministic Pre-Flight)",
-                  time: "10m ago",
-                  hash: "sha256:881f...9b12",
-                  notes: "Detected 3 statutory claims requiring clinical substantiation.",
-                },
-                {
-                  action: "SUBMISSION_INGESTED",
-                  by: "Riddhi S. (usr_riddhi)",
-                  time: "14m ago",
-                  hash: "sha256:4d2a...117a",
-                  notes: "Draft copy submitted under brand_apex context with Instagram channel tag.",
-                },
-              ].map((ev, idx) => (
+              {auditLog.map((ev, idx) => (
                 <div
                   key={idx}
                   className="p-3.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
@@ -1250,6 +1243,283 @@ function SubmissionReviewInner({
                     Apply Compliant Fix
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Modal 1: Creator Dispute Finding Modal */}
+        {activeDisputeFinding && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-amber-500/40">
+              <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3.5">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-100 font-mono">
+                    Dispute Compliance Finding (Stage 6 Proposal Workflow)
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveDisputeFinding(null)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs font-mono">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">CHALLENGED TOKEN:</div>
+                  <div className="p-2.5 rounded-lg bg-[#080C16] border border-amber-500/30 text-amber-300 font-sans mt-1">
+                    &ldquo;{activeDisputeFinding.flaggedText}&rdquo; — {activeDisputeFinding.category}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-[10px] text-slate-400 uppercase">QUICK DISPUTE PRESETS:</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "FDA 21 CFR § 101.93 Safe Harbor Exemption",
+                      "Substantiated by Q3 Clinical Cohort Study",
+                      "Client Approved Creative Brief Exception",
+                      "Context restricted to internal ambassador kit",
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setDisputeReason(preset)}
+                        className="px-2 py-1 rounded bg-[#0A0F1D] hover:bg-[#111C35] border border-[#1E2B4A] text-[10px] text-slate-300 hover:text-cyan-300 transition-colors cursor-pointer"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 uppercase">DISPUTE JUSTIFICATION:</label>
+                  <textarea
+                    value={disputeReason}
+                    onChange={(e) => setDisputeReason(e.target.value)}
+                    rows={3}
+                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-amber-400 focus:outline-none rounded-lg p-2.5 text-xs text-slate-100 font-sans leading-relaxed resize-none"
+                    placeholder="Provide specific regulatory citation or brand rationale..."
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 uppercase">OPTIONAL EVIDENCE CITATION / URL:</label>
+                  <input
+                    type="text"
+                    value={disputeEvidence}
+                    onChange={(e) => setDisputeEvidence(e.target.value)}
+                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-amber-400 focus:outline-none rounded-lg p-2.5 text-xs text-slate-100 font-mono"
+                    placeholder="DOI, Clinical study ID, or legal memo link..."
+                  />
+                </div>
+
+                <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] font-sans text-amber-200/90 leading-relaxed">
+                  Submitting a dispute escalates this finding to the Brand Reviewer queue. The creator cannot approve their own submission; final sign-off remains with authorized people.
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#1E2B4A]">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setActiveDisputeFinding(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-semibold"
+                  onClick={() => handleDisputeFinding(activeDisputeFinding.id)}
+                  loading={actionLoading}
+                  icon={<AlertTriangle className="w-3.5 h-3.5" />}
+                >
+                  Submit Official Dispute
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 2: Dismiss Finding with Reason */}
+        {activeDismissFinding && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-slate-700">
+              <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3.5">
+                <div className="flex items-center gap-2">
+                  <X className="w-4 h-4 text-slate-400" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-100 font-mono">
+                    Dismiss Finding with Recorded Reason
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveDismissFinding(null)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs font-mono">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">FLAGGED TEXT TO DISMISS:</div>
+                  <div className="p-2.5 rounded-lg bg-[#080C16] border border-[#1E2B4A] text-slate-200 font-sans mt-1">
+                    &ldquo;{activeDismissFinding.flaggedText}&rdquo;
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-[10px] text-slate-400 uppercase">COMMON REASON PRESETS:</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "Brand guideline tolerance exception (BE-2026-1)",
+                      "Artistic stylistic license approved for video",
+                      "Non-substantive grammatical variation",
+                      "Pre-cleared with account manager",
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setDismissReason(preset)}
+                        className="px-2 py-1 rounded bg-[#0A0F1D] hover:bg-[#111C35] border border-[#1E2B4A] text-[10px] text-slate-300 hover:text-cyan-300 transition-colors cursor-pointer"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 uppercase">DISMISSAL JUSTIFICATION (AUDIT TRAIL):</label>
+                  <textarea
+                    value={dismissReason}
+                    onChange={(e) => setDismissReason(e.target.value)}
+                    rows={3}
+                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-cyan-400 focus:outline-none rounded-lg p-2.5 text-xs text-slate-100 font-sans leading-relaxed resize-none"
+                    placeholder="Explain why this finding is dismissed..."
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#1E2B4A]">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setActiveDismissFinding(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleDismissFinding(activeDismissFinding.id)}
+                  loading={actionLoading}
+                  icon={<Check className="w-3.5 h-3.5" />}
+                >
+                  Confirm Dismissal
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 3: Authorized Legal / Reviewer Override */}
+        {activeOverrideFinding && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-violet-500/50">
+              <div className="flex items-center justify-between border-b border-[#1E2B4A] pb-3.5">
+                <div className="flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-violet-400" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-100 font-mono">
+                    Record Authorized Override (Proposal Page 4 &amp; 5)
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveOverrideFinding(null)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 text-xs font-mono">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">FLAGGED COMPLIANCE FINDING:</div>
+                  <div className="p-2.5 rounded-lg bg-[#080C16] border border-violet-500/30 text-violet-200 font-sans mt-1">
+                    &ldquo;{activeOverrideFinding.flaggedText}&rdquo; — {activeOverrideFinding.category}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-[10px] text-violet-300 uppercase font-semibold">
+                    OFFICIAL AUTHORIZATION MEMORANDA (PROPOSAL STANDARDS):
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      "Override authorized under Legal Memo LM-2026-44",
+                      "Authorized exception per Regulatory Counsel Review RC-882",
+                      "Fair-use comparative marketing exemption validated under Lanham Act",
+                      "Pre-market clearance validated by VP Medical & Regulatory Affairs",
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setOverrideMemo(preset)}
+                        className={`text-left px-3 py-2 rounded border transition-colors cursor-pointer text-xs font-sans ${
+                          overrideMemo === preset
+                            ? "bg-violet-950/70 border-violet-500/60 text-violet-200"
+                            : "bg-[#0A0F1D] hover:bg-[#111C35] border-[#1E2B4A] text-slate-300"
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 uppercase">CUSTOM MEMO / ELECTRONIC JUSTIFICATION:</label>
+                  <textarea
+                    value={overrideMemo}
+                    onChange={(e) => setOverrideMemo(e.target.value)}
+                    rows={2}
+                    className="w-full bg-[#080C16] border border-[#1E2B4A] focus:border-violet-400 focus:outline-none rounded-lg p-2.5 text-xs text-slate-100 font-sans leading-relaxed resize-none"
+                    placeholder="Enter formal legal memorandum citation..."
+                  />
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#080C16] border border-[#1E2B4A] space-y-1.5">
+                  <div className="text-[10px] text-slate-400 uppercase flex items-center justify-between">
+                    <span>AUTHORIZED SIGNATORY:</span>
+                    <span className="text-violet-300">ISO-21CFR Part 11 COMPLIANT</span>
+                  </div>
+                  <div className="text-slate-100 font-semibold">{overrideReviewer}</div>
+                  <div className="text-[10px] text-slate-500">
+                    Cryptographic signature hash generated on submission. Neutralizes finding violation penalty and logs to permanent audit trail.
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#1E2B4A]">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setActiveOverrideFinding(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-violet-600 hover:bg-violet-500 text-white font-semibold"
+                  onClick={() => handleOverrideFinding(activeOverrideFinding.id)}
+                  loading={actionLoading}
+                  icon={<Scale className="w-3.5 h-3.5" />}
+                >
+                  Record Cryptographic Override
+                </Button>
               </div>
             </div>
           </div>

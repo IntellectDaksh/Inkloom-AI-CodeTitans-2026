@@ -157,6 +157,16 @@ export default function AnalyticsPage() {
             >
               Export Dataset
             </Button>
+
+            <Link href="/evaluations">
+              <Button
+                size="sm"
+                variant="gold"
+                icon={<Scale className="w-3.5 h-3.5" />}
+              >
+                Benchmark Suite
+              </Button>
+            </Link>
           </div>
         </div>
 
