@@ -1,6 +1,6 @@
 # Agent 2: System Architecture & Technical Implementation Specification
 
-**System Name:** Inkloom AI Pre-Publication Governance Architecture  
+**System Name:** AdSnitch Pre-Publication Governance Architecture  
 **Author:** System Architecture Specialist  
 **Target Submission:** CodeTitans India 2026 Project Design Report (PDR)  
 
@@ -8,11 +8,11 @@
 
 ## 1. System Overview & Architectural Topology
 
-Inkloom AI is structured as a deterministic-first, human-in-the-loop compliance platform. It bridges the gap between high-velocity generative marketing workflows and strict regulatory substantiation standards.
+AdSnitch is structured as a deterministic-first, human-in-the-loop compliance platform. It bridges the gap between high-velocity generative marketing workflows and strict regulatory substantiation standards.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 INKLOOM AI RUNTIME TOPOLOGY                                     │
+│                                 ADSNITCH RUNTIME TOPOLOGY                                     │
 ├────────────────────────────────┬───────────────────────────────┬────────────────────────────────┤
 │      EDGE INGESTION LAYER      │     GOVERNANCE PROCESSING     │      PERSISTENCE & AUDIT       │
 │                                │                               │                                │
@@ -72,12 +72,12 @@ Submitted copy traverses eight sequential, deterministic and AI-assisted process
 - Vector embeddings (`vector(1536)`) generated for claim similarity matching are strictly partitioned by brand boundaries, guaranteeing zero cross-brand or cross-competitor data leakage (e.g., Apex Nutrition clinical data can never bleed into Lumina Skincare or Zenith Cloud).
 
 ### C. Dual-Tier Persistence Engine
-To satisfy hackathon evaluation rigor while demonstrating production cloud readiness, Inkloom implements a dual-tier persistence design:
+To satisfy hackathon evaluation rigor while demonstrating production cloud readiness, AdSnitch implements a dual-tier persistence design:
 1. **Production PostgreSQL Cloud Schema:** A full SQL migration script (`supabase/migrations/20250101_init_schema.sql`) defining foreign keys, indexes, RLS policies, and pgvector extension support.
-2. **Embedded Transactional JSON Store (`InkloomStore`):** An in-memory, file-backed persistence engine operating on `.inkloom_data.json`. It guarantees zero cold-start pauses, zero external network timeouts, and automatic seed state recovery when evaluators test the platform.
+2. **Embedded Transactional JSON Store (`AdSnitchStore`):** An in-memory, file-backed persistence engine operating on `.inkloom_data.json`. It guarantees zero cold-start pauses, zero external network timeouts, and automatic seed state recovery when evaluators test the platform.
 
 ### D. Word-Level Surgical Diffing Engine
-Unlike legacy tools that regenerate entire paragraphs and destroy creative voice, Inkloom computes exact token-level character offsets:
+Unlike legacy tools that regenerate entire paragraphs and destroy creative voice, AdSnitch computes exact token-level character offsets:
 - Red Deletions (`<del>`): Exact non-compliant words marked with strike-through red styling.
 - Green Additions (`<ins>`): Clinically substantiated, compliant replacement copy.
 - Single-Click Fix: Clicking "Apply Surgical Fix" programmatically replaces the flagged substring in the editor state and triggers an immediate re-audit.

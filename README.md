@@ -1,6 +1,7 @@
 <div align="center">
-  <h1>Inkloom AI</h1>
+  <h1>AdSnitch</h1>
   <p><strong>Pre-publication brand governance and marketing claim verification layer.</strong></p>
+  <p><em>(Formerly Inkloom AI — upgraded to AdSnitch for CodeTitans 2026)</em></p>
 
   <p>
     🚀 <strong>Live Deployed Application:</strong> <a href="https://inkloom-ai-tau.vercel.app"><strong>https://inkloom-ai-tau.vercel.app</strong></a>
@@ -13,9 +14,9 @@
   </p>
 </div>
 
-Inkloom AI is an automated pre-publication firewall for marketing copy. It audits ad variants, landing pages, and campaign drafts against registered clinical trial records, ISO standards, and brand guidelines before publication.
+AdSnitch is an automated pre-publication firewall for marketing copy. It audits ad variants, landing pages, and campaign drafts against registered clinical trial records, ISO standards, and brand guidelines before publication.
 
-Generic AI writing tools churn out convincing text but routinely hallucinate clinical claims and skip statutory disclosures. Inkloom enforces a strict zero-hallucination verification policy: unsupported claims are flagged, evidence citations must resolve to real registered records, and creators get single-click surgical diff fixes grounded in evidence.
+Generic AI writing tools churn out convincing text but routinely hallucinate clinical claims and skip statutory disclosures. AdSnitch enforces a strict zero-hallucination verification policy: unsupported claims are flagged, evidence citations must resolve to real registered records, and creators get single-click surgical diff fixes grounded in evidence.
 
 ---
 
@@ -30,7 +31,7 @@ Generic AI writing tools churn out convincing text but routinely hallucinate cli
 
 ## Where It Fits
 
-| Feature | Generic LLMs (ChatGPT / Claude) | Manual Legal Review (Spreadsheets / Slack) | Inkloom AI |
+| Feature | Generic LLMs (ChatGPT / Claude) | Manual Legal Review (Spreadsheets / Slack) | AdSnitch |
 |---|---|---|---|
 | **Claim Substantiation** | Hallucinates plausible proof | Buried in static PDF files | Versioned library with DOIs and ISO standards |
 | **Hallucination Guardrails** | Generates fake clinical quotes | Relies on manual human memory | Strictly marks unverified; never fakes sources |
@@ -45,7 +46,7 @@ Generic AI writing tools churn out convincing text but routinely hallucinate cli
 
 ## How It Works
 
-Inkloom runs an automated 6-stage compliance pipeline in under 400 milliseconds:
+AdSnitch runs an automated 6-stage compliance pipeline in under 400 milliseconds:
 
 1. **Content Segmentation:** Parses incoming text into semantic units and extracts candidate metrics, timeframes, and guarantees.
 2. **Deterministic Pre-Flight (<5ms):** Fast regex scanner catches banned marketing superlatives ("miracle", "cheat code", "unhackable") and mandatory channel notices (FTC `#ad` disclosures, FDA disclaimers).
@@ -59,7 +60,7 @@ Inkloom runs an automated 6-stage compliance pipeline in under 400 milliseconds:
 ## Key Capabilities
 
 * **Living Claims Library:** Approved claims store validity dates, clinical study IDs, DOIs, and assigned medical/legal owners.
-* **Cascade Re-Review Engine:** When an approved claim expires or is edited, Inkloom flags every historical campaign draft that relied on it and queues it for re-review.
+* **Cascade Re-Review Engine:** When an approved claim expires or is edited, AdSnitch flags every historical campaign draft that relied on it and queues it for re-review.
 * **Finding Disputes & Reasoned Dismissals:** Creators can contest false alarms with explanations, and authorized legal reviewers can record binding overrides with permanent audit logging.
 * **Empirical Benchmark Suite:** Validated against real-world regulatory failures:
   * *FTC v. Teami (2020):* $15.2M settlement for ungrounded detox claims and missing `#ad` tags.

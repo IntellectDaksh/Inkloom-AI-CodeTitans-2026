@@ -36,11 +36,11 @@ export default function OnboardingPage() {
       <nav className="border-b border-white/10 bg-[#080808]/90 px-6 sm:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <div className="w-8 h-8 rounded bg-white text-black flex items-center justify-center font-bold text-sm tracking-tighter">
-            IK
+            AS
           </div>
           <div className="flex items-center gap-2">
             <span className="font-semibold text-base tracking-tight text-white">
-              Inkloom AI
+              AdSnitch
             </span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-[#A0A0A0] border border-white/10">
               TENANT PROVISIONING
@@ -94,7 +94,7 @@ export default function OnboardingPage() {
                     1. Establish Brand Workspace Partition
                   </h2>
                   <p className="text-slate-400 text-xs">
-                    Inkloom strictly walls off brand voice, prohibited terms, and approved claims per brand partition.
+                    AdSnitch strictly walls off brand voice, prohibited terms, and approved claims per brand partition.
                   </p>
                 </div>
 
@@ -232,7 +232,7 @@ export default function OnboardingPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/10 py-4 text-center text-xs font-mono text-[#737373]">
-        Inkloom AI Sovereign Governance · FTC 16 CFR § 255 · FDA 21 CFR Part 11
+        AdSnitch Sovereign Governance · FTC 16 CFR § 255 · FDA 21 CFR Part 11
       </footer>
     </div>
   );

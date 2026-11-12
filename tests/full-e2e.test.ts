@@ -31,7 +31,7 @@ function assert(condition: boolean, testName: string) {
 
 async function runMasterTestSuite() {
   console.log("\n========================================================");
-  console.log("   INKLOOM AI - MASTER AUTOMATED TEST VERIFICATION");
+  console.log("   ADSNITCH - MASTER AUTOMATED TEST VERIFICATION");
   console.log("========================================================\n");
 
   const orgId = SEED_IDS.ORGANISATION_UIDEAS;

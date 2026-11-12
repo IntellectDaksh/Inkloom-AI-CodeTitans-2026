@@ -84,7 +84,7 @@ const BENCHMARK_CASES: BenchmarkCase[] = [
     expectedSeverity: "critical",
     groundTruth: "Violation",
     explanation:
-      "Critical quantitative hallucination: calculated interest earned as principal + interest ($10,300 interest on $10,000 deposit instead of $300 interest). Inkloom mathematical substantiation rule flagged the anomaly.",
+      "Critical quantitative hallucination: calculated interest earned as principal + interest ($10,300 interest on $10,000 deposit instead of $300 interest). AdSnitch mathematical substantiation rule flagged the anomaly.",
   },
   {
     id: "apex-control-2026",
@@ -156,7 +156,7 @@ export default function EvaluationsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `inkloom-evaluation-benchmark-${Date.now()}.json`;
+    a.download = `adsnitch-evaluation-benchmark-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

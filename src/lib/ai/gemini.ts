@@ -1,5 +1,5 @@
 /**
- * Inkloom AI Brand Governance Engine - Gemini LLM Integration (Stage 4)
+ * AdSnitch Brand Governance Engine - Gemini LLM Integration (Stage 4)
  * 
  * Invokes Gemini 2.5 Flash via REST endpoint with strict JSON schema enforcement:
  * https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=GEMINI_API_KEY
@@ -27,7 +27,7 @@ export const GEMINI_25_FLASH_URL =
 export const GEMINI_FALLBACK_LIVE_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent';
 
-export const SYSTEM_INSTRUCTION = `You are the Inkloom AI Brand Governance Auditor.
+export const SYSTEM_INSTRUCTION = `You are the AdSnitch Brand Governance Auditor.
 Your mission is to perform strict, rigorous, and impartial enterprise brand compliance reviews.
 CRITICAL RULES:
 1. NEVER hallucinate citations or claim evidence.
@@ -331,7 +331,7 @@ export async function analyzeWithGemini(
   if (!apiKey) {
     return {
       result: runDeterministicFallbackAnalysis(input),
-      modelUsed: 'inkloom-deterministic-fallback-engine (no GEMINI_API_KEY)',
+      modelUsed: 'adsnitch-deterministic-fallback-engine (no GEMINI_API_KEY)',
     };
   }
 
@@ -389,7 +389,7 @@ Audit the content thoroughly:
     console.warn(`Gemini live endpoints failed (${resp.status}). Activating deterministic fallback engine.`);
     return {
       result: runDeterministicFallbackAnalysis(input),
-      modelUsed: `inkloom-deterministic-fallback-engine (api_status_${resp.status})`,
+      modelUsed: `adsnitch-deterministic-fallback-engine (api_status_${resp.status})`,
     };
   }
 
@@ -401,7 +401,7 @@ Audit the content thoroughly:
       console.warn('Gemini API response did not contain candidates content. Falling back.');
       return {
         result: runDeterministicFallbackAnalysis(input),
-        modelUsed: 'inkloom-deterministic-fallback-engine (empty_llm_response)',
+        modelUsed: 'adsnitch-deterministic-fallback-engine (empty_llm_response)',
       };
     }
 
@@ -434,7 +434,7 @@ Audit the content thoroughly:
     console.warn('Failed to parse Gemini response JSON. Falling back to deterministic analysis.', err);
     return {
       result: runDeterministicFallbackAnalysis(input),
-      modelUsed: 'inkloom-deterministic-fallback-engine (json_parse_error)',
+      modelUsed: 'adsnitch-deterministic-fallback-engine (json_parse_error)',
     };
   }
 }

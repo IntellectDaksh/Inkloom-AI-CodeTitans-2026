@@ -30,7 +30,7 @@ function assert(condition: boolean, message: string) {
 
 async function runAllTests() {
   console.log('\n========================================');
-  console.log('STARTING INKLOOM AI BRAND GOVERNANCE TESTS');
+  console.log('STARTING ADSNITCH BRAND GOVERNANCE TESTS');
   console.log('========================================\n');
 
   const orgId = 'org_inkloom_demo';

@@ -82,7 +82,7 @@ export default function BrandsPage() {
       activeClaims: 0,
       submissionsCount: 0,
       isActive: false,
-      description: descriptionInput.trim() || "Brand workspace governed by Inkloom AI claims repository.",
+      description: descriptionInput.trim() || "Brand workspace governed by AdSnitch claims repository.",
     };
 
     setBrands([...brands, newBrand]);

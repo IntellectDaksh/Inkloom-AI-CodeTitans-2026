@@ -131,7 +131,7 @@ export function Sidebar({
               <ShieldCheck className="w-4 h-4 text-[#0A0A0A]" />
             </div>
             <span className="font-semibold text-base tracking-tight text-white flex items-center gap-2">
-              Inkloom
+              AdSnitch
               <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-[#1C1C1C] text-[#E0E0E0] border border-[#303030]">
                 AI
               </span>
@@ -258,7 +258,7 @@ export function Sidebar({
                 <ShieldCheck className="w-4 h-4 text-[#0A0A0A]" />
               </div>
               <span className="font-semibold text-base tracking-tight text-white flex items-center gap-2">
-                Inkloom
+                AdSnitch
                 <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-[#1C1C1C] text-[#E0E0E0] border border-[#303030]">
                   AI
                 </span>

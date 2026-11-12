@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
 
   const handleExportTelemetry = () => {
     const data = {
-      report: "Inkloom Governance Telemetry",
+      report: "AdSnitch Governance Telemetry",
       period: timeRange,
       generatedAt: new Date().toISOString(),
       organization: "Apex Nutrition (brand_apex)",
@@ -96,7 +96,7 @@ export default function AnalyticsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `inkloom-telemetry-${timeRange}-${Date.now()}.json`;
+    a.download = `adsnitch-telemetry-${timeRange}-${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

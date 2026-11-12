@@ -320,10 +320,10 @@ export default function LandingPage() {
           {/* Brand Logo & Mark */}
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold text-sm tracking-tight shadow-sm">
-              IK
+              AS
             </div>
             <span className="font-semibold text-base tracking-tight text-white">
-              Inkloom AI
+              AdSnitch
             </span>
           </Link>
 
@@ -461,7 +461,7 @@ export default function LandingPage() {
               {/* Wider Supporting Copy (17–18px) */}
               <p className="text-lg sm:text-xl text-[#B5B5B5] max-w-2xl leading-relaxed font-normal">
                 Preventing regulatory fines, deceptive superlatives, and brand liabilities before content
-                goes live. Inkloom audits marketing copy against verified clinical trials, SEC filings,
+                goes live. AdSnitch audits marketing copy against verified clinical trials, SEC filings,
                 and legal registers with token-level diffing.
               </p>
 
@@ -919,7 +919,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-base text-[#B5B5B5] leading-relaxed">
               Standard consumer LLMs write creative fiction. Marketing schedulers organize calendar
-              slots. Inkloom AI is the sovereign pre-flight governance compiler that eliminates statutory
+              slots. AdSnitch is the sovereign pre-flight governance compiler that eliminates statutory
               liabilities before publication.
             </p>
           </div>
@@ -936,7 +936,7 @@ export default function LandingPage() {
                     <th className="px-5 py-4 w-1/6 text-slate-400">Planable / Hootsuite</th>
                     <th className="px-5 py-4 w-1/6 text-slate-400">Excel Spreadsheets</th>
                     <th className="px-6 py-4 w-1/5 text-white bg-white/[0.04] border-l border-white/[0.08] font-bold">
-                      Inkloom AI
+                      AdSnitch
                     </th>
                   </tr>
                 </thead>
@@ -948,7 +948,7 @@ export default function LandingPage() {
                       writer: "Generic styleguide check",
                       planable: "None (Scheduling only)",
                       excel: "Static outdated rows",
-                      inkloom: "Strict isolated claims DB",
+                      adsnitch: "Strict isolated claims DB",
                     },
                     {
                       dim: "2. Zero-Hallucination Policy",
@@ -956,7 +956,7 @@ export default function LandingPage() {
                       writer: "Partial (Brand vocabulary)",
                       planable: "None",
                       excel: "Manual human check",
-                      inkloom: "0.00% tolerance via deterministic gate",
+                      adsnitch: "0.00% tolerance via deterministic gate",
                     },
                     {
                       dim: "3. Clinical Evidence Provenance",
@@ -964,7 +964,7 @@ export default function LandingPage() {
                       writer: "No assay verification",
                       planable: "None",
                       excel: "Dead hyperlinks",
-                      inkloom: "Cryptographic DOI & ISO assay linking",
+                      adsnitch: "Cryptographic DOI & ISO assay linking",
                     },
                     {
                       dim: "4. Dynamic Cascade Re-Review",
@@ -972,7 +972,7 @@ export default function LandingPage() {
                       writer: "No dependent re-indexing",
                       planable: "None",
                       excel: "Manual search & replace",
-                      inkloom: "Automated cascade on claim expiry",
+                      adsnitch: "Automated cascade on claim expiry",
                     },
                     {
                       dim: "5. Word-Level Surgical Diff",
@@ -980,7 +980,7 @@ export default function LandingPage() {
                       writer: "Sentence replacement",
                       planable: "None",
                       excel: "Manual tracking changes",
-                      inkloom: "Exact token-level redline diffing",
+                      adsnitch: "Exact token-level redline diffing",
                     },
                     {
                       dim: "6. Dispute & Override Gate",
@@ -988,7 +988,7 @@ export default function LandingPage() {
                       writer: "Basic prompt tweak",
                       planable: "Comments only",
                       excel: "Uncontrolled emails",
-                      inkloom: "Formal creator dispute & legal override",
+                      adsnitch: "Formal creator dispute & legal override",
                     },
                     {
                       dim: "7. Channel Disclosures",
@@ -996,7 +996,7 @@ export default function LandingPage() {
                       writer: "Static footers",
                       planable: "Character count only",
                       excel: "Manual copy-paste",
-                      inkloom: "Statutory FTC / FDA rules per channel",
+                      adsnitch: "Statutory FTC / FDA rules per channel",
                     },
                     {
                       dim: "8. Multi-Tenant RLS",
@@ -1004,7 +1004,7 @@ export default function LandingPage() {
                       writer: "Basic team accounts",
                       planable: "Workspace separation",
                       excel: "Accidental file sharing",
-                      inkloom: "PostgreSQL Row-Level Security",
+                      adsnitch: "PostgreSQL Row-Level Security",
                     },
                     {
                       dim: "9. Auto-Publishing Protection",
@@ -1012,7 +1012,7 @@ export default function LandingPage() {
                       writer: "Direct CMS export",
                       planable: "Auto-publishes scheduled posts",
                       excel: "No live enforcement",
-                      inkloom: "Strict quarantine until human sign-off",
+                      adsnitch: "Strict quarantine until human sign-off",
                     },
                     {
                       dim: "10. Empirical Benchmarks",
@@ -1020,7 +1020,7 @@ export default function LandingPage() {
                       writer: "Readability score only",
                       planable: "Engagement stats only",
                       excel: "None",
-                      inkloom: "100% recall on landmark test cases",
+                      adsnitch: "100% recall on landmark test cases",
                     },
                   ].map((row, idx) => (
                     <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
@@ -1040,7 +1040,7 @@ export default function LandingPage() {
                         <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.excel}
                       </td>
                       <td className="px-6 py-4 text-xs text-white font-medium bg-white/[0.04] border-l border-white/[0.08]">
-                        <span className="text-emerald-400 font-mono mr-1.5 font-bold">[✓]</span> {row.inkloom}
+                        <span className="text-emerald-400 font-mono mr-1.5 font-bold">[✓]</span> {row.adsnitch}
                       </td>
                     </tr>
                   ))}
@@ -1059,7 +1059,7 @@ export default function LandingPage() {
               PREVENTABLE BRAND CATASTROPHES
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              Why This Exists: 4 Landmark Disasters Inkloom Prevents
+              Why This Exists: 4 Landmark Disasters AdSnitch Prevents
             </h2>
             <p className="text-base text-[#B5B5B5] leading-relaxed">
               When marketing claims bypass strict factual and tone verification, enterprises face
@@ -1078,7 +1078,7 @@ export default function LandingPage() {
                 category: "Deceptive Health & Cancer Claims",
                 desc: "Promoted 'detox' teas claiming to treat cancer, unclog arteries, and cause substantial weight loss without competent clinical substantiation.",
                 rule: "FTC Act § 5 (Deceptive Practices) & 16 CFR § 255",
-                howInkloomPrevents:
+                howAdSnitchPrevents:
                   "Deterministic regex blocks unverified therapeutic superlatives ('cures', 'treats cancer'); enforces mandatory clinical trial evidence upload.",
               },
               {
@@ -1089,7 +1089,7 @@ export default function LandingPage() {
                 category: "Insensitive Automated Campaign Broadcast",
                 desc: "Dispatched automated promotional email with subject line: 'Congrats, you survived the Boston Marathon!', triggering massive public backlash 4 years after the fatal bombing.",
                 rule: "Brand Tone & Crisis Context Guidelines",
-                howInkloomPrevents:
+                howAdSnitchPrevents:
                   "Contextual semantic sensitivity filter evaluates emotional valence and tragedy proximity before scheduled dissemination.",
               },
               {
@@ -1100,7 +1100,7 @@ export default function LandingPage() {
                 category: "AI Hallucination in Public Advice",
                 desc: "Generative AI published 77 financial guides with elementary mathematical errors in compound interest and certificate of deposit calculations.",
                 rule: "FTC Truth in Lending & SEC Factual Disclosure",
-                howInkloomPrevents:
+                howAdSnitchPrevents:
                   "0.00% zero-hallucination policy requires every quantitative equation and percentage to be verified against registered financial formulas.",
               },
               {
@@ -1111,7 +1111,7 @@ export default function LandingPage() {
                 category: "Uncoordinated Brand Identity Distribution",
                 desc: "Replaced 20-year iconic blue box logo with unvetted Helvetica design without cross-departmental alignment, forcing rollback in 6 days.",
                 rule: "Two-Key Approval Gate & Asset Governance",
-                howInkloomPrevents:
+                howAdSnitchPrevents:
                   "Two-key cryptographic approval protocol gates brand logo and core guideline updates behind authorized director signatures.",
               },
             ].map((c) => (
@@ -1150,8 +1150,8 @@ export default function LandingPage() {
                     <span className="font-semibold text-white">Governing Rule:</span> {c.rule}
                   </div>
                   <div className="p-3.5 sm:p-4 rounded-xl bg-[#0A0A0A] border border-white/[0.06] text-xs sm:text-sm text-emerald-300 leading-relaxed">
-                    <span className="font-semibold text-white">Inkloom Remedy: </span>
-                    {c.howInkloomPrevents}
+                    <span className="font-semibold text-white">AdSnitch Remedy: </span>
+                    {c.howAdSnitchPrevents}
                   </div>
                 </div>
               </div>
@@ -1509,7 +1509,7 @@ export default function LandingPage() {
 
           <div className="pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-[#777] text-xs">
             <div>
-              &copy; 2026 Inkloom Technologies Inc. · Enterprise Pre-Publication Governance
+              &copy; 2026 AdSnitch Technologies Inc. · Enterprise Pre-Publication Governance
             </div>
             <div className="font-mono text-[11px]">
               Deterministic Pre-Publication Governance · Zero-Tolerance Regulatory Engine

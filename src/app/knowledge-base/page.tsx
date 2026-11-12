@@ -81,7 +81,7 @@ export default function KnowledgeBaseHubPage() {
               </span>
             </div>
             <p className="text-xs text-[#858585] max-w-2xl leading-relaxed">
-              Every factual assertion in Inkloom must map to an active record in this library. Zero ungrounded modifications permitted by the AI governance pipeline.
+              Every factual assertion in AdSnitch must map to an active record in this library. Zero ungrounded modifications permitted by the AI governance pipeline.
             </p>
           </div>
 
