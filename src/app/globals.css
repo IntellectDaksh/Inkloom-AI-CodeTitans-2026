@@ -781,3 +781,98 @@ kbd, .kbd, .keycap {
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-default);
 }
+
+/* ===== Motion layer: skeletons, page entry, scroll reveal, breathing background ===== */
+.skel {
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(203, 214, 224, 0.45) 0%, rgba(228, 235, 241, 0.8) 40%, rgba(203, 214, 224, 0.45) 80%);
+  background-size: 220% 100%;
+  animation: skel-shimmer 1.2s ease-in-out infinite;
+}
+.skel-page { display: grid; gap: 16px; animation: skel-in 0.2s ease both; }
+.skel-title { width: 30%; height: 30px; }
+.skel-line { height: 14px; }
+.skel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 12px; }
+.skel-tile { height: 96px; border-radius: 16px; }
+.skel-block { height: 220px; border-radius: 18px; }
+@keyframes skel-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@keyframes skel-in { from { opacity: 0; } }
+
+.page-motion { position: relative; }
+.page-wait { position: absolute; inset: 0 0 auto; opacity: 0; pointer-events: none; visibility: hidden; }
+.page-in { animation: page-in 0.5s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); filter: blur(3px); } }
+
+.rv { opacity: 0; transform: translateY(16px); transition: opacity 0.6s ease var(--rv-delay, 0ms), transform 0.6s cubic-bezier(0.2, 0.75, 0.25, 1) var(--rv-delay, 0ms); }
+.rv.rv-in { opacity: 1; transform: none; }
+
+.route-progress { position: fixed; z-index: 100; top: 0; left: 0; height: 2px; width: 0; background: linear-gradient(90deg, #4bc7f4, #2697bd); box-shadow: 0 0 8px rgba(75, 199, 244, 0.6); opacity: 0; pointer-events: none; }
+.route-run { opacity: 1; width: 70%; transition: width 2.5s cubic-bezier(0.1, 0.6, 0.2, 1); }
+.route-done { opacity: 0; width: 100%; transition: width 0.2s ease, opacity 0.35s ease 0.15s; }
+
+/* Breathing background: the orb layer slowly swells and fades */
+.atmosphere { animation: bg-breathe 9s ease-in-out infinite; }
+.atmosphere i:nth-child(1) { animation: app-orb-a 24s ease-in-out infinite alternate, orb-pulse 7s ease-in-out infinite; }
+.atmosphere i:nth-child(2) { animation: app-orb-b 30s ease-in-out infinite alternate, orb-pulse 9s -3s ease-in-out infinite; }
+@keyframes bg-breathe { 0%, 100% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes orb-pulse { 50% { filter: blur(110px) brightness(1.15); } }
+
+/* Interactive feedback on cards and buttons */
+main a, main button { transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
+main button:not(:disabled):active, main a:active { transform: scale(0.98); }
+
+@media (prefers-reduced-motion: reduce) {
+  .skel, .atmosphere, .atmosphere i, .page-in { animation: none !important; }
+  .rv { opacity: 1; transform: none; transition: none; }
+  .route-progress { display: none; }
+}
+
+/* Workspace picker: frosted glass over the blurred, still-loading app */
+.ws-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  color: inherit;
+}
+.ws-dialog[open] { animation: ws-in 0.42s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
+.ws-dialog::backdrop {
+  background: rgba(225, 236, 245, 0.42);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  animation: ws-fade 0.35s ease both;
+}
+.ws-dialog.ws-leaving { animation: ws-out 0.22s ease both; }
+.ws-dialog.ws-leaving::backdrop { animation: ws-fade 0.22s ease reverse both; }
+.ws-panel {
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 24px;
+  background: rgba(248, 252, 255, 0.72);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  box-shadow: 0 40px 100px rgba(14, 45, 66, 0.22), inset 0 1px rgba(255, 255, 255, 0.95);
+}
+.ws-item { animation: ws-item-in 0.45s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
+.ws-card {
+  display: flex; width: 100%; gap: 14px; align-items: center;
+  padding: 14px 16px; border: 1px solid rgba(9, 21, 32, 0.08); border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+.ws-card:hover { transform: translateY(-2px); border-color: rgba(38, 151, 189, 0.35); background: #fff; box-shadow: 0 14px 30px rgba(16, 45, 64, 0.1); }
+.ws-card-active { border-color: rgba(38, 151, 189, 0.45); }
+.ws-card-new { border-style: dashed; background: rgba(255, 255, 255, 0.4); }
+.ws-avatar { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; color: #fff; font-weight: 700; font-size: 15px; }
+.ws-avatar-new { background: rgba(9, 21, 32, 0.06); color: #091520; }
+@keyframes ws-in { from { opacity: 0; transform: translateY(14px) scale(0.97); } }
+@keyframes ws-out { to { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@keyframes ws-fade { from { opacity: 0; } }
+@keyframes ws-item-in { from { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) {
+  .ws-dialog[open], .ws-dialog::backdrop, .ws-item, .ws-dialog.ws-leaving { animation: none; }
+}

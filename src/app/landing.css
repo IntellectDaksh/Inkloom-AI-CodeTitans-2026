@@ -7718,3 +7718,57 @@ em.ev-ok { background: rgba(115, 224, 186, 0.2); color: #1c7d5c; }
   .pipeline-list button { grid-template-columns: 32px 40px minmax(0, 1fr) !important; }
   .pipeline-output, .pipeline-list button > svg:last-child { display: none !important; }
 }
+
+/* Breathing landing background + first-load intro */
+.global-atmosphere { animation: bg-breathe 9s ease-in-out infinite; }
+.hero-aurora { animation: aurora-breathe 8s ease-in-out infinite; }
+@keyframes aurora-breathe {
+  0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.06); }
+}
+.site::after {
+  position: fixed; z-index: 200; inset: 0; content: "";
+  background: #eef4f8; pointer-events: none;
+  animation: intro-out 0.7s ease 0.25s forwards;
+}
+@keyframes intro-out { to { opacity: 0; visibility: hidden; } }
+.hero-content > * { animation: hero-rise 0.8s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+.hero-content > *:nth-child(2) { animation-delay: 0.38s; }
+.hero-content > *:nth-child(3) { animation-delay: 0.46s; }
+.hero-content > *:nth-child(4) { animation-delay: 0.54s; }
+.hero-content > *:nth-child(5) { animation-delay: 0.62s; }
+.hero-content > *:first-child { animation-delay: 0.3s; }
+.hero-editorial { animation: hero-rise 1s cubic-bezier(0.2, 0.75, 0.25, 1) 0.6s both; }
+@keyframes hero-rise { from { opacity: 0; transform: translateY(18px); } }
+.lab-findings li, .ev-sources li { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.lab-findings li:hover, .ev-sources li:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(16, 45, 64, 0.08); }
+@media (prefers-reduced-motion: reduce) {
+  .global-atmosphere, .hero-aurora, .hero-content > *, .hero-editorial { animation: none !important; }
+  .site::after { display: none; }
+}
+
+/* Tighter rhythm: sections were 150px+ apart, making the page feel longer than it is */
+.hero-section { min-height: 0 !important; padding-bottom: 48px !important; }
+.hero-editorial { margin-top: 48px !important; height: min(520px, 62vw) !important; }
+.intro-section,
+.comparison-section,
+.lab,
+.incident-section,
+.pipeline-section,
+.ev,
+.sectors-section,
+.security-section {
+  padding-top: 72px !important;
+  padding-bottom: 72px !important;
+  margin-top: 0 !important;
+}
+.final-section { min-height: 0 !important; padding-top: 88px !important; padding-bottom: 88px !important; }
+.lab-head, .ev-head { margin-bottom: 32px !important; }
+.comparison-heading, .incident-head, .sectors-head, .security-heading { margin-bottom: 36px !important; }
+.signal-rail { margin: 0 !important; }
+@media (max-width: 900px) {
+  .intro-section, .comparison-section, .lab, .incident-section, .pipeline-section, .ev,
+  .sectors-section, .security-section { padding-top: 52px !important; padding-bottom: 52px !important; }
+  .final-section { padding-top: 64px !important; padding-bottom: 64px !important; }
+  .hero-section { padding-top: 120px !important; }
+}

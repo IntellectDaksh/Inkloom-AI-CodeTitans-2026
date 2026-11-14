@@ -549,6 +549,15 @@ export default function Home() {
         entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("visible")),
       { threshold: 0.13 },
     );
+    // Cards and rows also fade up as they enter, staggered within each group.
+    document
+      .querySelectorAll(
+        ".ev-card, .lab-copy, .lab-report, .pipeline-list button, .sectors-section article, .comparison-section article, .incident-section article, .security-section article, .prototype-facts span, .ev-guarantees li",
+      )
+      .forEach((node, i) => {
+        node.classList.add("reveal");
+        (node as HTMLElement).style.transitionDelay = `${(i % 5) * 70}ms`;
+      });
     document.querySelectorAll(".reveal").forEach((node) => observer.observe(node));
     return () => observer.disconnect();
   }, []);

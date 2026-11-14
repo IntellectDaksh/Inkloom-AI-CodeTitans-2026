@@ -3,11 +3,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Plus, Search, Menu, ChevronRight } from "lucide-react";
+import { Bell, Plus, Search, Menu, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { openCommandK } from "../ui/CommandK";
 import { HelpButton } from "../guide/HelpPanel";
 import { findPage } from "../guide/nav";
-import { BRANDS, PERSONAS, ROLE_HELP, personaOf, setPrefs, usePrefs, focusRing } from "../guide/workspace";
+import { PERSONAS, openWorkspacePicker, ROLE_HELP, personaOf, setPrefs, usePrefs, focusRing } from "../guide/workspace";
 
 export interface HeaderBreadcrumb {
   label: string;
@@ -107,19 +107,16 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
       </div>
 
       {/* Brand switcher */}
-      <label className="sr-only" htmlFor="brand-switch">Brand</label>
-      <select
-        id="brand-switch"
-        value={prefs.brand}
-        onChange={(e) => {
-          setPrefs({ brand: e.target.value });
-          onBrandChange?.(e.target.value);
-        }}
-        className={`hidden h-10 max-w-44 rounded-lg border border-border-default bg-panel px-3 text-sm text-text-primary sm:block ${focusRing}`}
-        style={{ backgroundColor: "var(--color-canvas-elevated)", color: "var(--color-ink)" }}
+      <button
+        type="button"
+        onClick={openWorkspacePicker}
+        title="Switch workspace"
+        className={`hidden h-10 max-w-52 items-center gap-2 rounded-lg border border-border-default bg-panel px-3 text-sm text-text-primary transition-colors hover:bg-panel-hover sm:inline-flex ${focusRing}`}
       >
-        {BRANDS.map((b) => <option key={b}>{b}</option>)}
-      </select>
+        <span className="truncate font-medium">{prefs.brand}</span>
+        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-text-muted" aria-hidden="true" />
+        <span className="sr-only">, switch workspace</span>
+      </button>
 
       {/* Demo persona / role switcher */}
       <label className="sr-only" htmlFor="persona-switch">Signed in as</label>

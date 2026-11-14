@@ -3,13 +3,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Download, Search, AlertTriangle, UploadCloud, FilePlus2 } from "lucide-react";
+import { ChevronRight, Download, Search, UploadCloud, FilePlus2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { StartHere } from "@/components/guide/StartHere";
 import { InfoTip } from "@/components/guide/HelpPanel";
-import { usePrefs, personaOf, focusRing } from "@/components/guide/workspace";
+import { usePrefs, personaOf, focusRing, openWorkspacePicker } from "@/components/guide/workspace";
 
 type Status = "pending" | "approved" | "changes_requested";
 
@@ -197,6 +197,7 @@ export default function DashboardPage() {
   const [isSample, setIsSample] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [listTab, setListTab] = useState<"attention" | "recent">("attention");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [hour, setHour] = useState<number | null>(null);
@@ -274,8 +275,18 @@ export default function DashboardPage() {
             <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-primary">
               {greeting}, {persona.name.split(" ")[0]}
             </h1>
-            <p className="mt-1 max-w-[60ch] text-sm text-text-secondary">
-              AdSnitch checks your ads against {prefs.brand}&rsquo;s approved claims and rules before they go live, and a person signs off.
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-secondary">
+              <span>
+                Workspace: <span className="font-medium text-text-primary">{prefs.brand}</span>
+              </span>
+              <span aria-hidden="true" className="text-text-muted">·</span>
+              <button
+                type="button"
+                onClick={openWorkspacePicker}
+                className={`rounded text-sm font-medium text-[#1f7fa3] underline-offset-4 hover:underline ${focusRing}`}
+              >
+                Switch
+              </button>
             </p>
           </div>
           <div className="relative" ref={exportRef}>
@@ -312,7 +323,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <StartHere />
         <CheckAnAd />
 
         {isSample && (
@@ -338,18 +348,28 @@ export default function DashboardPage() {
           ))}
         </section>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-status-warning/30 bg-status-warning/5 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-status-warning" />
-            <p className="text-sm text-text-secondary">
-              <span className="font-medium text-text-primary">Claims expire.</span> When a claim&rsquo;s proof lapses, ads that use it are sent back for another review.
-            </p>
-          </div>
-          <Link href="/knowledge-base/claims" className={`shrink-0 rounded text-sm font-medium text-text-primary underline-offset-4 hover:underline ${focusRing}`}>
-            Check expiry dates
-          </Link>
+        <StartHere />
+
+        <div className="glass rounded-2xl p-1.5 sm:inline-flex" role="tablist" aria-label="Reviews">
+          {([
+            ["attention", `Needs attention${attention.length ? ` (${attention.length})` : ""}`],
+            ["recent", "All recent"],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={listTab === id}
+              onClick={() => setListTab(id)}
+              className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${focusRing} ${
+                listTab === id ? "bg-text-primary text-white" : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
+        {listTab === "attention" ? (
         <section aria-labelledby="attention-h" className="glass rounded-2xl p-5 sm:p-6">
           <div className="mb-4 flex items-baseline justify-between gap-4">
             <h2 id="attention-h" className="flex items-center gap-1 text-base font-semibold text-text-primary">
@@ -372,6 +392,7 @@ export default function DashboardPage() {
           )}
         </section>
 
+        ) : (
         <section aria-labelledby="recent-h" className="glass rounded-2xl p-5 sm:p-6">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 id="recent-h" className="text-base font-semibold text-text-primary">Recent activity</h2>
@@ -428,6 +449,7 @@ export default function DashboardPage() {
             <Link href="/submissions" className={`rounded text-[13px] font-medium text-text-primary underline-offset-4 hover:underline ${focusRing}`}>View all reviews</Link>
           </div>
         </section>
+        )}
       </div>
     </AppLayout>
   );

@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header, HeaderBreadcrumb } from "./Header";
 import { CommandK } from "../ui/CommandK";
+import { PageMotion } from "./Motion";
+import { WorkspacePicker } from "../guide/WorkspacePicker";
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -62,6 +64,8 @@ export function AppLayout({
         <i />
       </div>
 
+      <WorkspacePicker />
+
       {/* Global CommandK Quick Switcher Dialog */}
       <CommandK
         isOpen={isCommandKOpen}
@@ -95,7 +99,7 @@ export function AppLayout({
             fullWidth ? "max-w-none" : "max-w-7xl mx-auto"
           } ${className}`}
         >
-          {children}
+          <PageMotion>{children}</PageMotion>
         </main>
       </div>
     </div>

@@ -112,3 +112,69 @@ export function useWorkspaceCounts(): WorkspaceCounts {
 
 export const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas";
+
+// ---------------------------------------------------------------------------
+// Workspaces: one per brand. Seeded ones mirror the demo data; new ones are
+// kept in localStorage until Supabase is connected.
+// ponytail: client-only store, move to a brands table when Supabase lands.
+export interface Workspace {
+  name: string;
+  industry: string;
+  channels: string[];
+  description?: string;
+  custom?: boolean;
+  createdAt?: string;
+}
+
+export const SEED_WORKSPACES: Workspace[] = [
+  { name: "Apex Nutrition", industry: "Health & nutrition", channels: ["Instagram", "Landing page", "Email"], description: "Sports supplements and recovery products." },
+  { name: "Zenith Cloud", industry: "Software", channels: ["LinkedIn", "Landing page", "Ads"], description: "Enterprise cloud hosting and security." },
+  { name: "Lumina Labs", industry: "Beauty & skincare", channels: ["Instagram", "TikTok", "Product page"], description: "Clinical skincare and serums." },
+];
+
+const WS_KEY = "adsnitch:workspaces";
+const WS_EVT = "adsnitch:workspaces";
+export const PICKER_EVT = "adsnitch:open-picker";
+export const PICKED_KEY = "adsnitch:workspace-picked";
+
+function readCustom(): Workspace[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(WS_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+export function useWorkspaces(): Workspace[] {
+  const [custom, set] = useState<Workspace[]>([]);
+  useEffect(() => {
+    set(readCustom());
+    const on = () => set(readCustom());
+    window.addEventListener(WS_EVT, on);
+    return () => window.removeEventListener(WS_EVT, on);
+  }, []);
+  return [...SEED_WORKSPACES, ...custom];
+}
+
+/** Adds a workspace and returns its name, or an error message. */
+export function addWorkspace(ws: Workspace): { ok: true; name: string } | { ok: false; error: string } {
+  const name = ws.name.trim().replace(/\s+/g, " ");
+  if (name.length < 2) return { ok: false, error: "Give the workspace a name of at least 2 characters." };
+  if (name.length > 60) return { ok: false, error: "Keep the name under 60 characters." };
+  const all = [...SEED_WORKSPACES, ...readCustom()];
+  if (all.some((w) => w.name.toLowerCase() === name.toLowerCase()))
+    return { ok: false, error: `A workspace called "${name}" already exists. Pick it from the list instead.` };
+  const next = [...readCustom(), { ...ws, name, custom: true, createdAt: new Date().toISOString() }];
+  try {
+    localStorage.setItem(WS_KEY, JSON.stringify(next));
+  } catch {
+    return { ok: false, error: "Your browser blocked saving. Turn off private mode and try again." };
+  }
+  window.dispatchEvent(new Event(WS_EVT));
+  return { ok: true, name };
+}
+
+export function openWorkspacePicker() {
+  window.dispatchEvent(new Event(PICKER_EVT));
+}

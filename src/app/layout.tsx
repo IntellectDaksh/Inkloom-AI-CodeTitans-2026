@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
+import { RouteProgress } from "@/components/layout/Motion";
 
 export const metadata: Metadata = {
   title: "AdSnitch — Pre-Publication Marketing Claim & Brand Governance Firewall",
@@ -18,6 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         {children}
       </body>
     </html>
