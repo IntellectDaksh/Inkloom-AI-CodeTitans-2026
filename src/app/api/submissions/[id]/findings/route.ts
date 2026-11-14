@@ -1,8 +1,9 @@
+import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { denyFor, type AppRole } from "@/app/api/approvals/rbac";
 
-export async function POST(
+async function POST_handler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -129,3 +130,5 @@ export async function POST(
     );
   }
 }
+
+export const POST = withStore(POST_handler);

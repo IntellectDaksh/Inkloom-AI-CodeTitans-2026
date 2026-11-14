@@ -1,8 +1,9 @@
+import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { SEED_IDS } from "@/lib/db/seed";
 
-export async function GET(req: NextRequest) {
+async function GET_handler(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const brandId = searchParams.get("brandId") || undefined;
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   try {
     const body = await req.json();
     const {
@@ -71,3 +72,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
+export const GET = withStore(GET_handler);
+export const POST = withStore(POST_handler);

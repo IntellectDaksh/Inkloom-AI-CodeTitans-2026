@@ -1,3 +1,4 @@
+import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { SEED_IDS } from "@/lib/db/seed";
@@ -8,7 +9,7 @@ const ENTITY_HREF: Record<string, (id: string) => string> = {
 };
 
 /** GET /api/audit — ledger of every audit event. ?verify=1 recomputes the SHA-256 chain server-side. */
-export async function GET(req: NextRequest) {
+async function GET_handler(req: NextRequest) {
   try {
     if (req.nextUrl.searchParams.get("verify") === "1") {
       return NextResponse.json({ success: true, verification: db.verifyAuditChain(), verifiedAt: new Date().toISOString() });
@@ -39,3 +40,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
+
+export const GET = withStore(GET_handler);

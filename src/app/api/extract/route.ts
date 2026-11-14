@@ -1,9 +1,10 @@
+import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { extractText, ExtractError, MAX_EXTRACT_BYTES } from "@/lib/ai/extract";
 
 export const maxDuration = 120;
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   let form: FormData;
   try {
     form = await req.formData();
@@ -26,3 +27,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Could not read this file. Try another format or paste the text." }, { status: 422 });
   }
 }
+
+export const POST = withStore(POST_handler);

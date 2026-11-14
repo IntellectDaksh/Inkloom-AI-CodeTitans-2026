@@ -1,8 +1,9 @@
+import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { denyFor, type AppRole } from "./rbac";
 
-export async function GET(req: NextRequest) {
+async function GET_handler(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const orgId = searchParams.get("orgId") || "org_uideas_digital";
@@ -29,7 +30,7 @@ function denyReason(role: AppRole | undefined, decision: Decision, reviewerId: s
   return null;
 }
 
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   try {
     const body = await req.json();
     let {
@@ -126,3 +127,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
+export const GET = withStore(GET_handler);
+export const POST = withStore(POST_handler);

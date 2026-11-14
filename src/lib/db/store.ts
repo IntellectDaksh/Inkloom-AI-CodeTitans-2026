@@ -65,6 +65,49 @@ function getDataFilePath(): string {
 
 let inMemoryState: InkloomDatabaseState | null = null;
 
+// ---------------------------------------------------------------------------
+// Supabase persistence: when Supabase is configured, the whole state lives in
+// one JSON document (public.app_state, id 'main'). Each API request pulls it
+// before running and pushes it back if anything changed (see withStore.ts).
+// ponytail: single-document, last-write-wins; move hot tables to the
+// relational schema in supabase/migrations when concurrent writers matter.
+// ---------------------------------------------------------------------------
+let remoteActive = false;
+let remoteDirty = false;
+const STATE_ID = 'main';
+
+export async function syncFromRemote(): Promise<void> {
+  const sb = getSupabaseClient();
+  if (!sb || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  const { data, error } = await sb.from('app_state').select('data').eq('id', STATE_ID).maybeSingle();
+  if (error) throw new Error(`Supabase read failed: ${error.message}`);
+  if (data?.data) {
+    inMemoryState = backfillSeed(data.data as InkloomDatabaseState);
+  } else {
+    inMemoryState = createInitialSeedState();
+    remoteActive = true;
+    remoteDirty = true;
+    await flushToRemote();
+  }
+  remoteActive = true;
+  remoteDirty = false;
+}
+
+export async function flushToRemote(): Promise<void> {
+  if (!remoteActive || !remoteDirty || !inMemoryState) return;
+  const sb = getSupabaseClient();
+  if (!sb) return;
+  const { error } = await sb
+    .from('app_state')
+    .upsert({ id: STATE_ID, data: inMemoryState, updated_at: new Date().toISOString() });
+  if (error) throw new Error(`Supabase write failed: ${error.message}`);
+  remoteDirty = false;
+}
+
+export function isRemoteStoreActive(): boolean {
+  return remoteActive;
+}
+
 // Re-reads the file every call so warm instances see writes from other requests.
 /** Add seed rows (by id) missing from an older data file, e.g. a brand added to the seed later. Never overwrites saved rows. */
 function backfillSeed(state: InkloomDatabaseState): InkloomDatabaseState {
@@ -79,6 +122,7 @@ function backfillSeed(state: InkloomDatabaseState): InkloomDatabaseState {
 }
 
 function loadState(): InkloomDatabaseState {
+  if (remoteActive && inMemoryState) return inMemoryState;
   const filePath = getDataFilePath();
   try {
     if (fs.existsSync(filePath)) {
@@ -96,6 +140,10 @@ function loadState(): InkloomDatabaseState {
 
 function saveState(state: InkloomDatabaseState): void {
   inMemoryState = state;
+  if (remoteActive) {
+    remoteDirty = true;
+    return;
+  }
   const body = JSON.stringify(state, null, 2);
   try {
     fs.writeFileSync(getDataFilePath(), body, 'utf-8');

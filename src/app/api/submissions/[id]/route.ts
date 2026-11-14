@@ -1,9 +1,10 @@
+import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runGovernancePipeline } from "@/lib/ai";
 import { withSources } from "../sources";
 
-export async function GET(
+async function GET_handler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -36,7 +37,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
+async function PATCH_handler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -92,3 +93,6 @@ export async function PATCH(
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
+export const GET = withStore(GET_handler);
+export const PATCH = withStore(PATCH_handler);

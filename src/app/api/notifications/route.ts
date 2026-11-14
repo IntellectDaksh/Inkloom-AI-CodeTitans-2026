@@ -1,3 +1,4 @@
+import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { SEED_IDS } from "@/lib/db/seed";
@@ -19,7 +20,7 @@ function syncExpiryAlerts(userId: string) {
   }
 }
 
-export async function GET(req: NextRequest) {
+async function GET_handler(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const userId = searchParams.get("userId") || "usr_daksh";
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+async function PATCH_handler(req: NextRequest) {
   try {
     const body = await req.json();
     const { notificationId } = body;
@@ -52,3 +53,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
+export const GET = withStore(GET_handler);
+export const PATCH = withStore(PATCH_handler);

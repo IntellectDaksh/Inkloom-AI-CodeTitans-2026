@@ -1,3 +1,4 @@
+import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db, SEED_IDS } from "@/lib/db";
 import { toClaimRecords, validateClaimRecord } from "@/lib/ai/extract";
@@ -8,7 +9,7 @@ const MAX_ROWS = 500;
  * Body: a JSON array of claims, `{ claims: [...] }`, `{ csv: "..." }`, or raw text/csv.
  * Imported claims land as under_review with evidence marked unverified; a human must approve them.
  */
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   const qs = req.nextUrl.searchParams;
   const orgId = qs.get("orgId") || SEED_IDS.ORGANISATION_UIDEAS;
   const defaultBrand = qs.get("brandId") || SEED_IDS.BRAND_APEX;
@@ -90,3 +91,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ imported: imported.length, rejected, claims: imported });
 }
+
+export const POST = withStore(POST_handler);
