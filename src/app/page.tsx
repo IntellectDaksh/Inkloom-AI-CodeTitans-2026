@@ -502,21 +502,28 @@ export default function Home() {
   };
 
   useEffect(() => {
+    const groups = ".lab-copy, .lab-report, .pipeline-list button, .incident-section article, .l-card, .l-faq details, .l-team li";
+    document.querySelectorAll<HTMLElement>(groups).forEach((node) => {
+      // Stagger within the parent group only, capped, so lower sections never beat upper ones.
+      const idx = node.parentElement ? Array.from(node.parentElement.children).indexOf(node) : 0;
+      node.classList.add("reveal");
+      node.style.transitionDelay = `${Math.min(idx * 50, 150)}ms`;
+    });
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>(".reveal"));
+    const vh = window.innerHeight;
+    // Anything already above or inside the viewport shows immediately.
+    nodes.forEach((n) => n.getBoundingClientRect().top < vh && n.classList.add("visible"));
     const observer = new IntersectionObserver(
       (entries) =>
-        entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("visible")),
-      { threshold: 0.13 },
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        }),
+      { rootMargin: "0px 0px -8% 0px", threshold: 0 },
     );
-    // Cards and rows also fade up as they enter, staggered within each group.
-    document
-      .querySelectorAll(
-        ".lab-copy, .lab-report, .pipeline-list button, .incident-section article, .l-card, .l-faq details, .l-team li",
-      )
-      .forEach((node, i) => {
-        node.classList.add("reveal");
-        (node as HTMLElement).style.transitionDelay = `${(i % 5) * 70}ms`;
-      });
-    document.querySelectorAll(".reveal").forEach((node) => observer.observe(node));
+    nodes.filter((n) => !n.classList.contains("visible")).forEach((n) => observer.observe(n));
     return () => observer.disconnect();
   }, []);
 
@@ -543,7 +550,7 @@ export default function Home() {
             <a className="nav-signin" href="/auth/login">
               Sign In
             </a>
-            <a className="nav-launch" href="/dashboard">
+            <a className="nav-launch" href="/dashboard?workspace=pick">
               Launch App <Icon name="arrow" size={14} />
             </a>
           </div>
@@ -565,7 +572,7 @@ export default function Home() {
               ["FAQ", "#faq"],
               ["Claims Library", "/knowledge-base/claims"],
               ["Sign In", "/auth/login"],
-              ["Launch App", "/dashboard"],
+              ["Launch App", "/dashboard?workspace=pick"],
             ].map(([label, href]) => (
               <a key={label} href={href} onClick={() => setMenuOpen(false)}>
                 {label} <Icon name="arrow" size={15} />
@@ -576,130 +583,94 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="hero-section">
-          <div className="hero-aurora" />
-          <Contours />
-          <div className="hero-content l-hero">
-            <p className="l-eyebrow">Pre-publication review for marketing teams</p>
-            <h1 className="l-h1">
-              Every ad claim, checked against <span>proof.</span>
-            </h1>
-            <p className="l-sub">
-              AdSnitch checks marketing copy before it goes live: every claim is matched to approved
-              proof, risky lines are explained with a fix, and a person signs off.
-            </p>
-            <div className="l-actions">
-              <ArrowLink href="#sandbox">Try a live check</ArrowLink>
-              <a className="l-textlink" href="/dashboard">
-                Open the app
-              </a>
-            </div>
-            <p className="l-meta">CodeTitans India 2026 · Round 3</p>
-          </div>
-
-          <div className="hero-editorial reveal visible">
-            <svg className="hero-illo l-illo" viewBox="0 0 1180 590" preserveAspectRatio="xMidYMid slice" role="img" aria-label="An ad draft with one flagged phrase is checked against three evidence sources and receives a reviewer's approval seal">
+        <section className="hero-section sky-hero">
+          <div className="sky-canvas">
+            <svg className="sky-art" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
               <defs>
-                <linearGradient id="ilBg" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#0d1e2b" />
-                  <stop offset="1" stopColor="#091520" />
+                <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#123a63" />
+                  <stop offset=".45" stopColor="#3f7fb3" />
+                  <stop offset=".8" stopColor="#a9d2ea" />
+                  <stop offset="1" stopColor="#e3f1f8" />
                 </linearGradient>
-                <linearGradient id="ilGlass" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="rgba(200,241,255,.10)" />
-                  <stop offset="1" stopColor="rgba(200,241,255,.03)" />
-                </linearGradient>
-                <radialGradient id="ilGlow" cx="0.5" cy="0.5" r="0.5">
-                  <stop offset="0" stopColor="rgba(38,151,189,.28)" />
-                  <stop offset="1" stopColor="rgba(38,151,189,0)" />
+                <radialGradient id="sunG" cx=".82" cy=".18" r=".55">
+                  <stop offset="0" stopColor="#ffe2b3" stopOpacity=".55" />
+                  <stop offset="1" stopColor="#ffe2b3" stopOpacity="0" />
                 </radialGradient>
-                <linearGradient id="ilLight" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0" stopColor="rgba(200,241,255,0)" />
-                  <stop offset=".5" stopColor="rgba(200,241,255,.95)" />
-                  <stop offset="1" stopColor="rgba(200,241,255,0)" />
-                </linearGradient>
-                <filter id="ilGrain">
-                  <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch" />
-                  <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .05 0" />
+                <radialGradient id="cloudBody" cx=".55" cy=".3" r=".75">
+                  <stop offset="0" stopColor="#fff8ec" />
+                  <stop offset=".45" stopColor="#f3f1ee" />
+                  <stop offset="1" stopColor="#9fb7cc" />
+                </radialGradient>
+                <filter id="paint" x="-20%" y="-20%" width="140%" height="140%">
+                  <feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="4" seed="7" />
+                  <feDisplacementMap in="SourceGraphic" scale="70" />
+                  <feGaussianBlur stdDeviation="3" />
+                </filter>
+                <filter id="paintSoft" x="-20%" y="-20%" width="140%" height="140%">
+                  <feTurbulence type="fractalNoise" baseFrequency=".02" numOctaves="3" seed="3" />
+                  <feDisplacementMap in="SourceGraphic" scale="45" />
+                  <feGaussianBlur stdDeviation="6" />
+                </filter>
+                <filter id="grainF">
+                  <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch" />
+                  <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .09 0" />
                 </filter>
               </defs>
-              <rect width="1180" height="590" fill="url(#ilBg)" />
-              <circle className="l-drift" cx="820" cy="300" r="300" fill="url(#ilGlow)" />
-              <path d="M0 470 H1180" stroke="rgba(200,241,255,.06)" />
-              <path d="M590 0 V590" stroke="rgba(200,241,255,.04)" />
-
-              {/* back sheet, soft glass layering */}
-              <rect x="118" y="132" width="420" height="330" rx="18" fill="url(#ilGlass)" stroke="rgba(200,241,255,.08)" />
-              {/* ad card */}
-              <g transform="translate(96 108)">
-                <rect width="440" height="350" rx="18" fill="#f7f9fb" />
-                <text x="36" y="52" className="il-meta">CAMPAIGN DRAFT — LANDING PAGE</text>
-                <path d="M36 70 H404" stroke="#e1e7ec" />
-                <text x="36" y="122" className="il-head">Recover faster,</text>
-                <text x="36" y="162" className="il-head">train harder.</text>
-                <text x="36" y="214" className="il-body">Our formula gives you</text>
-                <text x="210" y="214" className="il-body il-flag">2x faster</text>
-                <path d="M210 222 H292" stroke="#d9785a" strokeWidth="1.5" />
-                <text x="300" y="214" className="il-body">recovery</text>
-                <text x="36" y="242" className="il-body">with consistent training.</text>
-                <path d="M36 292 H404" stroke="#e1e7ec" />
-                <text x="36" y="320" className="il-meta">1 CLAIM NEEDS PROOF</text>
-                <circle cx="396" cy="316" r="4" fill="#d9785a" />
+              <rect width="1600" height="900" fill="url(#skyG)" />
+              <rect width="1600" height="900" fill="url(#sunG)" />
+              <g className="cloud-drift cloud-slow" filter="url(#paintSoft)" opacity=".55">
+                <ellipse cx="260" cy="200" rx="260" ry="60" fill="#e9f2f8" />
+                <ellipse cx="1150" cy="140" rx="300" ry="50" fill="#f6efe4" />
               </g>
-
-              {/* hairline connectors with travelling light */}
-              <g fill="none" stroke="rgba(200,241,255,.22)" strokeWidth="1">
-                <path id="ilC1" d="M536 218 C 610 218, 630 170, 700 170" />
-                <path id="ilC2" d="M536 218 C 610 218, 630 270, 700 270" />
-                <path id="ilC3" d="M536 218 C 610 218, 630 370, 700 370" />
-                <path d="M950 170 C 990 170, 990 270, 1010 270 M950 270 H1010 M950 370 C 990 370, 990 270, 1010 270" stroke="rgba(200,241,255,.14)" />
+              <g className="cloud-drift" filter="url(#paint)">
+                <ellipse cx="1180" cy="560" rx="360" ry="170" fill="url(#cloudBody)" />
+                <ellipse cx="1000" cy="470" rx="190" ry="150" fill="url(#cloudBody)" />
+                <ellipse cx="1290" cy="400" rx="210" ry="180" fill="url(#cloudBody)" />
+                <ellipse cx="1470" cy="520" rx="200" ry="140" fill="url(#cloudBody)" />
+                <ellipse cx="1300" cy="330" rx="120" ry="80" fill="#fff4df" opacity=".9" />
+                <ellipse cx="1040" cy="400" rx="90" ry="50" fill="#ffeacb" opacity=".8" />
               </g>
-              <g className="l-travel">
-                {["ilC1", "ilC2", "ilC3"].map((id, i) => (
-                  <circle key={id} r="2.2" fill="#c8f1ff">
-                    <animateMotion dur="5.5s" begin={`${i * 1.3}s`} repeatCount="indefinite">
-                      <mpath href={`#${id}`} />
-                    </animateMotion>
-                  </circle>
-                ))}
+              <g className="cloud-drift cloud-alt" filter="url(#paint)" opacity=".92">
+                <ellipse cx="300" cy="760" rx="420" ry="150" fill="url(#cloudBody)" />
+                <ellipse cx="140" cy="660" rx="190" ry="130" fill="url(#cloudBody)" />
+                <ellipse cx="420" cy="650" rx="160" ry="120" fill="url(#cloudBody)" />
+                <ellipse cx="400" cy="590" rx="90" ry="50" fill="#fff1d8" opacity=".85" />
               </g>
-
-              {/* evidence ledger */}
-              <text x="700" y="128" className="il-ledger">EVIDENCE LEDGER</text>
-              {[
-                [170, "Trial registry", "No matching outcome", "#d9785a"],
-                [270, "Approved claims", "Support language only", "#c8f1ff"],
-                [370, "Brand rules", "Absolutes prohibited", "#2697bd"],
-              ].map(([y, t, d, c]) => (
-                <g key={t as string} transform={`translate(700 ${(y as number) - 30})`}>
-                  <rect width="250" height="60" rx="12" fill="url(#ilGlass)" stroke="rgba(200,241,255,.16)" />
-                  <rect x="0" y="18" width="2" height="24" rx="1" fill={c as string} />
-                  <text x="22" y="27" className="il-chip">{t}</text>
-                  <text x="22" y="45" className="il-chip-sub">{d}</text>
-                </g>
-              ))}
-
-              {/* approval seal */}
-              <g transform="translate(1060 270)" className="l-seal">
-                <circle r="58" fill="none" stroke="rgba(200,241,255,.18)" />
-                <circle r="46" fill="#2697bd" fillOpacity=".14" stroke="#2697bd" />
-                <circle r="38" fill="none" stroke="rgba(200,241,255,.4)" strokeDasharray="1 4" />
-                <path d="M-12 1 l8 8 16 -18" fill="none" stroke="#c8f1ff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                <text y="82" textAnchor="middle" className="il-ledger">SIGNED OFF</text>
+              <g filter="url(#paint)">
+                <ellipse cx="800" cy="930" rx="900" ry="140" fill="#eef4f8" />
               </g>
-              <rect width="1180" height="590" filter="url(#ilGrain)" />
+              <rect width="1600" height="900" filter="url(#grainF)" />
             </svg>
-            <div className="editorial-caption">
-              <span className="caption-mark">
-                <Icon name="shield" size={19} />
-              </span>
-              <div>
-                <small>AdSnitch governance principle</small>
-                <b>Every consequential sentence should carry its proof and its owner.</b>
+
+            <div className="sky-copy">
+              <h1 className="sky-h1">Every ad claim, checked against proof.</h1>
+              <p className="sky-sub">
+                Risky lines flagged, explained and fixed, then signed off by a person before anything ships.
+              </p>
+              <div className="l-actions">
+                <ArrowLink href="#sandbox">Try a live check</ArrowLink>
+                <a className="l-textlink sky-link" href="/dashboard?workspace=pick">
+                  Open the app
+                </a>
               </div>
             </div>
-            <div className="editorial-signal">
-              <i />
-              Evidence stays attached through review
+
+            <div className="sky-cards">
+              <div className="glass-card glass-stat">
+                <b>26 / 30</b>
+                <p>labelled issues caught</p>
+                <a href="/evaluations">Measured on our evaluation set</a>
+              </div>
+              <div className="glass-card glass-finding">
+                <small>Live finding</small>
+                <p className="gf-quote">
+                  &ldquo;<u>2x faster</u> recovery&rdquo;
+                </p>
+                <p className="gf-out">
+                  <Icon name="arrow" size={14} /> Requires substantiation &middot; FTC 16 CFR 255
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -1158,25 +1129,13 @@ export default function Home() {
             ))}
           </div>
           <ul className="l-team reveal" aria-label="Team">
-            {[
-              ["Daksh Agrawal", "Lead, product & integration"],
-              ["Laksh Khatri", "Backend & AI"],
-              ["Riddhi Shah", "Frontend & UX"],
-              ["Mansoor Rupawala", "Testing & reliability"],
-            ].map(([name, role]) => (
-              <li key={name}>
-                <span aria-hidden="true">
-                  {name
-                    .split(" ")
-                    .map((w) => w[0])
-                    .join("")}
-                </span>
-                <div>
-                  <b>{name}</b>
-                  <small>{role}</small>
-                </div>
-              </li>
-            ))}
+            <li>
+              <span aria-hidden="true">DA</span>
+              <div>
+                <b>Built by Daksh Agrawal</b>
+                <small>Product, design and engineering</small>
+              </div>
+            </li>
           </ul>
         </section>
 
@@ -1244,7 +1203,7 @@ export default function Home() {
               ["Product", [["Live check", "#sandbox"], ["How it works", "#pipeline"], ["Proof", "#proof"], ["FAQ", "#faq"]]],
               ["Knowledge", [["Claims library", "/knowledge-base/claims"], ["Brand guidelines", "/knowledge-base/guidelines"], ["Terminology", "/knowledge-base/terminology"], ["Evidence documents", "/knowledge-base/assets"]]],
               ["Governance", [["The problem", "#problem"], ["Who it's for", "#who"], ["Analytics", "/analytics"], ["Trust & team", "#trust"]]],
-              ["Project", [["Open the app", "/dashboard"], ["Evaluation report", "/evaluations"], ["Source code", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"], ["Report an issue", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026/issues"]]],
+              ["Project", [["Open the app", "/dashboard?workspace=pick"], ["Evaluation report", "/evaluations"], ["Source code", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"], ["Report an issue", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026/issues"]]],
             ] as [string, [string, string][]][]
           ).map(([title, links]) => (
             <div className="footer-column" key={title}>

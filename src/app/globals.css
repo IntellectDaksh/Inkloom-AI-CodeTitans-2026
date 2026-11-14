@@ -964,3 +964,11 @@ html[data-motion="off"] .set-anim, html[data-motion="reduced"] .set-anim { trans
 :root[data-motion="off"] .fl-layer { display: none; }
 :root[data-motion="reduced"] .fl-item { animation: none; }
 html[data-breathing="off"] .fl-item, html[data-breathing="off"] .global-atmosphere, html[data-breathing="off"] .hero-aurora { animation: none !important; }
+
+.fl-rule { padding: 6px 10px; border-radius: 8px; border: 1px dashed rgba(9, 21, 32, 0.25); background: rgba(255, 255, 255, 0.5); color: #2b4556; font: 600 12px "IBM Plex Mono", monospace; }
+.fl-stamp { padding: 6px 14px; border: 2px solid rgba(15, 154, 110, 0.6); border-radius: 8px; color: #0f9a6e; font: 700 15px "Space Grotesk", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; transform: rotate(-8deg); }
+.fl-bars { display: flex; align-items: flex-end; gap: 5px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.55); border: 1px solid rgba(255, 255, 255, 0.9); }
+.fl-bars i { width: 8px; border-radius: 3px; background: linear-gradient(180deg, #7cddff, #2697bd); }
+.fl-verified { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.65); border: 1px solid rgba(15, 154, 110, 0.3); color: #1c7d5c; font: 600 13px "Inter", sans-serif; }
+.fl-verified span { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #0f9a6e; color: #fff; font-size: 11px; }
+@media (max-width: 700px) { .fl-page .fl-item:nth-child(n + 6) { display: none; } }

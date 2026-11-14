@@ -8,7 +8,7 @@ import type { CSSProperties } from "react";
  * content. Decorative only: aria-hidden, no pointer events, off for reduced motion.
  */
 type Item = {
-  kind: "card" | "tag" | "seal" | "mark" | "quote" | "score";
+  kind: "card" | "tag" | "seal" | "mark" | "quote" | "score" | "rule" | "stamp" | "bars" | "verified";
   top: string;
   left: string;
   scale: number;
@@ -24,6 +24,12 @@ const PAGE: Item[] = [
   { kind: "mark", top: "72%", left: "82%", scale: 1, blur: 3.5, dur: 17, delay: -2 },
   { kind: "quote", top: "88%", left: "40%", scale: 1.2, blur: 4, dur: 23, delay: -11 },
   { kind: "score", top: "46%", left: "70%", scale: 0.85, blur: 5, dur: 18, delay: -6 },
+  { kind: "rule", top: "24%", left: "56%", scale: 0.9, blur: 4, dur: 20, delay: -3 },
+  { kind: "stamp", top: "8%", left: "74%", scale: 1, blur: 2, dur: 22, delay: -9 },
+  { kind: "bars", top: "64%", left: "30%", scale: 0.9, blur: 4.5, dur: 19, delay: -14 },
+  { kind: "verified", top: "40%", left: "14%", scale: 1, blur: 2, dur: 16, delay: -5 },
+  { kind: "tag", top: "94%", left: "8%", scale: 0.9, blur: 3, dur: 21, delay: -10 },
+  { kind: "card", top: "52%", left: "92%", scale: 0.8, blur: 4, dur: 25, delay: -16 },
 ];
 
 const APP: Item[] = [
@@ -31,6 +37,8 @@ const APP: Item[] = [
   { kind: "seal", top: "70%", left: "90%", scale: 0.8, blur: 4, dur: 22, delay: -7 },
   { kind: "card", top: "78%", left: "18%", scale: 0.85, blur: 5, dur: 24, delay: -12 },
   { kind: "mark", top: "36%", left: "60%", scale: 0.8, blur: 6, dur: 20, delay: -5 },
+  { kind: "verified", top: "10%", left: "44%", scale: 0.85, blur: 5, dur: 21, delay: -3 },
+  { kind: "bars", top: "56%", left: "4%", scale: 0.8, blur: 5, dur: 23, delay: -9 },
 ];
 
 function Shape({ kind }: { kind: Item["kind"] }) {
@@ -58,6 +66,25 @@ function Shape({ kind }: { kind: Item["kind"] }) {
       return <div className="fl-mark">2x faster</div>;
     case "quote":
       return <div className="fl-quote">&ldquo;</div>;
+    case "rule":
+      return <div className="fl-rule">FTC 16 CFR 255</div>;
+    case "stamp":
+      return <div className="fl-stamp">Approved</div>;
+    case "bars":
+      return (
+        <div className="fl-bars">
+          <i style={{ height: 18 }} />
+          <i style={{ height: 30 }} />
+          <i style={{ height: 24 }} />
+          <i style={{ height: 40 }} />
+        </div>
+      );
+    case "verified":
+      return (
+        <div className="fl-verified">
+          <span>&#10003;</span> Source attached
+        </div>
+      );
     case "score":
       return (
         <div className="fl-score">

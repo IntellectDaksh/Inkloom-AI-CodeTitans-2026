@@ -82,7 +82,7 @@ const SEED_CLAIMS: Claim[] = [
     id: "clm-apx-002", code: "CLM-APX-002", brand: "Apex Nutrition", type: "Certification",
     text: "Informed-Sport certified. Every batch is tested for substances on the WADA prohibited list.",
     expiresAt: "2026-12-01", updatedAt: "2026-10-28",
-    channels: ["Packaging", "Website", "Ambassador kits"], owner: "Mansoor R., Quality Assurance",
+    channels: ["Packaging", "Website", "Ambassador kits"], owner: "Analyst R., Quality Assurance",
     prohibited: ["100% drug free", "Guaranteed safe for all athletes", "Banned-substance proof"],
     evidence: [
       { source: "Certificate of analysis, batch IS-8921", kind: "Certificate", ref: "LGC-IS-2026-Q1", excerpt: "All screened compounds were below the limit of quantification (LOQ < 10 ng/g).", version: "Q1 2026", checkedAt: "2026-10-28" },

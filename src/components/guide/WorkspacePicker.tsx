@@ -83,6 +83,12 @@ export function WorkspacePicker() {
     try {
       sessionStorage.setItem(PICKED_KEY, "1");
     } catch {}
+    // Drop ?workspace=pick so a reload doesn't reopen the chooser.
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("workspace") === "pick") {
+      url.searchParams.delete("workspace");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
     const d = ref.current;
     if (!d) return;
     d.classList.add("ws-leaving");

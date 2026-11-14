@@ -4,7 +4,7 @@
  * - Organisation: 'Uideas Digital Workspace'
  * - Active Brand: 'Apex Nutrition' + 'Zenith Cloud SaaS'
  * - Current User: 'Daksh Agrawal' (Admin)
- * - Team Members: 'Riddhi S.' (Creator), 'Laksh K.' (Reviewer), 'Mansoor R.' (Brand Manager)
+ * - Team Members: 'Creator S.' (Creator), 'Demo Reviewer' (Reviewer), 'Analyst R.' (Brand Manager)
  * - 8+ Verified Claims with Clinical Evidence (including 2+ expiring claims)
  * - 6 Documents & Brand Assets
  * - 5 Submissions including 'Q4 Campaign – Reel Script' with 3 distinct findings and revisions
@@ -117,8 +117,8 @@ export const seedUsers: UserProfile[] = [
   {
     id: SEED_IDS.USER_RIDDHI,
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
-    email: 'riddhi@uideas.digital',
-    full_name: 'Riddhi S.',
+    email: 'creator@demo.adsnitch',
+    full_name: 'Creator S.',
     avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=128&auto=format&fit=crop&q=80',
     role: 'creator',
     job_title: 'Senior Content Producer & Copywriter',
@@ -133,8 +133,8 @@ export const seedUsers: UserProfile[] = [
   {
     id: SEED_IDS.USER_LAKSH,
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
-    email: 'laksh@uideas.digital',
-    full_name: 'Laksh K.',
+    email: 'reviewer@demo.adsnitch',
+    full_name: 'Demo Reviewer',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&auto=format&fit=crop&q=80',
     role: 'reviewer',
     job_title: 'Lead Legal & Regulatory Reviewer',
@@ -149,8 +149,8 @@ export const seedUsers: UserProfile[] = [
   {
     id: SEED_IDS.USER_MANSOOR,
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
-    email: 'mansoor@uideas.digital',
-    full_name: 'Mansoor R.',
+    email: 'analyst@demo.adsnitch',
+    full_name: 'Analyst R.',
     avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=128&auto=format&fit=crop&q=80',
     role: 'brand_manager',
     job_title: 'VP of Brand Governance',
@@ -376,7 +376,7 @@ export const seedGuidelineVersions: GuidelineVersion[] = [
     version_number: 1,
     title: 'Scientific, Authoritative & Grounded Tone v1.0',
     rule_content: 'Initial tone and voice definition for Apex Nutrition Q1 release.',
-    changelog: 'Initial baseline guidelines established by Mansoor R.',
+    changelog: 'Initial baseline guidelines established by Analyst R.',
     created_by: SEED_IDS.USER_MANSOOR,
     created_at: '2026-01-05T00:00:00.000Z',
   },
@@ -943,7 +943,7 @@ export const seedSubmissionVersions: SubmissionVersion[] = [
     submission_id: SEED_IDS.SUB_REEL_SCRIPT,
     version_number: 1,
     content: seedSubmissions[0].raw_content,
-    change_summary: 'Initial draft submitted by Riddhi S. for compliance analysis.',
+    change_summary: 'Initial draft submitted by Creator S. for compliance analysis.',
     created_by: SEED_IDS.USER_RIDDHI,
     created_at: '2026-11-07T09:30:00.000Z',
   },
@@ -1252,7 +1252,7 @@ export const seedComments: Comment[] = [
     finding_id: SEED_IDS.FINDING_UNSUPPORTED_1,
     author_id: SEED_IDS.USER_LAKSH,
     parent_comment_id: null,
-    content: 'Riddhi, please accept the AI suggested revision on the 14-day muscle gain claim. The FTC has been aggressively issuing warning letters on timeframe muscle promises.',
+    content: 'Creator, please accept the AI suggested revision on the 14-day muscle gain claim. The FTC has been aggressively issuing warning letters on timeframe muscle promises.',
     is_internal_only: false,
     created_at: '2026-11-07T10:15:00.000Z',
     updated_at: '2026-11-07T10:15:00.000Z',
@@ -1263,7 +1263,7 @@ export const seedComments: Comment[] = [
     finding_id: SEED_IDS.FINDING_UNSUPPORTED_1,
     author_id: SEED_IDS.USER_RIDDHI,
     parent_comment_id: '00000000-0000-4000-cmt0-000000000001',
-    content: 'Understood Laksh! I will adopt the revised copy and add the CT-8842 footnote to the on-screen graphics overlay.',
+    content: 'Understood Reviewer! I will adopt the revised copy and add the CT-8842 footnote to the on-screen graphics overlay.',
     is_internal_only: false,
     created_at: '2026-11-07T11:20:00.000Z',
     updated_at: '2026-11-07T11:20:00.000Z',
@@ -1375,7 +1375,7 @@ export const seedNotifications: Notification[] = [
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
     user_id: SEED_IDS.USER_LAKSH,
     title: 'Review Assigned: Q4 Campaign – Reel Script',
-    message: 'Riddhi S. assigned you to review Q4 Campaign – Reel Script. 3 compliance flags require action.',
+    message: 'Creator S. assigned you to review Q4 Campaign – Reel Script. 3 compliance flags require action.',
     notification_type: 'review_assigned',
     link_url: '/submissions/00000000-0000-4000-c000-000000000001',
     is_read: false,
@@ -1387,7 +1387,7 @@ export const seedNotifications: Notification[] = [
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
     user_id: SEED_IDS.USER_RIDDHI,
     title: 'Changes Requested: Website Banner - V2',
-    message: 'Mansoor R. requested changes on Website Banner - V2: Replace "100% Risk Free" with approved satisfaction guarantee.',
+    message: 'Analyst R. requested changes on Website Banner - V2: Replace "100% Risk Free" with approved satisfaction guarantee.',
     notification_type: 'changes_requested',
     link_url: '/submissions/00000000-0000-4000-c000-000000000003',
     is_read: true,

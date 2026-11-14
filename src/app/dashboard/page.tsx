@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { StartHere } from "@/components/guide/StartHere";
 import { InfoTip } from "@/components/guide/HelpPanel";
+import { QuickTutorial } from "@/components/guide/QuickTutorial";
 import { usePrefs, personaOf, focusRing, openWorkspacePicker } from "@/components/guide/workspace";
 
 type Status = "pending" | "approved" | "changes_requested";
@@ -26,9 +27,9 @@ interface SubmissionItem {
 
 // Shown only if the API is unreachable, and labelled as sample data in the UI.
 const SAMPLE: SubmissionItem[] = [
-  { id: "sub_reel_script", title: "Q4 Campaign - Clinical Protein Reel Script", brand: "Apex Nutrition", channel: "Instagram Reel", author: "Riddhi S.", status: "pending", score: 18, submittedAt: "14m ago" },
-  { id: "sub_insta_launch", title: "Product Launch - Recovery Blend Carousel", brand: "Apex Nutrition", channel: "Instagram Carousel", author: "Laksh K.", status: "approved", score: 96, submittedAt: "1h ago" },
-  { id: "sub_banner_v2", title: "Global Website Banner - Winter Immunity V2", brand: "Apex Nutrition", channel: "Homepage Hero", author: "Mansoor R.", status: "changes_requested", score: 64, submittedAt: "2h ago" },
+  { id: "sub_reel_script", title: "Q4 Campaign - Clinical Protein Reel Script", brand: "Apex Nutrition", channel: "Instagram Reel", author: "Creator S.", status: "pending", score: 18, submittedAt: "14m ago" },
+  { id: "sub_insta_launch", title: "Product Launch - Recovery Blend Carousel", brand: "Apex Nutrition", channel: "Instagram Carousel", author: "Demo Reviewer", status: "approved", score: 96, submittedAt: "1h ago" },
+  { id: "sub_banner_v2", title: "Global Website Banner - Winter Immunity V2", brand: "Apex Nutrition", channel: "Homepage Hero", author: "Analyst R.", status: "changes_requested", score: 64, submittedAt: "2h ago" },
 ];
 
 const STATUS: Record<Status, { label: string; variant: "pending" | "warning" | "approved" }> = {
@@ -347,6 +348,7 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
           )}
         </div>
 
+        <QuickTutorial />
         <CheckAnAd />
 
         {isSample && (
