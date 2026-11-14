@@ -3,6 +3,8 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import "./landing.css";
 import { FloatingLayer } from "@/components/layout/FloatingLayer";
+import { SkyClouds } from "@/components/landing/SkyClouds";
+import { HeroCharacter } from "@/components/landing/HeroCharacter";
 
 type IconName =
   | "shield"
@@ -588,8 +590,8 @@ export default function Home() {
             <svg className="sky-art" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
               <defs>
                 <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#123a63" />
-                  <stop offset=".45" stopColor="#3f7fb3" />
+                  <stop offset="0" stopColor="#5b8fbd" />
+                  <stop offset=".45" stopColor="#8bbadb" />
                   <stop offset=".8" stopColor="#a9d2ea" />
                   <stop offset="1" stopColor="#e3f1f8" />
                 </linearGradient>
@@ -597,51 +599,11 @@ export default function Home() {
                   <stop offset="0" stopColor="#ffe2b3" stopOpacity=".55" />
                   <stop offset="1" stopColor="#ffe2b3" stopOpacity="0" />
                 </radialGradient>
-                <radialGradient id="cloudBody" cx=".55" cy=".3" r=".75">
-                  <stop offset="0" stopColor="#fff8ec" />
-                  <stop offset=".45" stopColor="#f3f1ee" />
-                  <stop offset="1" stopColor="#9fb7cc" />
-                </radialGradient>
-                <filter id="paint" x="-20%" y="-20%" width="140%" height="140%">
-                  <feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="4" seed="7" />
-                  <feDisplacementMap in="SourceGraphic" scale="70" />
-                  <feGaussianBlur stdDeviation="3" />
-                </filter>
-                <filter id="paintSoft" x="-20%" y="-20%" width="140%" height="140%">
-                  <feTurbulence type="fractalNoise" baseFrequency=".02" numOctaves="3" seed="3" />
-                  <feDisplacementMap in="SourceGraphic" scale="45" />
-                  <feGaussianBlur stdDeviation="6" />
-                </filter>
-                <filter id="grainF">
-                  <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch" />
-                  <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .09 0" />
-                </filter>
               </defs>
               <rect width="1600" height="900" fill="url(#skyG)" />
               <rect width="1600" height="900" fill="url(#sunG)" />
-              <g className="cloud-drift cloud-slow" filter="url(#paintSoft)" opacity=".55">
-                <ellipse cx="260" cy="200" rx="260" ry="60" fill="#e9f2f8" />
-                <ellipse cx="1150" cy="140" rx="300" ry="50" fill="#f6efe4" />
-              </g>
-              <g className="cloud-drift" filter="url(#paint)">
-                <ellipse cx="1180" cy="560" rx="360" ry="170" fill="url(#cloudBody)" />
-                <ellipse cx="1000" cy="470" rx="190" ry="150" fill="url(#cloudBody)" />
-                <ellipse cx="1290" cy="400" rx="210" ry="180" fill="url(#cloudBody)" />
-                <ellipse cx="1470" cy="520" rx="200" ry="140" fill="url(#cloudBody)" />
-                <ellipse cx="1300" cy="330" rx="120" ry="80" fill="#fff4df" opacity=".9" />
-                <ellipse cx="1040" cy="400" rx="90" ry="50" fill="#ffeacb" opacity=".8" />
-              </g>
-              <g className="cloud-drift cloud-alt" filter="url(#paint)" opacity=".92">
-                <ellipse cx="300" cy="760" rx="420" ry="150" fill="url(#cloudBody)" />
-                <ellipse cx="140" cy="660" rx="190" ry="130" fill="url(#cloudBody)" />
-                <ellipse cx="420" cy="650" rx="160" ry="120" fill="url(#cloudBody)" />
-                <ellipse cx="400" cy="590" rx="90" ry="50" fill="#fff1d8" opacity=".85" />
-              </g>
-              <g filter="url(#paint)">
-                <ellipse cx="800" cy="930" rx="900" ry="140" fill="#eef4f8" />
-              </g>
-              <rect width="1600" height="900" filter="url(#grainF)" />
             </svg>
+            <SkyClouds />
 
             <div className="sky-copy">
               <h1 className="sky-h1">Every ad claim, checked against proof.</h1>
@@ -655,6 +617,8 @@ export default function Home() {
                 </a>
               </div>
             </div>
+
+            <HeroCharacter />
 
             <div className="sky-cards">
               <div className="glass-card glass-stat">

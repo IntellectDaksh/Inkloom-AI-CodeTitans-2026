@@ -8067,3 +8067,44 @@ a.l-card:hover, a.l-card:focus-visible { transform: translateY(-2px); border-col
   .incident-section, .lab, .pipeline-section, .l-section, .final-section { padding-top: 40px !important; padding-bottom: 40px !important; }
   .incident-head, .lab-head, .pipeline-sticky, .l-head { margin-bottom: 24px !important; }
 }
+
+/* ===== Round 6: ink type on the sky, wandering clouds, hero character ===== */
+.sky-canvas { background: #8bbadb; }
+.sky-clouds { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.sky-cloud { position: absolute; will-change: transform; transform-origin: 50% 60%; }
+.sky-ground { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sky-copy { position: relative; }
+.sky-copy::before {
+  content: ""; position: absolute; inset: -18% -14% -22% -10%; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(240, 248, 253, 0.62), rgba(240, 248, 253, 0.28) 60%, transparent);
+}
+.sky-h1 { color: #0b1620; text-shadow: none; }
+.sky-sub { color: #26394a; font-weight: 500; text-shadow: none; }
+.sky-link { color: #0b1620 !important; text-decoration-color: rgba(11, 22, 32, 0.4) !important; }
+.nav-center a, .nav-signin { color: #0b1620 !important; }
+
+.hero-char { position: absolute; top: 96px; right: 48px; width: min(30vw, 380px); pointer-events: none; }
+.hero-char * { transform-box: fill-box; }
+.hc-figure { animation: hcBob 4.6s ease-in-out infinite; }
+.hc-head { transform-origin: 50% 90%; animation: hcTilt 5.8s ease-in-out infinite; }
+.hc-q { animation: hcFloat 4s ease-in-out infinite; }
+.hc-q2 { animation-delay: -1.3s; animation-duration: 5s; }
+.hc-q3 { animation-delay: -2.6s; animation-duration: 4.4s; }
+.hc-bubble { transform-origin: 20% 100%; animation: hcPop 6s ease-in-out infinite; }
+.hc-q-state { animation: hcQ 6s ease-in-out infinite; }
+.hc-ok-state { opacity: 0; animation: hcOk 6s ease-in-out infinite; }
+@keyframes hcBob { 50% { transform: translateY(-5px); } }
+@keyframes hcTilt { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(4deg); } }
+@keyframes hcFloat { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-8px) rotate(6deg); } }
+@keyframes hcQ { 0%, 52% { opacity: 1; } 60%, 92% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes hcOk { 0%, 52% { opacity: 0; } 60%, 92% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes hcPop { 0%, 54% { transform: scale(1); } 58% { transform: scale(1.04); } 62%, 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-char *, .hero-char { animation: none !important; }
+}
+html[data-motion="off"] .hero-char *, html[data-motion="reduced"] .hero-char * { animation: none !important; }
+@media (min-width: 901px) { .sky-copy { max-width: min(980px, 64%); } }
+@media (max-width: 900px) {
+  .hero-char { position: static; width: min(72vw, 300px); justify-self: center; order: 2; }
+  .sky-cards { order: 3; }
+}
