@@ -5,7 +5,7 @@ import { ArrowRight, Download, FileUp, Plus, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { FileDrop, KbHeader, Modal, Toast, area, csvCell, download, field, focusRing, labelCls, parseCsv } from "@/components/knowledge/kb";
+import { FileDrop, KbHeader, Modal, Toast, area, csvCell, download, field, focusRing, labelCls, parseCsv, useStored } from "@/components/knowledge/kb";
 
 type Severity = "critical" | "high" | "medium";
 interface Term { term: string; kind: "blocked" | "preferred"; note: string; replacement: string; severity: Severity }
@@ -33,7 +33,7 @@ const TEMPLATE = "term,kind,replacement,reason,severity\n" +
   ["clinically proven", "blocked", "clinically studied", "Needs a published trial", "high"].map(csvCell).join(",") + "\n";
 
 export default function TerminologyPage() {
-  const [terms, setTerms] = useState<Term[]>(INITIAL);
+  const [terms, setTerms] = useStored<Term[]>("adsnitch:kb-terms", INITIAL);
   const [q, setQ] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ ok: Term[]; bad: number } | null>(null);
@@ -54,7 +54,7 @@ export default function TerminologyPage() {
     setTerms((p) => [{ term: s("term"), kind: s("kind") as Term["kind"], replacement: s("replacement"), note: s("note"), severity: s("severity") as Severity }, ...p]);
     e.currentTarget.reset();
     addRef.current?.close();
-    flash(`Added "${s("term")}".`);
+    flash(`Added "${s("term")}". Saved on this device.`);
   }
 
   function parse(text: string) {
@@ -156,7 +156,7 @@ export default function TerminologyPage() {
             <div className="flex justify-end">
               <Button size="sm" className="h-10" disabled={!preview.ok.length} onClick={() => {
                 setTerms((p) => [...preview.ok, ...p]);
-                flash(`Imported ${preview.ok.length} terms.`);
+                flash(`Imported ${preview.ok.length} terms. Saved on this device.`);
                 importRef.current?.close();
               }}>Import {preview.ok.length} terms</Button>
             </div>

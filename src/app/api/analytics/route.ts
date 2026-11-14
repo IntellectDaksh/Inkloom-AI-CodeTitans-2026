@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { SEED_IDS } from "@/lib/db/seed";
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const orgId = searchParams.get("orgId") || "org_uideas_digital";
+    const orgId = searchParams.get("orgId") || SEED_IDS.ORGANISATION_UIDEAS;
     const brandId = searchParams.get("brandId") || undefined;
 
     const stats = db.getAnalytics(orgId, brandId);

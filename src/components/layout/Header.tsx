@@ -176,7 +176,16 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
                   <li key={n.id}>
                     <Link
                       href={n.linkUrl || n.link_url || "/notifications"}
-                      onClick={() => setIsNotifOpen(false)}
+                      onClick={() => {
+                        setIsNotifOpen(false);
+                        if (n.isRead ?? n.is_read) return;
+                        setNotifs((cur) => cur?.map((x) => (x.id === n.id ? { ...x, isRead: true, is_read: true } : x)) ?? null);
+                        fetch("/api/notifications", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ notificationId: n.id }),
+                        }).catch(() => {});
+                      }}
                       className={`block rounded-lg px-3 py-2.5 hover:bg-panel-hover ${focusRing}`}
                     >
                       <span className="block text-[13px] font-medium text-text-primary line-clamp-1">{n.title}</span>

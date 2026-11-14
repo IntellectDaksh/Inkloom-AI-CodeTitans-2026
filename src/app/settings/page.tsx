@@ -325,14 +325,14 @@ export default function SettingsPage() {
               <Segmented label="Density" value={prefs.density} onChange={(v) => save({ density: v })} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />
               <Slider label="Text size" min={14} max={17} unit="px" value={prefs.textSize} onChange={(v) => save({ textSize: v })} />
               <Divided>
-                <Toggle label="Breathing background" hint="The soft moving glow behind every page." checked={prefs.breathing} disabled={prefs.motion !== "full"} onChange={(v) => save({ breathing: v })} />
+                <Toggle label="Breathing background" hint={prefs.motion === "full" ? "The soft moving glow behind every page." : "Turn Motion back to Full to use this."} checked={prefs.breathing} disabled={prefs.motion !== "full"} onChange={(v) => save({ breathing: v })} />
               </Divided>
             </Panel>
 
             <Panel id="notifications" title="Notifications" desc="Where you hear about approvals and requested changes.">
               <Divided>
                 <Toggle label="In-app" hint="Shows the unread dot on the bell in the header." checked={prefs.notifyInApp} onChange={(v) => save({ notifyInApp: v })} />
-                <Toggle label="Email" hint="Coming with Supabase. Nothing is emailed yet." checked={false} disabled onChange={() => {}} />
+                <Toggle label="Email" hint="Unavailable: email needs a mail server, and this build has none connected. Nothing is emailed." checked={false} disabled onChange={() => {}} />
               </Divided>
               <div className="glass-inset rounded-xl p-4 text-[13px] text-text-secondary">
                 <p className="font-medium text-text-primary">Email preview</p>

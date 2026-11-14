@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef, useId, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { FileUp, Loader2, X } from "lucide-react";
 
@@ -40,6 +40,25 @@ export async function extractFile(file: File): Promise<Extracted> {
   if (res.status === 502) throw new Error("We could not read that file this time. Please try again, or upload a text or Word version.");
   if (!res.ok) throw new Error(data.error ||`Could not read that file (error ${res.status}).`);
   return data as Extracted;
+}
+
+// ---------- Device storage ----------
+/** useState that also persists to localStorage ("saved on this device") until a DB table exists. */
+export function useStored<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [v, set] = useState<T>(initial);
+  const loaded = useRef(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) set(JSON.parse(raw) as T);
+    } catch {}
+    loaded.current = true;
+  }, [key]);
+  useEffect(() => {
+    if (!loaded.current) return;
+    try { localStorage.setItem(key, JSON.stringify(v)); } catch {}
+  }, [key, v]);
+  return [v, set];
 }
 
 // ---------- CSV ----------

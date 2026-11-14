@@ -119,8 +119,9 @@ export default function ApprovalsPage() {
   /** Why an action is blocked for the current persona, or null if allowed. */
   const blocked = (i: Item, a: Action): string | null => {
     if (me.role === "creator") return "Creators cannot approve or send back ads. Switch to a reviewer or admin to decide.";
+    // Server rejects any decision on your own ad (api/approvals denyReason), so block all three here.
+    if (i.authorId === me.userId) return "You wrote this ad, so someone else has to decide on it.";
     if (a === "override") return me.role === "admin" ? null : "Only an admin can override a decision.";
-    if (i.authorId === me.userId && a === "approve") return "You wrote this ad, so someone else has to approve it.";
     return null;
   };
 

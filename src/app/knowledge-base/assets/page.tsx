@@ -6,7 +6,7 @@ import { FileText, FileUp } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { FileDrop, KbHeader, Modal, Toast, UNVERIFIED, focusRing } from "@/components/knowledge/kb";
+import { FileDrop, KbHeader, Modal, Toast, UNVERIFIED, focusRing, useStored } from "@/components/knowledge/kb";
 
 interface Asset {
   id: string;
@@ -32,7 +32,7 @@ const sizeOf = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 export default function DocumentAssetsPage() {
-  const [docs, setDocs] = useState<Asset[]>(INITIAL);
+  const [docs, setDocs] = useStored<Asset[]>("adsnitch:kb-docs", INITIAL);
   const [open, setOpen] = useState<Asset | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const uploadRef = useRef<HTMLDialogElement>(null);
@@ -80,7 +80,7 @@ export default function DocumentAssetsPage() {
             };
             setDocs((p) => [d, ...p]);
             uploadRef.current?.close();
-            setToast(`${r.fileName} added. ${r.chars.toLocaleString()} characters read.`);
+            setToast(`${r.fileName} added. ${r.chars.toLocaleString()} characters read. Saved on this device.`);
             window.setTimeout(() => setToast(null), 4000);
           }} />
         <p className="text-[13px] text-text-muted">Uploaded documents are {UNVERIFIED.toLowerCase()}.</p>

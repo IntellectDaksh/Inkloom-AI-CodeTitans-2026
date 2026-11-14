@@ -74,7 +74,7 @@ const SEED_CLAIMS: Claim[] = [
       { source: "Internal formulation sheet", kind: "Internal document", ref: "FORM-APX-ISO-12", excerpt: "Each serving provides 25 g whey isolate with 2.8 g leucine.", version: "v5", checkedAt: "2026-09-30" },
     ],
     usage: [
-      { id: "sub_reel_script", title: "Q4 campaign, clinical protein reel script", channel: "Instagram Reel", date: "2026-11-12" },
+      { id: "00000000-0000-4000-c000-000000000001", title: "Q4 campaign, clinical protein reel script", channel: "Instagram Reel", date: "2026-11-12" },
       { id: "sub_pdp_headline", title: "Iso-Whey product page headline", channel: "Product page", date: "2026-10-20" },
     ],
   },
@@ -88,8 +88,8 @@ const SEED_CLAIMS: Claim[] = [
       { source: "Certificate of analysis, batch IS-8921", kind: "Certificate", ref: "LGC-IS-2026-Q1", excerpt: "All screened compounds were below the limit of quantification (LOQ < 10 ng/g).", version: "Q1 2026", checkedAt: "2026-10-28" },
     ],
     usage: [
-      { id: "sub_insta_launch", title: "Recovery blend carousel", channel: "Instagram Carousel", date: "2026-11-13" },
-      { id: "sub_athlete_ad", title: "College athlete sponsorship ad", channel: "Video ad", date: "2026-10-04" },
+      { id: "00000000-0000-4000-c000-000000000002", title: "Recovery blend carousel", channel: "Instagram Carousel", date: "2026-11-13" },
+      { id: "00000000-0000-4000-c000-000000000005", title: "College athlete sponsorship ad", channel: "Video ad", date: "2026-10-04" },
     ],
   },
   {
@@ -123,7 +123,7 @@ const SEED_CLAIMS: Claim[] = [
     evidence: [
       { source: "Electrolyte osmolality report EOS-2023", kind: "Lab test", ref: "USP <785>", excerpt: "Solution measured 285 mOsm/kg, within isotonic range.", version: "v1", checkedAt: "2025-08-15" },
     ],
-    usage: [{ id: "sub_hydration_v2", title: "Hydration electrolytes ad, version 2", channel: "Instagram Reel", date: "2026-07-30" }],
+    usage: [{ id: "00000000-0000-4000-c000-000000000003", title: "Hydration electrolytes ad, version 2", channel: "Instagram Reel", date: "2026-07-30" }],
   },
   {
     id: "clm-apx-006", code: "CLM-APX-006", brand: "Apex Nutrition", type: "Ingredient",
@@ -229,6 +229,21 @@ const STATUS: Record<Status, { label: string; variant: "approved" | "warning" | 
   draft: { label: "Draft", variant: "draft" },
 };
 
+// Claim edits, uploaded evidence and sign-offs the API has no field for are kept on this device.
+// ponytail: localStorage overlay keyed by claim id; drop once the claims table stores evidence + sign-offs.
+const LOCAL_KEY = "adsnitch:kb-claims-local";
+function readLocal(): Record<string, Claim> {
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}"); } catch { return {}; }
+}
+function writeLocal(list: Claim[]) {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ ...readLocal(), ...Object.fromEntries(list.map((c) => [c.id, c])) })); } catch {}
+}
+function withLocal(list: Claim[]): Claim[] {
+  const local = readLocal();
+  const ids = new Set(list.map((c) => c.id));
+  return [...Object.values(local).filter((c) => c.localOnly && !ids.has(c.id)), ...list.map((c) => (local[c.id] ? { ...local[c.id], apiId: c.apiId } : c))];
+}
+
 const BRANDS: Brand[] = ["Apex Nutrition", "Zenith Cloud", "Lumina Labs"];
 const DAY = 86_400_000;
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -246,6 +261,8 @@ function sourceHref(ev: Evidence): string | undefined {
   if (doi) return `https://doi.org/${doi}`;
   return /^https?:\/\//.test(ev.ref ?? "") ? ev.ref : undefined;
 }
+/** Demo usage rows with a "sub_" id have no review on file, so they render as plain text. */
+const hasReview = (u: Usage) => !u.id.startsWith("sub_");
 const today = () => new Date().toISOString().slice(0, 10);
 const cap = (s?: string) => (s ? s[0].toUpperCase() + s.slice(1).replace(/_/g, " ") : "General");
 
@@ -346,9 +363,10 @@ function ClaimsLibrary() {
       if (!res.ok || !data.success) throw new Error();
       const api = (data.claims as unknown[]).map(fromApi);
       // Keep claims created on this device that the server never saw.
-      setClaims((prev) => [...prev.filter((c) => c.localOnly), ...merge(SEED_CLAIMS, api)]);
+      setClaims(withLocal(merge(SEED_CLAIMS, api)));
       setLoadState("live");
     } catch {
+      setClaims(withLocal(SEED_CLAIMS));
       setLoadState("offline");
     }
   }, []);
@@ -357,7 +375,11 @@ function ClaimsLibrary() {
 
   // The drawer reads the live claim by id so edits, evidence and flags show immediately.
   const current = open ? claims.find((c) => c.id === open.id) ?? open : null;
-  const patch = (id: string, fn: (c: Claim) => Claim) => setClaims((prev) => prev.map((c) => (c.id === id ? fn(c) : c)));
+  const patch = (id: string, fn: (c: Claim) => Claim) => setClaims((prev) => {
+    const next = prev.map((c) => (c.id === id ? fn(c) : c));
+    writeLocal(next.filter((c) => c.id === id));
+    return next;
+  });
 
   async function createClaims(inputs: NewClaimInput[]): Promise<string> {
     let saved = 0;
@@ -385,6 +407,7 @@ function ClaimsLibrary() {
       };
       made.push({ ...base, brand: c.brand, type: c.type, draft: true, channels: c.channels, evidence, owner: "You" });
     }
+    writeLocal(made);
     setClaims((prev) => [...made, ...prev]);
     const n = inputs.length;
     const m = `Added ${n} draft claim${n === 1 ? "" : "s"}.` +
@@ -431,10 +454,19 @@ function ClaimsLibrary() {
     const expiresAt = String(f.get("expires") || current.expiresAt);
     if (!text) return;
     const changed = text !== current.text || expiresAt !== current.expiresAt;
-    // ponytail: edits are client-side only; add PATCH /api/claims/[id] to persist them.
     patch(current.id, (x) => ({ ...x, text, expiresAt, updatedAt: today(), edited: x.edited || changed, flaggedAt: changed ? undefined : x.flaggedAt }));
     setEditing(false);
-    if (changed) { checkUsage(current); flash("Claim updated. Drafts that use it are listed under Re-review."); }
+    if (!changed) return;
+    const c = current;
+    checkUsage(c);
+    if (!c.apiId) { flash("Claim updated and saved on this device. Drafts that use it are listed under Re-review."); return; }
+    fetch(`/api/claims/${encodeURIComponent(c.apiId)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ claimText: text, expiresAt }),
+    })
+      .then((r) => r.json().then((d) => (r.ok && d.success ? null : Promise.reject(d.error))))
+      .then(() => flash("Claim updated on the server. Drafts that use it are listed under Re-review."))
+      .catch(() => flash("Saved on this device only. The server could not be updated."));
   }
 
   async function attachEvidence(c: Claim, text: string, file: File) {
@@ -445,7 +477,7 @@ function ClaimsLibrary() {
       ...x,
       evidence: [...x.evidence, { source: fileName, kind: "Uploaded file", ref: fileName, excerpt, version: "v1", checkedAt: today(), userAdded: true, fileName, fileId }],
     }));
-    flash(`${fileName} attached as evidence.`);
+    flash(`${fileName} attached as evidence. Saved on this device.`);
   }
 
   function verifyEvidence(e: React.FormEvent<HTMLFormElement>, c: Claim, idx: number) {
@@ -453,7 +485,7 @@ function ClaimsLibrary() {
     const name = String(new FormData(e.currentTarget).get("reviewer") ?? "").trim();
     if (!name) return;
     patch(c.id, (x) => ({ ...x, evidence: x.evidence.map((ev, i) => (i === idx ? { ...ev, verifiedBy: name, verifiedAt: today() } : ev)) }));
-    flash("Evidence marked as verified.");
+    flash("Evidence marked as verified. Saved on this device.");
   }
 
   const needsReview = claims.filter((c) => !c.flaggedAt && c.usage.length > 0 && (c.edited || statusOf(c) === "expired"));
@@ -697,7 +729,7 @@ function ClaimsLibrary() {
                 {current.usage.length > 0 && (
                   <ul className="mt-3 space-y-1 text-sm">
                     {current.usage.map((u) => (
-                      <li key={u.id}><Link href={`/submissions/${u.id}`} className={`rounded underline-offset-4 hover:underline ${focusRing}`}>{u.title}</Link> <span className="text-text-muted">({u.channel})</span></li>
+                      <li key={u.id}>{hasReview(u) ? <Link href={`/submissions/${u.id}`} className={`rounded underline-offset-4 hover:underline ${focusRing}`}>{u.title}</Link> : <span>{u.title}</span>} <span className="text-text-muted">({u.channel}{hasReview(u) ? "" : ", demo, no review on file"})</span></li>
                     ))}
                   </ul>
                 )}
@@ -797,13 +829,20 @@ function ClaimsLibrary() {
                 <ul className="-mx-3 space-y-1">
                   {current.usage.map((u) => (
                     <li key={u.id}>
-                      <Link href={`/submissions/${u.id}`} className={`flex items-center gap-4 rounded-xl px-3 py-3 hover:bg-panel-hover ${focusRing}`}>
-                        <div className="min-w-0 flex-1">
+                      {hasReview(u) ? (
+                        <Link href={`/submissions/${u.id}`} className={`flex items-center gap-4 rounded-xl px-3 py-3 hover:bg-panel-hover ${focusRing}`}>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{u.title}</p>
+                            <p className="mt-1 text-[13px] text-text-muted">{u.channel}, {fmt(u.date)}</p>
+                          </div>
+                          <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-text-muted" />
+                        </Link>
+                      ) : (
+                        <div className="px-3 py-3">
                           <p className="truncate text-sm font-medium">{u.title}</p>
-                          <p className="mt-1 text-[13px] text-text-muted">{u.channel}, {fmt(u.date)}</p>
+                          <p className="mt-1 text-[13px] text-text-muted">{u.channel}, {fmt(u.date)}. Demo usage, no review on file.</p>
                         </div>
-                        <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-text-muted" />
-                      </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

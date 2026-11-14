@@ -168,6 +168,7 @@ export function ReasonModal({
         </p>
       )}
       <p className="text-[13px] text-text-muted">{c.note}</p>
+      {empty && <p className="text-[13px] text-text-muted">Pick a reason above or write one to continue.</p>}
     </Modal>
   );
 }

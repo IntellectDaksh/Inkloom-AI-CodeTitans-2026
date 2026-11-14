@@ -708,7 +708,16 @@ function DecisionModal({
   const [ack, setAck] = useState(false);
   const approving = decision === "approved";
   const needsAck = approving && highRisk > 0;
-  const blocked = (!approving && !notes.trim()) || (needsAck && (!ack || !notes.trim()));
+  // Server rejects non-approval decisions with a reason under 5 characters.
+  const short = notes.trim().length < 5;
+  const blocked = (!approving && short) || (needsAck && (!ack || !notes.trim()));
+  const hint = !blocked
+    ? null
+    : !approving
+    ? "Write at least 5 characters about what needs to change."
+    : !notes.trim()
+    ? "Add a sign-off reason and tick the box to approve."
+    : "Tick the box to confirm your sign-off.";
   return (
     <Modal
       title={approving ? "Approve this ad" : "Ask for changes"}
@@ -746,6 +755,7 @@ function DecisionModal({
           <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5 h-4 w-4" />I reviewed the high-risk issues and take responsibility for this sign-off.
         </label>
       )}
+      {hint && <p className="text-[13px] text-text-muted" aria-live="polite">{hint}</p>}
     </Modal>
   );
 }

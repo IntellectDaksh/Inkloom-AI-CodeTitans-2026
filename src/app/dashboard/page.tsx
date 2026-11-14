@@ -247,6 +247,30 @@ export default function DashboardPage() {
   };
 
   const exportRows = brandSubs.map((s) => ({ id: s.id, title: s.title, brand: s.brand, channel: s.channel, score: s.score, status: STATUS[s.status].label, author: s.author }));
+  // Opens a print-ready report; the browser's "Save as PDF" produces the file.
+  const handleExportPDF = () => {
+    const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+    const rows = exportRows
+      .map((r) => `<tr><td>${esc(r.title)}</td><td>${esc(r.channel)}</td><td>${r.score ?? "-"}</td><td>${esc(r.status)}</td><td>${esc(r.author)}</td></tr>`)
+      .join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>AdSnitch report - ${esc(prefs.brand)}</title>
+<style>body{font:14px/1.5 Inter,system-ui,sans-serif;color:#091520;margin:40px}h1{font-size:24px;margin:0 0 4px}p{color:#536474;margin:0 0 24px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #dfe6ec}th{font-size:12px;color:#536474}
+footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
+<h1>Review report: ${esc(prefs.brand)}</h1><p>Generated ${new Date().toLocaleString()} by ${esc(persona.name)} · ${exportRows.length} reviews</p>
+<table><thead><tr><th>Title</th><th>Channel</th><th>Score</th><th>Status</th><th>Author</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No reviews yet.</td></tr>'}</tbody></table>
+<footer>AdSnitch · Scores are out of 100. Approved means a reviewer signed off.</footer></body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) {
+      notify("Your browser blocked the report window. Allow pop-ups for this site and try again.");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+    notify("Report opened. Choose \"Save as PDF\" in the print dialog.");
+  };
   const handleExportJSON = () => {
     download(JSON.stringify({ exportedAt: new Date().toISOString(), brand: prefs.brand, reviews: exportRows }, null, 2), "application/json", "json");
     notify("Downloaded as JSON.");
@@ -306,7 +330,7 @@ export default function DashboardPage() {
                 {[
                   { label: "CSV spreadsheet", onClick: handleExportCSV },
                   { label: "JSON file", onClick: handleExportJSON },
-                  { label: "Signed PDF (preview)", onClick: () => { setShowExportMenu(false); router.push("/prototype-notice?feature=certified_pdf_engine"); } },
+                  { label: "PDF report", onClick: handleExportPDF },
                 ].map((o) => (
                   <button key={o.label} role="menuitem" onClick={o.onClick} className={`w-full rounded-lg px-3 py-2 text-left text-sm text-text-primary hover:bg-panel-hover ${focusRing}`}>
                     {o.label}

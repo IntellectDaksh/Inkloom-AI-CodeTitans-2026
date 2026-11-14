@@ -25,7 +25,9 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    db.markNotificationRead(notificationId);
+    if (!db.markNotificationRead(notificationId)) {
+      return NextResponse.json({ success: false, error: "Notification not found" }, { status: 404 });
+    }
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

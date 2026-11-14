@@ -5,7 +5,7 @@ import { Check, FileUp, Plus, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Extracted, FileDrop, KbHeader, Modal, Toast, area, field, labelCls } from "@/components/knowledge/kb";
+import { Extracted, FileDrop, KbHeader, Modal, Toast, area, field, labelCls, useStored } from "@/components/knowledge/kb";
 
 interface GuidelineRule {
   id: string;
@@ -56,7 +56,7 @@ function ruleFromText(r: Extracted): GuidelineRule {
 }
 
 export default function BrandGuidelinesPage() {
-  const [rules, setRules] = useState<GuidelineRule[]>(INITIAL);
+  const [rules, setRules] = useStored<GuidelineRule[]>("adsnitch:kb-guidelines", INITIAL);
   const [cat, setCat] = useState("all");
   const [draft, setDraft] = useState<GuidelineRule | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -79,7 +79,7 @@ export default function BrandGuidelinesPage() {
     e.currentTarget.reset();
     setDraft(null);
     dialog?.close();
-    flash(`Saved "${title}". New ad checks will use it.`);
+    flash(`Saved "${title}". Saved on this device.`);
   }
 
   const visible = rules.filter((r) => cat === "all" || r.category === cat);

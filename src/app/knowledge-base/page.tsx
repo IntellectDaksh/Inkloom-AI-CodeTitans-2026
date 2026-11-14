@@ -54,14 +54,14 @@ export default function KnowledgeBasePage() {
     {
       title: "Guidelines", icon: BookOpen, href: "/knowledge-base/guidelines",
       body: "Tone, wording and legal rules written in plain sentences. The checker reads them as written.",
-      count: "Sample", countLabel: "rules shown until saving is connected",
-      tip: "The guidelines page starts with example rules. Edits stay in this tab until the database move.", sample: true,
+      count: "Sample", countLabel: "rules saved on this device",
+      tip: "The guidelines page starts with example rules. Your edits are saved on this device until the database move.", sample: true,
     },
     {
       title: "Terminology", icon: Tag, href: "/knowledge-base/terminology",
       body: "Words to avoid and what to say instead, with the reason so writers understand the swap.",
-      count: "Sample", countLabel: "terms shown until saving is connected",
-      tip: "The terminology page starts with example terms. Edits stay in this tab until the database move.", sample: true,
+      count: "Sample", countLabel: "terms saved on this device",
+      tip: "The terminology page starts with example terms. Your edits are saved on this device until the database move.", sample: true,
     },
   ];
 

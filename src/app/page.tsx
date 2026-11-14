@@ -473,6 +473,10 @@ export default function Home() {
   };
 
   const runCheck = async () => {
+    if (!ownText.trim()) {
+      setOwnError("Paste some ad copy or upload a file first.");
+      return;
+    }
     setOwnError("");
     setBusy("check");
     try {
@@ -813,7 +817,7 @@ export default function Home() {
                     <button
                       className="lab-cta"
                       onClick={runCheck}
-                      disabled={busy !== null || !ownText.trim()}
+                      disabled={busy !== null}
                     >
                       {busy === "check" ? "Checking…" : "Check it"} <Icon name="arrow" size={15} />
                     </button>
@@ -1235,19 +1239,27 @@ export default function Home() {
             <p>Pre-publication marketing claim and brand governance.</p>
             <span>Formerly Inkloom AI</span>
           </div>
-          {[
-            ["Product", "Live check", "How it works", "Proof", "FAQ"],
-            ["Knowledge", "Claims library", "Brand guidelines", "Terminology", "Evidence assets"],
-            ["Governance", "Rule engine", "Sector playbooks", "Analytics", "Security"],
-            ["Company", "About", "Contact", "Privacy", "Legal"],
-          ].map(([title, ...links]) => (
+          {(
+            [
+              ["Product", [["Live check", "#sandbox"], ["How it works", "#pipeline"], ["Proof", "#proof"], ["FAQ", "#faq"]]],
+              ["Knowledge", [["Claims library", "/knowledge-base/claims"], ["Brand guidelines", "/knowledge-base/guidelines"], ["Terminology", "/knowledge-base/terminology"], ["Evidence documents", "/knowledge-base/assets"]]],
+              ["Governance", [["The problem", "#problem"], ["Who it's for", "#who"], ["Analytics", "/analytics"], ["Trust & team", "#trust"]]],
+              ["Project", [["Open the app", "/dashboard"], ["Evaluation report", "/evaluations"], ["Source code", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"], ["Report an issue", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026/issues"]]],
+            ] as [string, [string, string][]][]
+          ).map(([title, links]) => (
             <div className="footer-column" key={title}>
               <b>{title}</b>
-              {links.map((link) => (
-                <a href="#" key={link}>
-                  {link}
-                </a>
-              ))}
+              {links.map(([label, href]) =>
+                href.startsWith("http") ? (
+                  <a href={href} key={label} target="_blank" rel="noreferrer">
+                    {label}
+                  </a>
+                ) : (
+                  <a href={href} key={label}>
+                    {label}
+                  </a>
+                ),
+              )}
             </div>
           ))}
         </div>

@@ -454,7 +454,7 @@ export default function NewSubmissionPage() {
               <span />
             )}
             {step < 2 ? (
-              <Button size="md" onClick={next} iconRight={<ArrowRight className="h-4 w-4" />} disabled={step === 0 && stillReading}>
+              <Button size="md" onClick={next} iconRight={<ArrowRight className="h-4 w-4" />}>
                 Continue
               </Button>
             ) : (
