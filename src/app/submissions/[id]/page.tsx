@@ -27,6 +27,7 @@ import {
 } from "@/components/submission/shared";
 import { PERSONAS, personaOf, setPrefs, usePrefs, Role } from "@/components/guide/workspace";
 
+type Decision = "approved" | "changes_requested" | "rejected";
 type Actor = { id: string; name: string; role: Role };
 type AuditItem = { action: string; actor: string; role: Role | string; time: string; reason?: string };
 
@@ -72,7 +73,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [reasonModal, setReasonModal] = useState<{ kind: ReasonKind; finding: FindingItem } | null>(null);
   const [evidenceFinding, setEvidenceFinding] = useState<FindingItem | null>(null);
-  const [approveOpen, setApproveOpen] = useState<null | "approved" | "changes_requested">(null);
+  const [approveOpen, setApproveOpen] = useState<null | Decision>(null);
   const [toast, setToast] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [audit, setAudit] = useState<AuditItem[]>([]);
   const prefs = usePrefs();
@@ -203,7 +204,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
     saveContent(next, `Applied ${safeFixes.length} suggested fix${safeFixes.length === 1 ? "" : "es"}`);
   };
 
-  const findingAction = async (kind: ReasonKind, f: FindingItem, reason: string, evidence: string) => {
+  const findingAction = async (kind: ReasonKind, f: FindingItem, reason: string, evidence: string, file: { name: string; text: string } | null = null) => {
     setBusy(kind);
     try {
       await call(`/api/submissions/${id}/findings`, "POST", {
@@ -212,13 +213,16 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
         reason,
         memo: reason,
         evidence,
+        evidenceFile: file,
         userId: actor.id,
         reviewerId: actor.id,
         role: actor.role,
       });
+      const res = kind === "dispute" ? await fetch(`/api/submissions/${id}`).then((r) => r.json()).catch(() => null) : null;
+      const fresh = res?.findings?.find((x: FindingItem) => x.id === f.id);
       const patch: Partial<FindingItem> =
         kind === "dispute"
-          ? { status: "disputed", dispute_reason: reason }
+          ? { status: "disputed", dispute_reason: reason, counter_evidence: fresh?.counter_evidence ?? null }
           : kind === "dismiss"
           ? { status: "dismissed", dismissal_reason: reason }
           : { status: "overridden", override_memo: reason, overridden_by: actor.name };
@@ -254,7 +258,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
     }
   };
 
-  const decide = async (decision: "approved" | "changes_requested", notes: string) => {
+  const decide = async (decision: Decision, notes: string) => {
     if (!canDecide) return flash("You can't approve your own ad. A reviewer has to sign off.", "err");
     setBusy("decide");
     try {
@@ -267,8 +271,14 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
         notes,
       });
       setSubmission(data.submission ?? { ...submission, status: decision });
-      log(decision === "approved" ? (highRisk.length ? "Approved with high-risk sign-off" : "Approved") : "Requested changes", notes);
-      flash(decision === "approved" ? "Approved. The team can now publish it themselves." : "Changes requested. The author has been told.");
+      log(decision === "approved" ? (highRisk.length ? "Approved with high-risk sign-off" : "Approved") : decision === "rejected" ? "Rejected" : "Requested changes", notes);
+      flash(
+        decision === "approved"
+          ? "Approved. The team can now publish it themselves."
+          : decision === "rejected"
+          ? "Rejected. The author has been told this ad can't run."
+          : "Changes requested. The author has been told."
+      );
       setApproveOpen(null);
     } catch (e) {
       flash((e as Error).message, "err");
@@ -426,6 +436,9 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
               </Button>
             ) : (
               <>
+                <Button variant="secondary" onClick={() => setApproveOpen("rejected")} disabled={!canDecide || status === "rejected"}>
+                  Reject
+                </Button>
                 <Button variant="secondary" onClick={() => setApproveOpen("changes_requested")} disabled={!canDecide}>
                   Request changes
                 </Button>
@@ -606,7 +619,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
                   onDismiss={() => setReasonModal({ kind: "dismiss", finding: f })}
                   onDispute={() => setReasonModal({ kind: "dispute", finding: f })}
                   onOverride={() =>
-                    actor.role === "creator" ? flash("Only a reviewer or admin can override an issue. Use Dispute instead.", "err") : setReasonModal({ kind: "override", finding: f })
+                    actor.role === "creator" || actor.role === "reviewer" ? flash("Only a brand manager or admin can override an issue.", "err") : setReasonModal({ kind: "override", finding: f })
                   }
                   onEvidence={() => setEvidenceFinding(f)}
                 />
@@ -669,7 +682,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
           signer={`${actor.name} (${actor.role})`}
           busy={busy === reasonModal.kind}
           onClose={() => setReasonModal(null)}
-          onConfirm={(reason, ev) => findingAction(reasonModal.kind, reasonModal.finding, reason, ev)}
+          onConfirm={(reason, ev, file) => findingAction(reasonModal.kind, reasonModal.finding, reason, ev, file)}
         />
       )}
       {evidenceFinding && (
@@ -698,11 +711,11 @@ function DecisionModal({
   onClose,
   onConfirm,
 }: {
-  decision: "approved" | "changes_requested";
+  decision: Decision;
   highRisk: number;
   busy: boolean;
   onClose: () => void;
-  onConfirm: (d: "approved" | "changes_requested", notes: string) => void;
+  onConfirm: (d: Decision, notes: string) => void;
 }) {
   const [notes, setNotes] = useState("");
   const [ack, setAck] = useState(false);
@@ -714,13 +727,15 @@ function DecisionModal({
   const hint = !blocked
     ? null
     : !approving
-    ? "Write at least 5 characters about what needs to change."
+    ? decision === "rejected"
+      ? "Write at least 5 characters on why this ad can't run."
+      : "Write at least 5 characters about what needs to change."
     : !notes.trim()
     ? "Add a sign-off reason and tick the box to approve."
     : "Tick the box to confirm your sign-off.";
   return (
     <Modal
-      title={approving ? "Approve this ad" : "Ask for changes"}
+      title={approving ? "Approve this ad" : decision === "rejected" ? "Reject this ad" : "Ask for changes"}
       onClose={onClose}
       footer={
         <>
@@ -728,7 +743,7 @@ function DecisionModal({
             Cancel
           </Button>
           <Button size="sm" loading={busy} disabled={blocked} onClick={() => onConfirm(decision, notes.trim() || "Approved after review.")}>
-            {approving ? "Approve" : "Send back"}
+            {approving ? "Approve" : decision === "rejected" ? "Reject" : "Send back"}
           </Button>
         </>
       }
@@ -740,7 +755,7 @@ function DecisionModal({
       )}
       <div className="space-y-2">
         <label htmlFor="decision-notes" className="text-sm font-medium">
-          {approving ? (needsAck ? "Sign-off reason" : "Note (optional)") : "What needs to change?"}
+          {approving ? (needsAck ? "Sign-off reason" : "Note (optional)") : decision === "rejected" ? "Why can't this ad run?" : "What needs to change?"}
         </label>
         <textarea
           id="decision-notes"

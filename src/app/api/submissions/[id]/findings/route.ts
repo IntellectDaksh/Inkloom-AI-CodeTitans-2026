@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { denyFor, type AppRole } from "@/app/api/approvals/rbac";
 
 export async function POST(
   req: NextRequest,
@@ -13,10 +14,11 @@ export async function POST(
       action,
       reason = "",
       evidence = "",
-      memo = "Override authorized under Legal Memo LM-2026-44",
-      reviewerId = "usr_daksh",
-      userId = "usr_creator",
-    } = body;
+      memo = "",
+      reviewerId = "",
+      userId = "",
+      evidenceFile = null,
+    } = body as Record<string, any>;
 
     if (!findingId || !action) {
       return NextResponse.json(
@@ -25,13 +27,39 @@ export async function POST(
       );
     }
 
+    // Permission matrix: see src/app/api/approvals/rbac.ts. Role is read from the stored profile.
+    const actorId: string = action === "dispute" ? userId || reviewerId : reviewerId || userId;
+    const role = db.getUserRole(actorId) as AppRole | undefined;
+    const perm = action === "dispute" ? "dispute" : action === "dismiss" ? "dismiss" : action === "override" ? "override_finding" : null;
+    if (perm) {
+      const denied = denyFor(role, perm);
+      const sub = db.getSubmission(submissionId);
+      const finding = db.listFindings(submissionId).find((f) => f.id === findingId);
+      if (!sub || !finding) {
+        return NextResponse.json({ success: false, error: "Finding or submission not found." }, { status: 404 });
+      }
+      const own = perm !== "dispute" && sub.authorId === actorId ? "You can't clear findings on your own submission." : null;
+      const needReason = (perm === "dismiss" && reason.trim().length < 5) || (perm === "override_finding" && String(memo).trim().length < 5)
+        ? "Add a short reason (5+ characters)." : null;
+      const disputeEmpty = perm === "dispute" && !reason.trim() && !String(evidence).trim() && !evidenceFile
+        ? "Add a reason or counter-evidence for the dispute." : null;
+      const block = denied || own || needReason || disputeEmpty;
+      if (block) {
+        db.recordAuditEvent({
+          organizationId: sub.organisation_id, brandId: sub.brand_id, userId: actorId || null,
+          action: "action_blocked", entityType: "submission", entityId: submissionId,
+          metadata: { attempted: action, findingId, role: role ?? null, reason: block },
+        });
+        return NextResponse.json({ success: false, error: block }, { status: 403 });
+      }
+    }
+
     if (action === "dispute") {
-      const dispute = db.raiseDispute(
-        findingId,
-        userId,
-        reason || "Creator asserts compliance with statutory safe harbor provisions.",
-        evidence || undefined
-      );
+      const file =
+        evidenceFile && typeof evidenceFile.name === "string" && typeof evidenceFile.text === "string"
+          ? { name: evidenceFile.name.slice(0, 200), text: evidenceFile.text }
+          : null;
+      const dispute = db.raiseDispute(findingId, actorId, reason || "Counter-evidence attached.", evidence || undefined, file);
       const submission = db.getSubmission(submissionId);
       const findings = db.listFindings(submissionId);
       return NextResponse.json({
@@ -47,8 +75,8 @@ export async function POST(
     if (action === "dismiss") {
       const result = db.dismissFinding(
         findingId,
-        reviewerId || userId,
-        reason || "Permitted exception per brand guideline tolerance policy."
+        actorId,
+        reason
       );
       if (!result) {
         return NextResponse.json(
@@ -70,8 +98,8 @@ export async function POST(
     if (action === "override") {
       const result = db.recordFindingOverride(
         findingId,
-        reviewerId,
-        memo || "Override authorized under Legal Memo LM-2026-44"
+        actorId,
+        memo
       );
       if (!result) {
         return NextResponse.json(

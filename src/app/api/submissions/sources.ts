@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { SEED_IDS } from "@/lib/db/seed";
 import type { EvidenceSource } from "@/components/submission/shared";
@@ -37,6 +38,17 @@ export function withSources<T extends Record<string, any>>(findings: T[]): (T & 
         verifiedBy: claim.verifier?.full_name || undefined,
         verifiedAt: claim.verified_by ? claim.updated_at?.slice(0, 10) : undefined,
         demo,
+        citation: ev?.citation,
+        doi,
+        standards: [...new Set(`${ev?.citation ?? ""} ${ev?.excerpt ?? ""}`.match(/\b(?:ISO|ASTM|AOAC|USP|ICH|OECD)\s?[A-Z]?\d[\d.:-]*/g) ?? [])],
+        excerptSha256: ev?.excerpt ? createHash("sha256").update(ev.excerpt, "utf8").digest("hex") : undefined,
+        chain: [
+          { label: "Finding", value: String(f.highlighted_snippet || f.flaggedText || f.title || "") },
+          { label: "Approved claim", value: `${claim.claim_code}: ${claim.claim_text}` },
+          ...(ev ? [{ label: TYPE_LABEL[ev.evidence_type] || "Evidence", value: ev.title }] : []),
+          ...(ev?.citation ? [{ label: "Citation", value: ev.citation }] : []),
+          ...(doi ? [{ label: "DOI", value: doi }] : []),
+        ].filter((c) => c.value),
       };
       return { ...f, source };
     } catch {

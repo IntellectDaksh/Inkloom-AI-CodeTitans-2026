@@ -40,6 +40,7 @@ export async function POST(
       success: true,
       claim: result.claim,
       affectedSubmissions: result.affectedSubmissions,
+      replacements: result.replacements,
       count: result.count,
       message: `Cascade re-review initiated: ${result.count} past publication(s) quarantined with status 'needs_re_review'.`,
     });

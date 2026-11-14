@@ -25,6 +25,7 @@ export interface FindingItem {
   dismissal_reason?: string;
   dismissed_by?: string;
   dispute_reason?: string;
+  counter_evidence?: { text: string | null; file: { name: string; text: string } | null; sha256: string; at: string } | null;
   /** Approved-library record this finding was checked against (added by GET /api/submissions/[id]). */
   source?: EvidenceSource;
 }
@@ -40,6 +41,14 @@ export interface EvidenceSource {
   verifiedBy?: string;
   verifiedAt?: string;
   demo: boolean;
+  citation?: string;
+  doi?: string;
+  /** Assay / test standards named in the citation or excerpt (e.g. ISO 17025). */
+  standards?: string[];
+  /** SHA-256 of the excerpt text, computed server-side. */
+  excerptSha256?: string;
+  /** Finding -> claim -> evidence -> citation, as recorded in the library. */
+  chain?: { label: string; value: string }[];
 }
 
 // Only official texts we are sure of. Anything else is named without a link.
@@ -233,7 +242,7 @@ export const BRANDS = [
     id: "brand_lumina",
     name: "Lumina Skincare",
     industry: "Cosmetics",
-    rules: "General ad rules only. No approved claim library on file yet, so claims will show as unverified.",
+    rules: "Cosmetic claims must say \"visibly reduces the look of\", not \"removes\". 2 approved claims, a guideline and 2 terms on file; anything else shows as unverified.",
   },
 ] as const;
 

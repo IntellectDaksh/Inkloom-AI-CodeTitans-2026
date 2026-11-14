@@ -299,6 +299,18 @@ export interface StageExecutionTimings {
   totalMs: number;
 }
 
+/**
+ * Multi-factor 0-100 score. final = round(sum(factor.score * factor.weight)), weights sum to 1.
+ * severity:   100 - (critical 30, high 18, medium 8, low 3 per finding), disclosure findings excluded
+ * coverage:   share of detected claims verified against the approved library (100 if none)
+ * disclosure: 100 - 25 per missing required / regulatory disclosure
+ * model:      Stage 4 contextual score (Gemini, or the deterministic fallback)
+ */
+export interface ComplianceScoreBreakdown {
+  final: number;
+  factors: Array<{ key: 'severity' | 'coverage' | 'disclosure' | 'model'; label: string; score: number; weight: number; detail: string }>;
+}
+
 export interface GovernanceReviewSummary {
   submissionId: string;
   organizationId: string;
@@ -315,6 +327,9 @@ export interface GovernanceReviewSummary {
   suggestedRevisedContent: string;
   suggestedRevision?: string;
   stageExecutionTimes: StageExecutionTimings;
+  /** Ordered record of the 6 stages, each with its measured wall time. */
+  stages: Array<{ stage: 1 | 2 | 3 | 4 | 5 | 6; name: string; ms: number }>;
+  scoreBreakdown: ComplianceScoreBreakdown;
   pipelineCompletedAt: string;
   modelUsed: string;
 }

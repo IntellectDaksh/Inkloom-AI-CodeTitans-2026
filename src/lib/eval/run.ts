@@ -11,12 +11,16 @@
  * - Exception: missing_disclosure is document-level (the phrase is absent), so it matches by category alone.
  */
 import { runGovernancePipeline } from '../ai/pipeline';
-import type { FindingCategory, GovernanceFinding } from '../ai/types';
+import { runDeterministicRuleChecks } from '../ai/rules';
+import { retrieveScopedBrandKnowledge } from '../ai/retrieval';
+import type { ComplianceScoreBreakdown, FindingCategory, GovernanceFinding, GovernanceReviewSummary } from '../ai/types';
 import { BRAND_SCOPE, EVAL_DATASET, type EvalItem, type ExpectedIssue } from './dataset';
 
 export interface FoundIssue { span: string; category: FindingCategory; severity: string; explanation: string }
 export interface ItemResult {
   id: string; brand: string; channel: string; kind: EvalItem['kind']; note?: string; text: string;
+  group?: EvalItem['group']; caseRef?: string;
+  stages?: GovernanceReviewSummary['stages']; score?: ComplianceScoreBreakdown;
   expected: ExpectedIssue[]; found: FoundIssue[];
   hits: ExpectedIssue[]; missed: ExpectedIssue[]; falseAlarms: FoundIssue[]; wrongCategory: FoundIssue[];
   latencyMs: number; error?: string;
@@ -28,6 +32,8 @@ export interface EvalReport {
   labelled: number; caught: number; raised: number; falseAlarms: number; wrongCategory: number; missed: number;
   precision: number | null; recall: number | null;
   latency: { p50: number; p95: number };
+  /** Stage 2 deterministic scanner timing, measured with performance.now(). Target < 5 ms. */
+  scanner: { evalSetP50Ms: number; evalSetP95Ms: number; longDraftWords: number; longDraftP50Ms: number; longDraftP95Ms: number; runs: number; targetMs: number };
   byCategory: CategoryStats[]; results: ItemResult[];
 }
 
@@ -98,6 +104,7 @@ export async function runEvaluation(opts: { apiKey?: string; onProgress?: (done:
       const same = (f: GovernanceFinding) => found[s.raised.indexOf(f)]; // keep identity so per-category counts can use includes()
       results.push({
         id: item.id, brand: scope.name, channel: item.channel, kind: item.kind, note: item.note, text: item.text,
+        group: item.group, caseRef: item.caseRef, stages: summary.stages, score: summary.scoreBreakdown,
         expected: item.expected, found, hits: s.hits, missed: s.missed,
         falseAlarms: s.falseAlarms.map(same), wrongCategory: s.wrongCategory.map(same), latencyMs,
       });
@@ -106,6 +113,7 @@ export async function runEvaluation(opts: { apiKey?: string; onProgress?: (done:
       raisedPerItem.push([]);
       results.push({
         id: item.id, brand: scope.name, channel: item.channel, kind: item.kind, note: item.note, text: item.text,
+        group: item.group, caseRef: item.caseRef,
         expected: item.expected, found: [], hits: [], missed: item.expected, falseAlarms: [], wrongCategory: [],
         latencyMs: Math.round(performance.now() - t0), error: err instanceof Error ? err.message : String(err),
       });
@@ -133,6 +141,8 @@ export async function runEvaluation(opts: { apiKey?: string; onProgress?: (done:
   const clean = results.filter(r => r.expected.length === 0);
   const lat = results.map(r => r.latencyMs);
 
+  const scanner = await benchmarkScanner(results);
+
   return {
     mode: /gemini/i.test(modelUsed) && !/fallback/i.test(modelUsed) ? 'gemini' : 'rule_only',
     modelUsed, ranAt: new Date().toISOString(), durationMs: Date.now() - started,
@@ -140,7 +150,36 @@ export async function runEvaluation(opts: { apiKey?: string; onProgress?: (done:
     labelled, caught, raised, falseAlarms, wrongCategory, missed: labelled - caught,
     precision: ratio(raised - falseAlarms - wrongCategory, raised), recall: ratio(caught, labelled),
     latency: { p50: percentile(lat, 50), p95: percentile(lat, 95) },
+    scanner,
     byCategory, results,
+  };
+}
+
+const r3 = (x: number) => Math.round(x * 1000) / 1000;
+
+/**
+ * Times Stage 2 on its own: the per-item value from the pipeline runs above, plus repeated runs on a
+ * ~2,000-word draft built from the eval texts (worst realistic case: every rule family fires).
+ */
+async function benchmarkScanner(results: ItemResult[]): Promise<EvalReport['scanner']> {
+  const perItem = results.map(r => r.stages?.[1]?.ms).filter((x): x is number => typeof x === 'number');
+  const words: string[] = [];
+  for (let i = 0; words.length < 2000; i++) words.push(...EVAL_DATASET[i % EVAL_DATASET.length].text.split(/\s+/));
+  const draft = words.slice(0, 2000).join(' ');
+  const scope = BRAND_SCOPE.flowscale;
+  const k = await retrieveScopedBrandKnowledge({ organizationId: scope.orgId, brandId: scope.brandId, content: draft, channel: 'social_media', detectedClaims: [] });
+  const rules = { prohibitedTerms: k.activeProhibitedTerms, requiredPhrases: k.activeRequiredPhrases, allClaims: [...k.matchedApprovedClaims, ...k.matchedExpiredClaims] };
+  const runs = 200;
+  for (let i = 0; i < 20; i++) runDeterministicRuleChecks(draft, 'social_media', rules); // JIT warm-up
+  const times: number[] = [];
+  for (let i = 0; i < runs; i++) {
+    const t0 = performance.now();
+    runDeterministicRuleChecks(draft, 'social_media', rules);
+    times.push(performance.now() - t0);
+  }
+  return {
+    evalSetP50Ms: r3(percentile(perItem, 50)), evalSetP95Ms: r3(percentile(perItem, 95)),
+    longDraftWords: 2000, longDraftP50Ms: r3(percentile(times, 50)), longDraftP95Ms: r3(percentile(times, 95)), runs, targetMs: 5,
   };
 }
 
@@ -160,6 +199,10 @@ if (process.argv[1] && /eval[\\/]run\.ts$/.test(process.argv[1])) {
     console.log(`Items: ${r.items}  Clean items passed: ${r.cleanItemsPassed}/${r.cleanItems}`);
     console.log(`Caught ${r.caught} of ${r.labelled} labelled issues  |  ${r.falseAlarms} false alarms  |  ${r.wrongCategory} wrong-category  |  ${r.missed} missed`);
     console.log(`Precision ${pct(r.precision)}  Recall ${pct(r.recall)}  Latency p50 ${r.latency.p50}ms p95 ${r.latency.p95}ms\n`);
+    console.log(`Deterministic scanner (Stage 2): eval set p50 ${r.scanner.evalSetP50Ms}ms p95 ${r.scanner.evalSetP95Ms}ms | ${r.scanner.longDraftWords}-word draft p50 ${r.scanner.longDraftP50Ms}ms p95 ${r.scanner.longDraftP95Ms}ms (${r.scanner.runs} runs, target < ${r.scanner.targetMs}ms)`);
+    const lm = r.results.filter(x => x.group === 'landmark');
+    console.log(`Landmark cases: ${lm.map(x => `${x.id} ${x.hits.length}/${x.expected.length}`).join('  ')}
+`);
     console.table(r.byCategory.map(c => ({ category: c.category, labelled: c.labelled, caught: c.caught, raised: c.raised, falseAlarms: c.falseAlarms, precision: pct(c.precision), recall: pct(c.recall) })));
     const bad = r.results.filter(x => x.missed.length || x.falseAlarms.length || x.wrongCategory.length || x.error);
     for (const x of bad) {

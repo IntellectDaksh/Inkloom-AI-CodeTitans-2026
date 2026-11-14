@@ -202,9 +202,27 @@ export default function DashboardPage() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [hour, setHour] = useState<number | null>(null);
+  const [expiring, setExpiring] = useState<{ code: string; days: number }[]>([]);
   const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setHour(new Date().getHours()), []);
+
+  // Expiry alerts from live claim data: approved claims whose proof lapses within 30 days.
+  useEffect(() => {
+    fetch("/api/claims", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        const now = Date.now();
+        setExpiring(
+          (d.claims ?? [])
+            .filter((c: { status?: string; expires_at?: string }) => c.status === "approved" && c.expires_at)
+            .map((c: { claim_code: string; expires_at: string }) => ({ code: c.claim_code, days: Math.ceil((Date.parse(c.expires_at) - now) / 86_400_000) }))
+            .filter((x: { days: number }) => x.days >= 0 && x.days <= 30)
+            .sort((a: { days: number }, b: { days: number }) => a.days - b.days),
+        );
+      })
+      .catch(() => setExpiring([]));
+  }, []);
 
   useEffect(() => {
     fetch("/api/submissions")
@@ -347,6 +365,13 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
             <p className="rounded-lg border border-status-success/25 bg-status-success/10 px-4 py-3 text-sm text-text-primary">{exportNotice}</p>
           )}
         </div>
+
+        {expiring.length > 0 && (
+          <p role="status" className="rounded-lg border border-status-warning/30 bg-status-warning/5 px-4 py-3 text-sm text-text-primary">
+            {expiring.length} approved claim{expiring.length === 1 ? "" : "s"} expire within 30 days (soonest: {expiring[0].code}, {expiring[0].days} days).{" "}
+            <Link href={`/knowledge-base/claims?claim=${expiring[0].code}`} className={`rounded underline underline-offset-4 ${focusRing}`}>Review evidence</Link>
+          </p>
+        )}
 
         <QuickTutorial />
         <CheckAnAd />

@@ -61,12 +61,15 @@ interface Claim {
   localOnly?: boolean;
 }
 
+/** yyyy-mm-dd n days from now, so seeded expiries stay meaningful whenever the demo runs. */
+const rel = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+
 // Demo data. Every source below is fictional and has not been independently verified.
 const SEED_CLAIMS: Claim[] = [
   {
     id: "clm-apx-001", code: "CLM-APX-001", brand: "Apex Nutrition", type: "Performance",
     text: "Supports post-workout protein synthesis when taken within 45 minutes of resistance training.",
-    expiresAt: "2026-12-31", updatedAt: "2026-11-02",
+    expiresAt: rel(47), updatedAt: "2026-11-02",
     channels: ["Instagram", "Paid social", "Product page"], owner: "Dr. Aris Vance, Medical & Regulatory",
     prohibited: ["Builds muscle faster than any other protein", "Doubles muscle growth", "Clinically proven to build muscle"],
     evidence: [
@@ -81,11 +84,11 @@ const SEED_CLAIMS: Claim[] = [
   {
     id: "clm-apx-002", code: "CLM-APX-002", brand: "Apex Nutrition", type: "Certification",
     text: "Informed-Sport certified. Every batch is tested for substances on the WADA prohibited list.",
-    expiresAt: "2026-12-01", updatedAt: "2026-10-28",
+    expiresAt: rel(17), updatedAt: "2026-10-28",
     channels: ["Packaging", "Website", "Ambassador kits"], owner: "Analyst R., Quality Assurance",
     prohibited: ["100% drug free", "Guaranteed safe for all athletes", "Banned-substance proof"],
     evidence: [
-      { source: "Certificate of analysis, batch IS-8921", kind: "Certificate", ref: "LGC-IS-2026-Q1", excerpt: "All screened compounds were below the limit of quantification (LOQ < 10 ng/g).", version: "Q1 2026", checkedAt: "2026-10-28" },
+      { source: "Certificate of analysis, batch IS-8921", kind: "Certificate", ref: "LGC-IS-2026-Q1, ISO/IEC 17025 lab", excerpt: "All screened compounds were below the limit of quantification (LOQ < 10 ng/g).", version: "Q1 2026", checkedAt: "2026-10-28" },
     ],
     usage: [
       { id: "00000000-0000-4000-c000-000000000002", title: "Recovery blend carousel", channel: "Instagram Carousel", date: "2026-11-13" },
@@ -95,7 +98,7 @@ const SEED_CLAIMS: Claim[] = [
   {
     id: "clm-apx-003", code: "CLM-APX-003", brand: "Apex Nutrition", type: "Clinical",
     text: "Raised peak VO2 max by 14.3% in trained endurance athletes over six weeks.",
-    expiresAt: "2026-12-05", updatedAt: "2026-09-14",
+    expiresAt: rel(21), updatedAt: "2026-09-14",
     channels: ["B2B reports", "Whitepapers"], owner: "Dr. Aris Vance, Medical & Regulatory",
     prohibited: ["Boosts stamina for everyone", "Makes you run 14% faster"],
     evidence: [
@@ -117,11 +120,11 @@ const SEED_CLAIMS: Claim[] = [
   {
     id: "clm-apx-005", code: "CLM-APX-005", brand: "Apex Nutrition", type: "Performance",
     text: "Helps maintain hydration with a 3:1 sodium to potassium electrolyte ratio.",
-    expiresAt: "2026-08-15", updatedAt: "2026-05-11",
+    expiresAt: rel(-91), updatedAt: "2026-05-11",
     channels: ["Website", "Digital ads"], owner: "Dr. Marcus Lin, Scientific Advisor",
     prohibited: ["Hydrates 3x better than water", "Prevents cramps"],
     evidence: [
-      { source: "Electrolyte osmolality report EOS-2023", kind: "Lab test", ref: "USP <785>", excerpt: "Solution measured 285 mOsm/kg, within isotonic range.", version: "v1", checkedAt: "2025-08-15" },
+      { source: "Electrolyte osmolality report EOS-2023", kind: "Lab test", ref: "USP <785>, ISO 17025 lab", excerpt: "Solution measured 285 mOsm/kg, within isotonic range.", version: "v1", checkedAt: "2025-08-15" },
     ],
     usage: [{ id: "00000000-0000-4000-c000-000000000003", title: "Hydration electrolytes ad, version 2", channel: "Instagram Reel", date: "2026-07-30" }],
   },
@@ -151,18 +154,18 @@ const SEED_CLAIMS: Claim[] = [
   {
     id: "clm-zen-002", code: "CLM-ZEN-002", brand: "Zenith Cloud", type: "Security",
     text: "SOC 2 Type II report available to customers under NDA.",
-    expiresAt: "2026-11-30", updatedAt: "2026-06-12",
+    expiresAt: rel(16), updatedAt: "2026-06-12",
     channels: ["Website", "Sales decks"], owner: "Tomás Herrera, Security",
     prohibited: ["SOC 2 certified", "Unhackable", "Bank-grade security"],
     evidence: [
-      { source: "SOC 2 Type II attestation report", kind: "Audit report", ref: "AUD-ZEN-2025", excerpt: "Report period 1 Dec 2024 to 30 Nov 2025, no exceptions noted.", version: "2025", checkedAt: "2026-06-12" },
+      { source: "SOC 2 Type II attestation report", kind: "Audit report", ref: "AUD-ZEN-2025, AICPA SOC 2 / ISO 27001", excerpt: "Report period 1 Dec 2024 to 30 Nov 2025, no exceptions noted.", version: "2025", checkedAt: "2026-06-12" },
     ],
     usage: [{ id: "sub_security_page", title: "Trust page refresh", channel: "Website", date: "2026-06-20" }],
   },
   {
     id: "clm-zen-003", code: "CLM-ZEN-003", brand: "Zenith Cloud", type: "Performance",
     text: "Median API response time under 120 ms in EU and US regions.",
-    expiresAt: "2026-10-31", updatedAt: "2026-04-30",
+    expiresAt: rel(-14), updatedAt: "2026-04-30",
     channels: ["Developer docs", "Website"], owner: "Wen Li, Platform",
     prohibited: ["Fastest cloud on the market", "Instant responses"],
     evidence: [
@@ -182,13 +185,13 @@ const SEED_CLAIMS: Claim[] = [
     usage: [],
   },
   {
-    id: "clm-lum-001", code: "CLM-LUM-001", brand: "Lumina Labs", type: "Cosmetic",
+    id: "clm-lum-001", code: "CLM-LUM-001", brand: "Lumina Skincare", type: "Cosmetic",
     text: "Visibly reduces the look of fine lines after 8 weeks of twice-daily use.",
     expiresAt: "2027-02-28", updatedAt: "2026-09-21",
     channels: ["Instagram", "Product page", "Retail"], owner: "Dr. Hana Sato, Dermatology",
     prohibited: ["Reverses aging", "Repairs cells", "Removes wrinkles permanently", "Works like Botox"],
     evidence: [
-      { source: "Consumer perception and instrumental study LUM-CS-07", kind: "Clinical study", ref: "LUM-CS-07", excerpt: "Profilometry showed an 11% reduction in fine line depth at week 8 (n = 42).", version: "v3", checkedAt: "2026-09-21" },
+      { source: "Consumer perception and instrumental study LUM-CS-07", kind: "Clinical study", ref: "Trial ID LUM-CS-07, ISO 16128", excerpt: "Profilometry showed an 11% reduction in fine line depth at week 8 (n = 42).", version: "v3", checkedAt: "2026-09-21" },
       { source: "Panel self-assessment", kind: "Consumer survey", ref: "LUM-SA-07", excerpt: "71% of participants agreed fine lines looked less visible.", version: "v1", checkedAt: "2026-09-21" },
     ],
     usage: [
@@ -197,18 +200,18 @@ const SEED_CLAIMS: Claim[] = [
     ],
   },
   {
-    id: "clm-lum-002", code: "CLM-LUM-002", brand: "Lumina Labs", type: "Safety",
+    id: "clm-lum-002", code: "CLM-LUM-002", brand: "Lumina Skincare", type: "Safety",
     text: "Dermatologist tested on sensitive skin.",
-    expiresAt: "2026-12-10", updatedAt: "2026-07-07",
+    expiresAt: rel(12), updatedAt: "2026-07-07",
     channels: ["Packaging", "Website"], owner: "Dr. Hana Sato, Dermatology",
     prohibited: ["Hypoallergenic", "Safe for all skin", "Dermatologist recommended"],
     evidence: [
-      { source: "Repeat insult patch test report", kind: "Lab test", ref: "HRIPT-LUM-22", excerpt: "No irritation or sensitization observed in 55 subjects with self-declared sensitive skin.", version: "v1", checkedAt: "2026-07-07" },
+      { source: "Repeat insult patch test report", kind: "Lab test", ref: "HRIPT-LUM-22, ISO 10993-10", excerpt: "No irritation or sensitization observed in 55 subjects with self-declared sensitive skin.", version: "v1", checkedAt: "2026-07-07" },
     ],
     usage: [{ id: "sub_lumina_pack", title: "Gentle cleanser pack copy", channel: "Packaging", date: "2026-07-15" }],
   },
   {
-    id: "clm-lum-003", code: "CLM-LUM-003", brand: "Lumina Labs", type: "Ingredient",
+    id: "clm-lum-003", code: "CLM-LUM-003", brand: "Lumina Skincare", type: "Ingredient",
     text: "Fragrance free and formulated without parabens.",
     expiresAt: "2027-09-30", updatedAt: "2026-10-14",
     channels: ["Packaging", "Website", "Instagram"], owner: "Grace Oduya, Regulatory",
@@ -244,13 +247,14 @@ function withLocal(list: Claim[]): Claim[] {
   return [...Object.values(local).filter((c) => c.localOnly && !ids.has(c.id)), ...list.map((c) => (local[c.id] ? { ...local[c.id], apiId: c.apiId } : c))];
 }
 
-const BRANDS: Brand[] = ["Apex Nutrition", "Zenith Cloud", "Lumina Labs"];
+const BRANDS: Brand[] = ["Apex Nutrition", "Zenith Cloud", "Lumina Skincare"];
 const DAY = 86_400_000;
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 const BRAND_IDS: Record<string, string> = {
   "00000000-0000-4000-b000-000000000001": "Apex Nutrition",
   "00000000-0000-4000-b000-000000000002": "Zenith Cloud",
+  "00000000-0000-4000-b000-000000000003": "Lumina Skincare",
 };
 /** Direct link for an evidence item: stored URL, a DOI in its reference, or a URL reference. */
 function sourceHref(ev: Evidence): string | undefined {

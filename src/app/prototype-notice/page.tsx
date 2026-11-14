@@ -11,7 +11,8 @@ const FEATURE: Record<string, string> = {
   certified_pdf_engine: "Signed PDF export",
   password: "Password reset",
   "password-recovery": "Password reset",
-  sso: "Company single sign-on (SSO)",
+  sso: "Okta single sign-on (SSO)",
+  stripe: "Stripe billing",
 };
 
 const REAL = [
@@ -19,15 +20,20 @@ const REAL = [
   ["Claims library", "Approved claims with their proof and expiry dates. Ads are matched against these."],
   ["Approvals", "A reviewer or admin signs off. Creators cannot approve their own ads; overrides need a reason."],
   ["Audit trail", "Every check, decision and override is recorded with who did it and when."],
+  ["Reading text from images and PDFs", "Uploaded screenshots and scans are read with Gemini OCR (/api/extract), then checked like pasted copy."],
+  ["Brand isolation", "Apex Nutrition, Zenith Cloud and Lumina Skincare each have their own claims, rules and terms. One brand's proof never clears another brand's ad."],
   ["Checker accuracy tests", "The checker is scored on known test ads. Results are on the Evaluations page."],
 ];
 
 const NEXT = [
-  ["Accounts and a permanent database (Supabase)", "Today data lives on the demo server and can reset. Supabase adds real sign-in, saved data and per-brand access rules."],
-  ["Inviting teammates", "Depends on accounts. Until then the three demo people stand in for a team."],
+  ["Accounts and a permanent database (Supabase)", "Today each deployment keeps its own demo data store, which can reset on redeploy. Supabase adds real sign-in, saved data and per-brand access rules."],
+  ["Okta SSO (sandbox)", "The Okta button on the login page is a sandbox placeholder. SAML sign-in via Okta is wired once real accounts exist."],
+  ["Stripe billing (sandbox)", "Plans and billing are shown in sandbox mode only. No card is ever charged or stored."],
+  ["Inviting teammates", "Depends on accounts. Until then the four demo people (admin, brand manager, reviewer, creator) stand in for a team."],
   ["Email notifications", "Notifications show inside the app only. Email for review requests and expiring claims comes next."],
   ["Custom domain", "The app runs on a Vercel preview address. A proper domain follows the database move."],
-  ["Signed PDF export, password reset, SSO", "Need accounts first. CSV and JSON export already work from the dashboard."],
+  ["Signed PDF export, password reset", "Need accounts first. CSV and JSON export already work from the dashboard."],
+  ["No auto-publishing, by design", "AdSnitch never posts to Instagram, TikTok or any platform. A person publishes after sign-off, so nothing goes live unreviewed."],
 ];
 
 function Notice() {

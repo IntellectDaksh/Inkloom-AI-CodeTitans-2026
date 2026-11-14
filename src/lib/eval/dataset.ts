@@ -21,6 +21,10 @@ export interface EvalItem {
   channel: ContentChannel;
   kind: 'violation' | 'clean' | 'near_miss';
   note?: string;
+  /** Named group shown separately on the evaluation page. */
+  group?: 'landmark';
+  /** Real-world case the item is modelled on (landmark group only). */
+  caseRef?: string;
   text: string;
   expected: ExpectedIssue[];
 }
@@ -156,11 +160,33 @@ export const EVAL_DATASET: EvalItem[] = [
   { id: 'nexus-02', brand: 'nexus', channel: 'social_media', kind: 'violation',
     text: 'Nexus is used by 50 million users worldwide. #makers',
     expected: [U('50 million users')] },
-  { id: 'nexus-c1', brand: 'nexus', channel: 'landing_page', kind: 'clean',
+  { id: 'nexus-c1', brand: 'nexus', channel: 'social_media', kind: 'clean',
+    note: 'Approved claim used verbatim on its approved channel.',
     text: 'Nexus is used by 10 million hobbyists worldwide.',
     expected: [] },
+  { id: 'nexus-03', brand: 'nexus', channel: 'landing_page', kind: 'violation',
+    note: 'Relabelled round 6: this approved claim is cleared for social only, so on a landing page it is out of scope.',
+    text: 'Nexus is used by 10 million hobbyists worldwide.',
+    expected: [{ span: 'Nexus is used by 10 million hobbyists worldwide.', category: 'out_of_scope', severity: 'high' }] },
   { id: 'nexus-n1', brand: 'nexus', channel: 'blog_post', kind: 'near_miss',
     note: 'Isolation check: another tenant\'s prohibited term must not fire for Nexus.',
     text: 'Our hobby kit is not unhackable, but it is easy to patch and fun to build.',
     expected: [] },
+
+  // ---------------- Landmark cases (modelled on real enforcement / incidents) ----------------
+  { id: 'landmark-teami', brand: 'apex', channel: 'social_media', kind: 'violation', group: 'landmark',
+    caseRef: 'FTC v. Teami (2020): detox-tea health claims + influencer posts without clear #ad',
+    note: 'Health/weight claim, supplement structure/function claim without DSHEA disclaimer, creator post without disclosure.',
+    text: 'Obsessed with my Apex Detox Tea! It melts belly fat and cleanses toxins so I feel lighter every morning. Use code SARAH20 for 20% off #teatox',
+    expected: [U('melts belly fat'), D('cleanses toxins'), D('Use code SARAH20')] },
+  { id: 'landmark-adidas', brand: 'apex', channel: 'email', kind: 'violation', group: 'landmark',
+    caseRef: 'Adidas Boston Marathon email (2017): "Congrats, you survived the Boston Marathon!"',
+    note: 'Tragedy-adjacent wording next to a real event.',
+    text: 'Subject: Congrats, you survived the Boston Marathon!\n\nRefuel after the big day with Apex Recovery Blend.',
+    expected: [T('you survived', 'high')] },
+  { id: 'landmark-cnet', brand: 'flowscale', channel: 'blog_post', kind: 'violation', group: 'landmark',
+    caseRef: 'CNET AI-written finance explainers (2023): wrong compound-interest figures published unchecked',
+    note: 'Specific numeric outcome with no verified source (and arithmetically wrong: interest earned is $300).',
+    text: 'If you deposit $10,000 into a savings account that pays 3% APY, you will earn $10,300 in interest after the first year.',
+    expected: [U('3% APY'), U('earn $10,300')] },
 ];

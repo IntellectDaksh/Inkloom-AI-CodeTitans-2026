@@ -9,6 +9,7 @@
 import fs from 'fs';
 import { createHash } from 'crypto';
 import path from 'path';
+import os from 'os';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
   InkloomDatabaseState,
@@ -50,7 +51,11 @@ import { createInitialSeedState, SEED_IDS } from './seed';
 
 const DATA_FILE_NAME = '.inkloom_data.json';
 
+// ponytail: on Vercel the deploy dir is read-only, so the file lives in per-instance /tmp
+// (not shared across serverless instances). Upgrade path: Supabase, schema in supabase/.
+let useTmp = !!process.env.VERCEL;
 function getDataFilePath(): string {
+  if (useTmp) return path.join(os.tmpdir(), 'adsnitch-data.json');
   try {
     return path.join(process.cwd(), DATA_FILE_NAME);
   } catch {
@@ -60,25 +65,30 @@ function getDataFilePath(): string {
 
 let inMemoryState: InkloomDatabaseState | null = null;
 
-function loadState(): InkloomDatabaseState {
-  if (inMemoryState) {
-    return inMemoryState;
+// Re-reads the file every call so warm instances see writes from other requests.
+/** Add seed rows (by id) missing from an older data file, e.g. a brand added to the seed later. Never overwrites saved rows. */
+function backfillSeed(state: InkloomDatabaseState): InkloomDatabaseState {
+  if (state.brands?.some((b) => b.id === SEED_IDS.BRAND_LUMINA)) return state; // one-time migration
+  const seed = createInitialSeedState() as unknown as Record<string, { id: string }[]>;
+  const st = state as unknown as Record<string, { id: string }[]>;
+  for (const key of Object.keys(seed)) {
+    const ids = new Set((st[key] ??= []).map((r) => r.id));
+    for (const row of seed[key]) if (!ids.has(row.id)) st[key].push(row);
   }
+  return state;
+}
 
+function loadState(): InkloomDatabaseState {
   const filePath = getDataFilePath();
-
-  // Try reading from file system
   try {
-    if (typeof fs !== 'undefined' && fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      inMemoryState = JSON.parse(raw) as InkloomDatabaseState;
+    if (fs.existsSync(filePath)) {
+      inMemoryState = backfillSeed(JSON.parse(fs.readFileSync(filePath, 'utf-8')) as InkloomDatabaseState);
       return inMemoryState;
     }
   } catch (err) {
-    console.warn('[Inkloom DB] Unable to read .inkloom_data.json, seeding new state:', err);
+    console.warn('[Inkloom DB] Unable to read data file, using memory:', err);
   }
-
-  // Initialize fresh seed state
+  if (inMemoryState) return inMemoryState;
   inMemoryState = createInitialSeedState();
   saveState(inMemoryState);
   return inMemoryState;
@@ -86,14 +96,31 @@ function loadState(): InkloomDatabaseState {
 
 function saveState(state: InkloomDatabaseState): void {
   inMemoryState = state;
+  const body = JSON.stringify(state, null, 2);
   try {
-    if (typeof fs !== 'undefined') {
-      const filePath = getDataFilePath();
-      fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8');
-    }
+    fs.writeFileSync(getDataFilePath(), body, 'utf-8');
   } catch (err) {
-    console.warn('[Inkloom DB] Unable to persist to .inkloom_data.json (using memory):', err);
+    if (!useTmp) {
+      useTmp = true; // cwd not writable: fall back to os.tmpdir()
+      try { fs.writeFileSync(getDataFilePath(), body, 'utf-8'); return; } catch {}
+    }
+    console.warn('[Inkloom DB] Unable to persist data file (using memory):', err);
   }
+}
+
+/** SHA-256 over an audit event's sealed fields, chained to the previous event's hash. */
+export function auditHash(e: AuditEvent, prevHash: string | null): string {
+  return createHash('sha256')
+    .update(`${prevHash ?? ''}|${e.id}|${e.entity_id}|${e.action}|${e.user_id}|${e.created_at}|${JSON.stringify(e.metadata)}`)
+    .digest('hex');
+}
+
+/** Every audit write goes through here so the hash chain never has gaps. Newest first. */
+function pushAudit(state: InkloomDatabaseState, e: AuditEvent): void {
+  const prev = state.audit_events.find((x) => x.hash) ?? null;
+  e.prev_hash = prev?.hash ?? null;
+  e.hash = auditHash(e, e.prev_hash);
+  state.audit_events.unshift(e);
 }
 
 // ============================================================================
@@ -452,7 +479,9 @@ export class InkloomStore {
       (queryId === 'brand_apex' && targetId === SEED_IDS.BRAND_APEX) ||
       (queryId === SEED_IDS.BRAND_APEX && targetId === 'brand_apex') ||
       (queryId === 'brand_zenith' && targetId === SEED_IDS.BRAND_ZENITH) ||
-      (queryId === SEED_IDS.BRAND_ZENITH && targetId === 'brand_zenith')
+      (queryId === SEED_IDS.BRAND_ZENITH && targetId === 'brand_zenith') ||
+      (queryId === 'brand_lumina' && targetId === SEED_IDS.BRAND_LUMINA) ||
+      (queryId === SEED_IDS.BRAND_LUMINA && targetId === 'brand_lumina')
     );
   }
 
@@ -676,7 +705,7 @@ export class InkloomStore {
       metadata: { title },
       created_at: now,
     };
-    state.audit_events.unshift(auditEvent);
+    pushAudit(state, auditEvent);
 
     saveState(state);
     return this.hydrateSubmission(state, newSub);
@@ -883,12 +912,7 @@ export class InkloomStore {
         event.metadata || { previousValue: event.previousValue, updatedValue: event.updatedValue },
       created_at: new Date().toISOString(),
     };
-    const prev = state.audit_events.find((e) => e.hash) ?? null;
-    audit.prev_hash = prev?.hash ?? null;
-    audit.hash = createHash('sha256')
-      .update(`${audit.prev_hash ?? ''}|${audit.id}|${audit.entity_id}|${audit.action}|${audit.user_id}|${audit.created_at}|${JSON.stringify(audit.metadata)}`)
-      .digest('hex');
-    state.audit_events.unshift(audit);
+    pushAudit(state, audit);
     saveState(state);
     return audit;
   }
@@ -941,7 +965,7 @@ export class InkloomStore {
     const sub = state.submissions[subIdx];
 
     // Record immutable audit event
-    state.audit_events.unshift({
+    pushAudit(state, {
       id: crypto.randomUUID(),
       organisation_id: sub.organisation_id,
       brand_id: sub.brand_id,
@@ -1019,7 +1043,7 @@ export class InkloomStore {
     const sub = state.submissions[subIdx];
 
     // Record immutable audit event
-    state.audit_events.unshift({
+    pushAudit(state, {
       id: crypto.randomUUID(),
       organisation_id: sub.organisation_id,
       brand_id: sub.brand_id,
@@ -1194,7 +1218,7 @@ export class InkloomStore {
     sub.updated_at = now;
 
     // Create Audit Event
-    state.audit_events.unshift({
+    pushAudit(state, {
       id: crypto.randomUUID(),
       organisation_id: orgId,
       brand_id: sub.brand_id,
@@ -1355,7 +1379,8 @@ export class InkloomStore {
     findingId: string,
     raisedBy: string,
     reason: string,
-    creatorEvidence?: string
+    creatorEvidence?: string,
+    evidenceFile?: { name: string; text: string } | null
   ): Dispute {
     const state = loadState();
     const now = new Date().toISOString();
@@ -1380,11 +1405,19 @@ export class InkloomStore {
       const finding = state.findings[fIdx];
       finding.status = 'disputed';
       finding.updated_at = now;
+      // Counter-evidence lives on the finding too, so reviewers see it without opening the dispute.
+      (finding as any).counter_evidence = {
+        text: creatorEvidence || null,
+        file: evidenceFile ? { name: evidenceFile.name, text: evidenceFile.text.slice(0, 20000) } : null,
+        sha256: createHash('sha256').update(`${creatorEvidence ?? ''}|${evidenceFile?.text ?? ''}`).digest('hex'),
+        disputeId: dispute.id,
+        at: now,
+      };
 
       const sub = state.submissions.find((s) => s.id === finding.submission_id);
       if (sub) {
         // Record immutable audit event
-        state.audit_events.unshift({
+        pushAudit(state, {
           id: crypto.randomUUID(),
           organisation_id: sub.organisation_id,
           brand_id: sub.brand_id,
@@ -1398,6 +1431,7 @@ export class InkloomStore {
             submissionId: sub.id,
             reason,
             creatorEvidence: creatorEvidence || null,
+            evidenceFile: evidenceFile?.name ?? null,
             findingTitle: finding.title,
             flaggedText: finding.highlighted_snippet,
           },
@@ -1481,7 +1515,13 @@ export class InkloomStore {
     claimIdOrCode: string,
     reason: string = 'Claim validity period expired or evidence modified',
     triggeredBy: string = SEED_IDS.USER_DAKSH
-  ): { success: boolean; claim: ApprovedClaim; affectedSubmissions: Submission[]; count: number } {
+  ): {
+    success: boolean;
+    claim: ApprovedClaim;
+    affectedSubmissions: Submission[];
+    count: number;
+    replacements: ReturnType<typeof InkloomStore.cascadeReplacement>[];
+  } {
     const state = loadState();
     const claim = state.approved_claims.find(
       (c) => c.id === claimIdOrCode || c.claim_code === claimIdOrCode
@@ -1500,7 +1540,7 @@ export class InkloomStore {
         liveSub.updated_at = now;
 
         // Record audit event for this submission
-        state.audit_events.unshift({
+        pushAudit(state, {
           id: crypto.randomUUID(),
           organisation_id: claim.organisation_id,
           brand_id: claim.brand_id,
@@ -1537,7 +1577,7 @@ export class InkloomStore {
     }
 
     // Record audit event on the claim itself
-    state.audit_events.unshift({
+    pushAudit(state, {
       id: crypto.randomUUID(),
       organisation_id: claim.organisation_id,
       brand_id: claim.brand_id,
@@ -1562,12 +1602,75 @@ export class InkloomStore {
       claim,
       affectedSubmissions: dependentSubs,
       count: dependentSubs.length,
+      replacements: dependentSubs.map((sub) => this.cascadeReplacement(state, claim, sub)),
     };
   }
 
   // --------------------------------------------------------------------------
   // Audit Events & Notifications
   // --------------------------------------------------------------------------
+
+  /**
+   * Recommended replacement for one draft hit by a cascade. Prefers a suggested revision already
+   * stored on a finding that cites this claim; otherwise falls back to the claim's approved wording.
+   */
+  public static cascadeReplacement(state: InkloomDatabaseState, claim: ApprovedClaim, sub: Submission) {
+    const fids = state.findings
+      .filter((f) => f.submission_id === sub.id && (f.claimId === claim.claim_code || (f as any).claim_id === claim.id ||
+        state.finding_evidence.some((fe) => fe.finding_id === f.id && fe.claim_id === claim.id)))
+      .map((f) => f);
+    const rev = state.suggested_revisions.find((r) => fids.some((f) => f.id === r.finding_id) && r.suggested_text);
+    const finding = rev ? fids.find((f) => f.id === rev.finding_id) : fids[0];
+    const disclosure = claim.required_disclosures ? ` ${claim.required_disclosures}` : '';
+    const expired = claim.status === 'expired' || (claim.expires_at && new Date(claim.expires_at) < new Date());
+    return {
+      submissionId: sub.id,
+      title: sub.title,
+      originalText: finding?.highlighted_snippet || null,
+      recommendedText: rev ? rev.suggested_text : `${claim.claim_text}${disclosure}`,
+      source: rev ? ('suggested_revision' as const) : ('approved_claim_wording' as const),
+      note: expired
+        ? `Claim ${claim.claim_code} has lapsed. Use this wording only once its evidence is renewed; otherwise remove the claim.`
+        : `Approved wording for ${claim.claim_code}.`,
+    };
+  }
+
+  public static getUserRole(userId: string): string | undefined {
+    return loadState().user_profiles.find((u) => u.id === userId)?.role;
+  }
+
+  public static getUserName(userId: string | null | undefined): string | undefined {
+    if (!userId) return undefined;
+    return loadState().user_profiles.find((u) => u.id === userId)?.full_name;
+  }
+
+  /**
+   * Recomputes the SHA-256 chain oldest to newest. Events written before hashing existed
+   * (seed data) are counted as unsealed, not passed off as verified.
+   */
+  public static verifyAuditChain(): {
+    intact: boolean; checked: number; unsealed: number;
+    brokenAt?: { id: string; action: string; created_at: string; reason: string };
+  } {
+    const events = loadState().audit_events.slice().reverse();
+    let prev: string | null = null;
+    let checked = 0, unsealed = 0, started = false;
+    for (const e of events) {
+      if (!e.hash) {
+        if (started) return { intact: false, checked, unsealed, brokenAt: { id: e.id, action: e.action, created_at: e.created_at, reason: 'Event has no hash inside the sealed chain' } };
+        unsealed++;
+        continue;
+      }
+      started = true;
+      if ((e.prev_hash ?? null) !== prev)
+        return { intact: false, checked, unsealed, brokenAt: { id: e.id, action: e.action, created_at: e.created_at, reason: 'prev_hash does not match the previous event' } };
+      if (auditHash(e, prev) !== e.hash)
+        return { intact: false, checked, unsealed, brokenAt: { id: e.id, action: e.action, created_at: e.created_at, reason: 'Event body was changed after it was sealed' } };
+      prev = e.hash;
+      checked++;
+    }
+    return { intact: true, checked, unsealed };
+  }
 
   public static getAuditEvents(orgId: string, brandId?: string): AuditEvent[] {
     const state = loadState();

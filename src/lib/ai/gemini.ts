@@ -20,6 +20,7 @@ import {
   GeminiStructuredOutput,
   GeminiFindingPayload,
 } from './types';
+import { isSuppressedMatch } from './rules';
 
 export const GEMINI_25_FLASH_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -125,6 +126,13 @@ export const GEMINI_RESPONSE_SCHEMA = {
 // Deterministic Fallback Analyzer (Runs when API key is missing or network fails)
 // ============================================================================
 
+/** "50k" / "50,000" / "50 000" -> "50000" so number formatting doesn't defeat the approved-claim match. */
+function normalizeNumbers(s: string): string {
+  return s
+    .replace(/(\d+(?:\.\d+)?)\s*k\b/g, (_, n) => String(Math.round(parseFloat(n) * 1000)))
+    .replace(/(\d)[,\s](?=\d{3}\b)/g, '$1');
+}
+
 export function runDeterministicFallbackAnalysis(input: GeminiAnalysisInput): GeminiStructuredOutput {
   const { content, approvedClaims, deterministicViolations } = input;
   const findings: GeminiFindingPayload[] = [];
@@ -133,21 +141,38 @@ export function runDeterministicFallbackAnalysis(input: GeminiAnalysisInput): Ge
   const potentialClaimRegexes: Array<{ pattern: RegExp; type: string }> = [
     { pattern: /\b\d+(\.\d+)?%\s*(faster|cheaper|reduction|increase|uptime|growth|roi|sla)\b/gi, type: 'metric' },
     { pattern: /\b\d+x\s*(faster|more|throughput|reduction)\b/gi, type: 'multiplier' },
-    { pattern: /\b\d+([,\d]+)?\s*(tps|transactions|qps|users|customers)\b/gi, type: 'volume' },
+    { pattern: /\b\d+([,\d]+)?\s*(million\s+|billion\s+|thousand\s+|[km]\s+)?(tps|transactions|qps|users|customers)\b/gi, type: 'volume' },
+    // Disease / drug-like efficacy (FTC health-claim substantiation; FDA treats these as drug claims).
+    { pattern: /\b(cures?|reverses?|heals?|eliminates?|melts?)\s+(?:your\s+)?[a-z]+(?:\s+(damage|disease|fat|pain|inflammation|aging|ageing))?\b/gi, type: 'medical' },
+    // Time-boxed efficacy promises ("results in a week").
+    { pattern: /\b(?:\w+\s+)?results\s+in\s+(?:a|one|two|three|\d+)\s+(?:days?|weeks?)\b/gi, type: 'efficacy_timeline' },
+    // Specific money / rate outcomes need a verified calculation (CNET AI finance errors).
+    { pattern: /\b(earn|save|make|get\s+back)\s+\$\d[\d,]*(\.\d+)?/gi, type: 'financial_outcome' },
+    { pattern: /\b\d+(\.\d+)?%\s*(apy|apr|interest|annual\s+return)\b/gi, type: 'financial_rate' },
     { pattern: /\b(guarantee[sd]?|100%\s*risk-free|money-back|instant\s+results)\b/gi, type: 'guarantee' },
     { pattern: /\b(world'?s\s+fastest|industry-leading|unmatched|best-in-class|#1\s+platform)\b/gi, type: 'superlative' },
     { pattern: /\b(zero\s*downtime|unhackable|bulletproof|flawless)\b/gi, type: 'absolute' },
   ];
 
+  // A span Stage 2 already flagged (or a negated / proper-noun use) is not re-raised under a second category.
+  const ruleSpans = deterministicViolations
+    .filter(v => v.ruleType === 'prohibited_term' && typeof v.startIndex === 'number' && typeof v.endIndex === 'number')
+    .map(v => [v.startIndex as number, v.endIndex as number]);
+  const skip = (s: number, e: number) =>
+    ruleSpans.some(([a, b]) => s < b && a < e) || isSuppressedMatch(content, s, e);
+
   for (const { pattern } of potentialClaimRegexes) {
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(content)) !== null) {
       const matchedPhrase = match[0];
+      if (skip(match.index, match.index + matchedPhrase.length)) continue;
       const lowerPhrase = matchedPhrase.toLowerCase();
 
       // Check if this matches any approved claim
+      const normPhrase = normalizeNumbers(lowerPhrase);
       const matchedApproved = approvedClaims.find(ac => {
         return ac.claimText.toLowerCase().includes(lowerPhrase) ||
+          normalizeNumbers(ac.claimText.toLowerCase()).includes(normPhrase) ||
           lowerPhrase.includes(ac.claimText.toLowerCase().slice(0, 15));
       });
 
@@ -160,7 +185,7 @@ export function runDeterministicFallbackAnalysis(input: GeminiAnalysisInput): Ge
           confidence: 'high',
           flaggedText: matchedPhrase,
           explanation: `Verified claim matching approved record "${matchedApproved.claimText}".`,
-          citedEvidenceIds: evidenceIds.length > 0 ? evidenceIds : ['approved_repo_ref'],
+          citedEvidenceIds: evidenceIds, // never a placeholder id: empty means "approved claim, no record linked"
           suggestedCorrection: matchedPhrase,
           isVerified: true,
         });
@@ -198,6 +223,7 @@ export function runDeterministicFallbackAnalysis(input: GeminiAnalysisInput): Ge
     const termRegex = new RegExp(`\\b${term}\\b`, 'gi');
     let match: RegExpExecArray | null;
     while ((match = termRegex.exec(content)) !== null) {
+      if (skip(match.index, match.index + match[0].length)) continue;
       findings.push({
         category: 'tone_inconsistency',
         severity: 'medium',
@@ -209,6 +235,23 @@ export function runDeterministicFallbackAnalysis(input: GeminiAnalysisInput): Ge
         isVerified: false,
       });
     }
+  }
+
+  // 2b. Insensitive context: tragedy / violence language in promo copy (Adidas "you survived the Boston Marathon").
+  const insensitive = /\b(you\s+survived|survived\s+the|killer\s+(deal|price|offer)s?|bomb(ed)?\s+(deal|sale)|deadly\s+(deal|offer)s?|to\s+die\s+for)\b/gi;
+  let ins: RegExpExecArray | null;
+  while ((ins = insensitive.exec(content)) !== null) {
+    if (skip(ins.index, ins.index + ins[0].length)) continue;
+    findings.push({
+      category: 'tone_inconsistency',
+      severity: 'high',
+      confidence: 'medium',
+      flaggedText: ins[0],
+      explanation: `"${ins[0]}" evokes injury, death or violence. Next to a real event it can read as mocking victims (see Adidas' 2017 Boston Marathon "You survived" email).`,
+      citedEvidenceIds: [],
+      suggestedCorrection: 'Use neutral, celebratory wording, e.g. "You did it" / "You finished".',
+      isVerified: false,
+    });
   }
 
   // 3. Readability & Sentence Length Checks

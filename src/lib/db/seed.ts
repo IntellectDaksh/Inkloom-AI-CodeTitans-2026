@@ -40,6 +40,9 @@ import {
   Notification,
 } from './types';
 
+/** ISO date n days from process start, so expiry alerts stay live whenever the demo runs. */
+const daysFromNow = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString();
+
 // ============================================================================
 // CONSTANT IDENTIFIERS (Deterministic UUIDs)
 // ============================================================================
@@ -54,6 +57,7 @@ export const SEED_IDS = {
 
   BRAND_APEX: '00000000-0000-4000-b000-000000000001', // Active Brand
   BRAND_ZENITH: '00000000-0000-4000-b000-000000000002',
+  BRAND_LUMINA: '00000000-0000-4000-b000-000000000003',
 
   // Submissions
   SUB_REEL_SCRIPT: '00000000-0000-4000-c000-000000000001',
@@ -252,6 +256,26 @@ export const seedBrands: Brand[] = [
     created_at: '2026-02-01T00:00:00.000Z',
     updated_at: '2026-11-08T12:00:00.000Z',
   },
+  {
+    id: SEED_IDS.BRAND_LUMINA,
+    organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
+    name: 'Lumina Skincare',
+    slug: 'lumina-skincare',
+    industry: 'Beauty & Clinical Skincare',
+    description: 'Dermatologist-tested serums and cleansers for sensitive skin. Cosmetic claims only, never drug claims.',
+    logo_url: null,
+    website_url: 'https://luminaskincare.example.com',
+    is_active: true,
+    compliance_threshold: 90.0,
+    settings: {
+      auto_flag_unsubstantiated: true,
+      strict_prohibited_terms: true,
+      require_clinical_doi: true,
+      primary_color: '#db2777',
+    },
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
 ];
 
 // ============================================================================
@@ -291,6 +315,14 @@ export const seedBrandMembers: BrandMember[] = [
     created_at: '2026-02-01T00:00:00.000Z',
     updated_at: '2026-02-01T00:00:00.000Z',
   },
+  {
+    id: '00000000-0000-4000-b001-000000000005',
+    brand_id: SEED_IDS.BRAND_LUMINA,
+    user_id: SEED_IDS.USER_REVIEWER,
+    role: 'reviewer',
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
 ];
 
 // ============================================================================
@@ -298,6 +330,19 @@ export const seedBrandMembers: BrandMember[] = [
 // ============================================================================
 
 export const seedBrandGuidelines: BrandGuideline[] = [
+  {
+    id: '00000000-0000-4000-g000-000000000101',
+    organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
+    brand_id: SEED_IDS.BRAND_LUMINA,
+    category: 'messaging_rules',
+    title: 'Cosmetic claims only, never drug claims',
+    description: 'Lumina describes how skin looks and feels. It never claims to change skin structure, repair cells or treat a condition.',
+    rule_content: 'Use "visibly reduces the look of" rather than "removes" or "reverses". Any percentage must cite study LUM-CS-07 (ISO 16128 / ISO 24444 methods) with an asterisk footnote.',
+    severity_level: 'critical',
+    is_active: true,
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
   {
     id: '00000000-0000-4000-g000-000000000001',
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
@@ -441,7 +486,7 @@ export const seedApprovedClaims: ApprovedClaim[] = [
     permitted_context: 'Approved for Olympic and collegiate athlete marketing, retail endcaps, and sport sponsorships.',
     restricted_context: 'Must display the official Informed-Sport badge alongside batch lookup QR code.',
     required_disclosures: 'Certificate #IS-2025-99812 valid through current batch cycle.',
-    expires_at: '2026-11-25T00:00:00.000Z', // EXPIRING SOON! (17 days)
+    expires_at: daysFromNow(17), // expiring soon, relative to now
     verified_by: SEED_IDS.USER_REVIEWER,
     created_at: '2025-11-25T00:00:00.000Z',
     updated_at: '2026-11-08T12:00:00.000Z',
@@ -457,7 +502,7 @@ export const seedApprovedClaims: ApprovedClaim[] = [
     permitted_context: 'Permitted in endurance campaign reels, athlete testimonials, and technical whitepapers.',
     restricted_context: 'Do not claim cardiovascular disease prevention or treatment.',
     required_disclosures: '*Results observed in cycling ergometer endurance protocol study APX-VO2-2025.',
-    expires_at: '2026-12-05T00:00:00.000Z', // EXPIRING SOON! (27 days)
+    expires_at: daysFromNow(27), // expiring soon
     verified_by: SEED_IDS.USER_REVIEWER,
     created_at: '2025-12-05T00:00:00.000Z',
     updated_at: '2026-11-08T12:00:00.000Z',
@@ -521,7 +566,7 @@ export const seedApprovedClaims: ApprovedClaim[] = [
     permitted_context: 'All enterprise marketing, security trust center, partner collateral.',
     restricted_context: 'Must offer access to the full redacted audit report via signed NDA.',
     required_disclosures: 'Audit conducted by Schellman & Company LLP.',
-    expires_at: '2026-11-30T00:00:00.000Z', // EXPIRING SOON! (22 days)
+    expires_at: daysFromNow(22), // expiring soon
     verified_by: SEED_IDS.USER_DAKSH,
     created_at: '2025-11-30T00:00:00.000Z',
     updated_at: '2026-11-08T12:00:00.000Z',
@@ -542,6 +587,38 @@ export const seedApprovedClaims: ApprovedClaim[] = [
     created_at: '2026-02-20T00:00:00.000Z',
     updated_at: '2026-11-08T12:00:00.000Z',
   },
+  {
+    id: '00000000-0000-4000-clm0-000000000101',
+    organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
+    brand_id: SEED_IDS.BRAND_LUMINA,
+    claim_code: 'CLM-LUM-001',
+    claim_text: 'Visibly reduces the look of fine lines after 8 weeks of twice-daily use.',
+    category: 'efficacy',
+    status: 'approved',
+    permitted_context: 'Instagram, Product page, Retail',
+    restricted_context: 'Never say reverses aging, repairs cells or removes wrinkles.',
+    required_disclosures: '*Instrumental profilometry study LUM-CS-07, n = 42, 8 weeks.',
+    expires_at: daysFromNow(98),
+    verified_by: SEED_IDS.USER_REVIEWER,
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
+  {
+    id: '00000000-0000-4000-clm0-000000000102',
+    organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
+    brand_id: SEED_IDS.BRAND_LUMINA,
+    claim_code: 'CLM-LUM-002',
+    claim_text: 'Dermatologist tested on sensitive skin.',
+    category: 'safety',
+    status: 'approved',
+    permitted_context: 'Packaging, Website',
+    restricted_context: 'Do not say hypoallergenic or safe for all skin.',
+    required_disclosures: 'HRIPT on 55 subjects with self-declared sensitive skin.',
+    expires_at: daysFromNow(12), // expiring soon
+    verified_by: SEED_IDS.USER_REVIEWER,
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
 ];
 
 // ============================================================================
@@ -549,6 +626,30 @@ export const seedApprovedClaims: ApprovedClaim[] = [
 // ============================================================================
 
 export const seedClaimEvidence: ClaimEvidence[] = [
+  {
+    id: '00000000-0000-4000-ev00-000000000101',
+    claim_id: '00000000-0000-4000-clm0-000000000101',
+    title: 'Instrumental and consumer perception study LUM-CS-07',
+    citation: 'Trial ID LUM-CS-07, profilometry per ISO 16128 methods (illustrative demo record)',
+    excerpt: 'Profilometry showed an 11% reduction in fine line depth at week 8 (n = 42).',
+    study_url: null,
+    evidence_type: 'clinical_trial',
+    confidence_score: 0.9,
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
+  {
+    id: '00000000-0000-4000-ev00-000000000102',
+    claim_id: '00000000-0000-4000-clm0-000000000102',
+    title: 'Human repeat insult patch test HRIPT-LUM-22',
+    citation: 'HRIPT-LUM-22, ISO 10993-10 skin sensitization protocol (illustrative demo record)',
+    excerpt: 'No irritation or sensitization observed in 55 subjects with self-declared sensitive skin.',
+    study_url: null,
+    evidence_type: 'lab_report',
+    confidence_score: 0.88,
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
   {
     id: '00000000-0000-4000-ev00-000000000001',
     claim_id: '00000000-0000-4000-clm0-000000000001',
@@ -604,6 +705,30 @@ export const seedClaimEvidence: ClaimEvidence[] = [
 // ============================================================================
 
 export const seedBrandTerms: BrandTerm[] = [
+  {
+    id: '00000000-0000-4000-t000-000000000101',
+    organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
+    brand_id: SEED_IDS.BRAND_LUMINA,
+    term: 'reverses aging',
+    term_type: 'prohibited',
+    replacement: 'visibly reduces the look of fine lines',
+    rationale: 'A structural change to skin is a drug claim under FDA rules; cosmetics may only describe appearance.',
+    context_rules: 'Prohibited in all channels.',
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
+  {
+    id: '00000000-0000-4000-t000-000000000102',
+    organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
+    brand_id: SEED_IDS.BRAND_LUMINA,
+    term: 'hypoallergenic',
+    term_type: 'prohibited',
+    replacement: 'dermatologist tested on sensitive skin',
+    rationale: 'No federal standard backs the term; the HRIPT supports only the tested wording.',
+    context_rules: 'Packaging and paid social.',
+    created_at: '2026-03-01T00:00:00.000Z',
+    updated_at: '2026-03-01T00:00:00.000Z',
+  },
   {
     id: '00000000-0000-4000-t000-000000000001',
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
@@ -1363,9 +1488,9 @@ export const seedNotifications: Notification[] = [
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
     user_id: SEED_IDS.USER_DAKSH,
     title: 'Claim Expiring in 17 Days',
-    message: 'Approved claim CLM-APX-003 ("Informed-Sport Certified") expires on Nov 25, 2026. Review re-certification docs.',
+    message: 'Approved claim CLM-APX-003 ("Informed-Sport Certified") expires in 17 days. Review re-certification docs.',
     notification_type: 'claim_expiring',
-    link_url: '/claims/CLM-APX-003',
+    link_url: '/knowledge-base/claims?claim=CLM-APX-003',
     is_read: false,
     read_at: null,
     created_at: '2026-11-08T08:00:00.000Z',

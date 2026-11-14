@@ -3,8 +3,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { FindingItem, evidenceOf, humanize } from "./shared";
+import { ACCEPTED_EXT, FindingItem, evidenceOf, humanize } from "./shared";
 import { FindingSource } from "./FindingSource";
+import { extractFile } from "./FileUpload";
 
 /** Native <dialog>: focus trap, Esc to close and inert background for free. */
 export function Modal({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer: React.ReactNode }) {
@@ -94,11 +95,26 @@ export function ReasonModal({
   signer?: string;
   busy: boolean;
   onClose: () => void;
-  onConfirm: (reason: string, evidence: string) => void;
+  onConfirm: (reason: string, evidence: string, file: { name: string; text: string } | null) => void;
 }) {
   const c = CFG[kind];
   const [reason, setReason] = useState("");
   const [evidence, setEvidence] = useState("");
+  const [file, setFile] = useState<{ name: string; text: string } | null>(null);
+  const [fileState, setFileState] = useState<{ reading: boolean; error?: string }>({ reading: false });
+  const pick = async (f: File | undefined) => {
+    if (!f) return;
+    setFileState({ reading: true });
+    try {
+      const r = await extractFile(f);
+      if (!r.text.trim()) throw new Error("No text could be read from this file.");
+      setFile({ name: f.name, text: r.text });
+      setFileState({ reading: false });
+    } catch (e) {
+      setFile(null);
+      setFileState({ reading: false, error: (e as Error).message });
+    }
+  };
   const empty = !reason.trim();
   return (
     <Modal
@@ -109,7 +125,7 @@ export function ReasonModal({
           <Button variant="secondary" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" loading={busy} disabled={empty} onClick={() => onConfirm(reason.trim(), evidence.trim())}>
+          <Button size="sm" loading={busy} disabled={empty || fileState.reading} onClick={() => onConfirm(reason.trim(), evidence.trim(), file)}>
             {c.confirm}
           </Button>
         </>
@@ -151,15 +167,35 @@ export function ReasonModal({
       {kind === "dispute" && (
         <div className="space-y-2">
           <label htmlFor="dispute-ev" className="text-sm font-medium">
-            Supporting source <span className="font-normal text-text-muted">(optional)</span>
+            Counter-evidence <span className="font-normal text-text-muted">(optional)</span>
           </label>
-          <input
+          <textarea
             id="dispute-ev"
+            rows={3}
             value={evidence}
             onChange={(e) => setEvidence(e.target.value)}
-            placeholder="Study ID, DOI or memo link"
-            className="h-11 w-full rounded-lg glass-inset px-3 font-sans text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue/50"
+            placeholder="Study ID, DOI, memo link or the passage that supports the claim"
+            className="w-full resize-none rounded-lg glass-inset p-3 font-sans text-sm leading-relaxed text-text-primary focus:outline-none focus:ring-2 focus:ring-blue/50"
           />
+          <label htmlFor="dispute-file" className="block text-[13px] text-text-secondary">
+            Or attach a file (PDF, Word, image or text). Its text is read and stored with the dispute.
+          </label>
+          <input
+            id="dispute-file"
+            type="file"
+            accept={ACCEPTED_EXT.join(",")}
+            onChange={(e) => pick(e.target.files?.[0])}
+            className="block w-full text-[13px] text-text-secondary file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-border-default file:bg-panel file:px-3 file:py-1.5 file:text-[13px] file:text-text-primary"
+          />
+          <p className="text-[13px] text-text-muted" aria-live="polite">
+            {fileState.reading
+              ? "Reading file…"
+              : fileState.error
+              ? <span className="text-status-critical">{fileState.error}</span>
+              : file
+              ? `${file.name}: ${file.text.length.toLocaleString()} characters read.`
+              : null}
+          </p>
         </div>
       )}
       {kind === "override" && signer && (
@@ -206,24 +242,71 @@ export function EvidenceModal({ finding, onClose, onApply }: { finding: FindingI
         <p className="rounded-lg border border-border-default bg-panel p-3 text-sm">“{finding.flaggedText}”</p>
       </div>
       <FindingSource f={finding} />
-      {(finding.doi || finding.assayStandard) && (
-        <dl className="grid grid-cols-2 gap-3 text-[13px]">
-          {finding.doi && (
-            <div>
-              <dt className="text-xs text-text-muted">DOI</dt>
-              <dd className="mt-0.5 break-words">
-                {finding.doi} <span className="text-text-muted">(demo reference, not linked)</span>
-              </dd>
-            </div>
-          )}
-          {finding.assayStandard && (
-            <div>
-              <dt className="text-xs text-text-muted">Standard</dt>
-              <dd className="mt-0.5">{finding.assayStandard}</dd>
-            </div>
-          )}
-        </dl>
-      )}
+      {(() => {
+        const src = finding.source;
+        const doi = src?.doi || finding.doi;
+        const standards = src?.standards?.length ? src.standards.join(", ") : finding.assayStandard;
+        return (
+          <>
+            {src?.chain && src.chain.length > 1 && (
+              <div className="space-y-1">
+                <p className="text-xs text-text-muted">Citation chain</p>
+                <ol className="space-y-1.5 rounded-lg border border-border-default bg-panel p-3 text-[13px]">
+                  {src.chain.map((c, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="w-4 shrink-0 tabular-nums text-text-muted">{i + 1}.</span>
+                      <span className="min-w-0 break-words">
+                        <span className="text-text-muted">{c.label}: </span>
+                        {c.value}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            <dl className="grid grid-cols-2 gap-3 text-[13px]">
+              <div>
+                <dt className="text-xs text-text-muted">DOI</dt>
+                <dd className="mt-0.5 break-words">
+                  {doi ? (
+                    src?.url ? (
+                      <a href={src.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:no-underline">{doi}</a>
+                    ) : (
+                      <>{doi} <span className="text-text-muted">(demo reference, not linked)</span></>
+                    )
+                  ) : (
+                    <span className="text-text-muted">None on file</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-text-muted">Assay standard</dt>
+                <dd className="mt-0.5 break-words">{standards || <span className="text-text-muted">None named in the record</span>}</dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-xs text-text-muted">SHA-256 of excerpt</dt>
+                <dd className="mt-0.5 break-all font-mono text-[12px]">
+                  {src?.excerptSha256 || <span className="font-sans text-text-muted">No library excerpt to hash</span>}
+                </dd>
+              </div>
+            </dl>
+            {finding.counter_evidence && (
+              <div className="space-y-1">
+                <p className="text-xs text-text-muted">Creator counter-evidence</p>
+                <div className="space-y-1 rounded-lg border border-border-default bg-panel p-3 text-[13px]">
+                  {finding.counter_evidence.text && <p className="break-words">{finding.counter_evidence.text}</p>}
+                  {finding.counter_evidence.file && (
+                    <p className="text-text-secondary">
+                      File: {finding.counter_evidence.file.name} ({finding.counter_evidence.file.text.length.toLocaleString()} characters extracted)
+                    </p>
+                  )}
+                  <p className="break-all font-mono text-[12px] text-text-muted">sha256 {finding.counter_evidence.sha256}</p>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
       {ev && (
         <button type="button" onClick={copy} className="inline-flex items-center gap-1.5 text-sm font-medium text-text-primary hover:underline cursor-pointer">
           {copied ? <Check className="h-4 w-4 text-status-success" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}

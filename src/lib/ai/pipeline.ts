@@ -26,6 +26,7 @@ import {
   ComplianceStatus,
   ClaimEvidenceRecord,
   StageExecutionTimings,
+  ComplianceScoreBreakdown,
 } from './types';
 import { runDeterministicRuleChecks } from './rules';
 import {
@@ -273,19 +274,17 @@ export function compileGovernanceFindings(
     }
 
     // Link cited evidence records (strictly verified records only)
+    // Zero-hallucination: an id the model cites that isn't in this brand's retrieved evidence is dropped,
+    // never passed through. A "verified" finding left with no real evidence is downgraded to unverified.
     const linkedEvidence: ClaimEvidenceRecord[] = [];
-    const citedIds: string[] = [];
     if (lf.isVerified && lf.citedEvidenceIds && lf.citedEvidenceIds.length > 0) {
       for (const id of lf.citedEvidenceIds) {
         const found = evidenceMap.get(id);
-        if (found) {
-          linkedEvidence.push(found);
-          citedIds.push(found.id);
-        } else {
-          citedIds.push(id);
-        }
+        if (found && !linkedEvidence.includes(found)) linkedEvidence.push(found);
       }
     }
+    const citedIds = linkedEvidence.map(e => e.id);
+    const verified = lf.isVerified && (linkedEvidence.length > 0 || lf.category === 'readability');
 
     compiled.push({
       id: `f_llm_${submissionId}_${llmIdx++}`,
@@ -299,8 +298,8 @@ export function compileGovernanceFindings(
       evidenceRecords: linkedEvidence,
       citedEvidenceIds: citedIds,
       citedExcerpt: linkedEvidence[0]?.excerpt,
-      isVerified: lf.isVerified,
-      unverified: !lf.isVerified,
+      isVerified: verified,
+      unverified: !verified,
       suggestedCorrection: lf.suggestedCorrection,
     });
   }
@@ -311,6 +310,25 @@ export function compileGovernanceFindings(
 // ============================================================================
 // Stage 6: Generate Review Summary
 // ============================================================================
+
+const SEVERITY_WEIGHT: Record<FindingSeverity, number> = { critical: 30, high: 18, medium: 8, low: 3, informational: 0 };
+
+/** Multi-factor score; see ComplianceScoreBreakdown in types.ts for the formula. */
+export function computeScoreBreakdown(findings: GovernanceFinding[], modelScore: number): ComplianceScoreBreakdown {
+  const disclosures = findings.filter(f => f.category === 'missing_disclosure').length;
+  const penalty = findings.filter(f => f.category !== 'missing_disclosure').reduce((n, f) => n + SEVERITY_WEIGHT[f.severity], 0);
+  const verifiedClaims = findings.filter(f => f.isVerified && f.category !== 'readability').length;
+  const unsupported = findings.filter(f => f.category === 'unsupported_claim' && !f.isVerified).length;
+  const claims = verifiedClaims + unsupported;
+  const clamp = (x: number) => Math.max(0, Math.min(100, Math.round(x)));
+  const factors: ComplianceScoreBreakdown['factors'] = [
+    { key: 'severity', label: 'Severity-weighted findings', weight: 0.45, score: clamp(100 - penalty), detail: `${penalty} penalty points (critical 30, high 18, medium 8, low 3)` },
+    { key: 'coverage', label: 'Claim evidence coverage', weight: 0.15, score: claims ? clamp((verifiedClaims / claims) * 100) : 100, detail: claims ? `${verifiedClaims} of ${claims} claims verified` : 'No checkable claims detected' },
+    { key: 'disclosure', label: 'Required disclosures', weight: 0.15, score: clamp(100 - disclosures * 25), detail: disclosures ? `${disclosures} missing disclosure(s), 25 points each` : 'All required disclosures present' },
+    { key: 'model', label: 'Contextual model review', weight: 0.25, score: clamp(modelScore), detail: 'Stage 4 score' },
+  ];
+  return { final: clamp(factors.reduce((n, f) => n + f.score * f.weight, 0)), factors };
+}
 
 export function generateReviewSummary(
   submissionId: string,
@@ -353,17 +371,8 @@ export function generateReviewSummary(
     }
   }
 
-  // Calculate composite compliance score (blends rule penalties with LLM evaluation)
-  let scoreDeduction = 0;
-  scoreDeduction += findingsBySeverity.critical * 30;
-  scoreDeduction += findingsBySeverity.high * 18;
-  scoreDeduction += findingsBySeverity.medium * 8;
-  scoreDeduction += findingsBySeverity.low * 3;
-
-  const ruleBasedScore = Math.max(0, 100 - scoreDeduction);
-  // Blend rule-based score (60% weight) and LLM score (40% weight)
-  const blendedScore = Math.round(ruleBasedScore * 0.6 + llmScore * 0.4);
-  const finalComplianceScore = Math.max(0, Math.min(100, blendedScore));
+  const scoreBreakdown = computeScoreBreakdown(findings, llmScore);
+  const finalComplianceScore = scoreBreakdown.final;
 
   // Determine overall compliance status
   let status: ComplianceStatus = 'approved';
@@ -404,6 +413,15 @@ export function generateReviewSummary(
     suggestedRevisedContent: suggestedRevisedText,
     suggestedRevision: suggestedRevisedText,
     stageExecutionTimes: timings,
+    stages: [
+      { stage: 1, name: 'Segmentation & claim detection', ms: timings.stage1SegmentationMs },
+      { stage: 2, name: 'Deterministic rule checks', ms: timings.stage2RuleChecksMs },
+      { stage: 3, name: 'Tenant-scoped retrieval', ms: timings.stage3RetrievalMs },
+      { stage: 4, name: 'Contextual LLM analysis', ms: timings.stage4LlmAnalysisMs },
+      { stage: 5, name: 'Findings compilation', ms: timings.stage5FindingsCompilationMs },
+      { stage: 6, name: 'Review summary & score', ms: timings.stage6SummaryGenerationMs },
+    ],
+    scoreBreakdown,
     pipelineCompletedAt: new Date().toISOString(),
     modelUsed,
   };
@@ -435,21 +453,21 @@ export async function runGovernancePipeline(
   channel: ContentChannel = 'general',
   options?: GovernancePipelineOptions
 ): Promise<GovernanceReviewSummary> {
-  const pipelineStartTime = Date.now();
+  const pipelineStartTime = performance.now();
   const repo = options?.repo || defaultBrandKnowledgeRepository;
 
   // --------------------------------------------------------------------------
   // STAGE 1: Content Segmentation & Claims Detection
   // --------------------------------------------------------------------------
-  const stage1Start = Date.now();
+  const stage1Start = performance.now();
   const segmentationResult = segmentContent(submissionId, content, channel);
   const resolvedChannel = segmentationResult.channel;
-  const stage1SegmentationMs = Date.now() - stage1Start;
+  const stage1SegmentationMs = performance.now() - stage1Start;
 
   // --------------------------------------------------------------------------
   // STAGE 3: Scoped Knowledge Retrieval (Scoped strictly to orgId and brandId)
   // --------------------------------------------------------------------------
-  const stage3Start = Date.now();
+  const stage3Start = performance.now();
   const scopedKnowledge = await retrieveScopedBrandKnowledge(
     {
       organizationId: orgId,
@@ -460,12 +478,12 @@ export async function runGovernancePipeline(
     },
     repo
   );
-  const stage3RetrievalMs = Date.now() - stage3Start;
+  const stage3RetrievalMs = performance.now() - stage3Start;
 
   // --------------------------------------------------------------------------
   // STAGE 2: Deterministic Rule Checks
   // --------------------------------------------------------------------------
-  const stage2Start = Date.now();
+  const stage2Start = performance.now();
   const ruleCheckResult = runDeterministicRuleChecks(content, resolvedChannel, {
     prohibitedTerms: scopedKnowledge.activeProhibitedTerms,
     requiredPhrases: scopedKnowledge.activeRequiredPhrases,
@@ -474,12 +492,12 @@ export async function runGovernancePipeline(
       ...scopedKnowledge.matchedExpiredClaims,
     ],
   });
-  const stage2RuleChecksMs = Date.now() - stage2Start;
+  const stage2RuleChecksMs = performance.now() - stage2Start;
 
   // --------------------------------------------------------------------------
   // STAGE 4: LLM Contextual Analysis (Gemini 2.5 Flash / Fallback)
   // --------------------------------------------------------------------------
-  const stage4Start = Date.now();
+  const stage4Start = performance.now();
   const geminiInput = {
     submissionId,
     channel: resolvedChannel,
@@ -505,34 +523,33 @@ export async function runGovernancePipeline(
     geminiInput,
     options?.apiKey
   );
-  const stage4LlmAnalysisMs = Date.now() - stage4Start;
+  const stage4LlmAnalysisMs = performance.now() - stage4Start;
 
   // --------------------------------------------------------------------------
   // STAGE 5: Compile Findings
   // --------------------------------------------------------------------------
-  const stage5Start = Date.now();
+  const stage5Start = performance.now();
   const findings = compileGovernanceFindings(
     submissionId,
     ruleCheckResult.violations,
     geminiResult,
     scopedKnowledge.relevantEvidence
   );
-  const stage5FindingsCompilationMs = Date.now() - stage5Start;
+  const stage5FindingsCompilationMs = performance.now() - stage5Start;
 
   // --------------------------------------------------------------------------
   // STAGE 6: Review Summary Generation
   // --------------------------------------------------------------------------
-  const stage6Start = Date.now();
-  const totalMs = Date.now() - pipelineStartTime;
-
+  const stage6Start = performance.now();
+  const r2 = (x: number) => Math.round(x * 100) / 100;
   const timings: StageExecutionTimings = {
-    stage1SegmentationMs,
-    stage2RuleChecksMs,
-    stage3RetrievalMs,
-    stage4LlmAnalysisMs,
-    stage5FindingsCompilationMs,
-    stage6SummaryGenerationMs: Date.now() - stage6Start,
-    totalMs,
+    stage1SegmentationMs: r2(stage1SegmentationMs),
+    stage2RuleChecksMs: r2(stage2RuleChecksMs),
+    stage3RetrievalMs: r2(stage3RetrievalMs),
+    stage4LlmAnalysisMs: r2(stage4LlmAnalysisMs),
+    stage5FindingsCompilationMs: r2(stage5FindingsCompilationMs),
+    stage6SummaryGenerationMs: 0,
+    totalMs: 0,
   };
 
   const summary = generateReviewSummary(
@@ -547,6 +564,9 @@ export async function runGovernancePipeline(
     timings,
     modelUsed
   );
+  // Stage 6 is timed around the summary it produces; patch the measured value into both views.
+  timings.stage6SummaryGenerationMs = summary.stages[5].ms = r2(performance.now() - stage6Start);
+  timings.totalMs = r2(performance.now() - pipelineStartTime);
 
   return summary;
 }

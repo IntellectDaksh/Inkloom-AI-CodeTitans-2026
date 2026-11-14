@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { denyFor, type AppRole } from "./rbac";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,16 +15,15 @@ export async function GET(req: NextRequest) {
   }
 }
 
-type Role = "creator" | "reviewer" | "admin";
-const ROLES: Role[] = ["creator", "reviewer", "admin"];
 const DECISIONS = ["approved", "rejected", "changes_requested", "override"] as const;
 type Decision = (typeof DECISIONS)[number];
 
-// Role rules enforced server-side (round 3 commitment), not only in the UI.
-function denyReason(role: Role, decision: Decision, reviewerId: string, authorId?: string, notes?: string) {
-  if (role === "creator") return "Creators can't approve or reject. Ask a reviewer.";
+// Matrix lives in ./rbac. Role comes from the stored user profile, not the request body.
+function denyReason(role: AppRole | undefined, decision: Decision, reviewerId: string, authorId?: string, notes?: string, override = false) {
+  const perm = decision === "override" || override ? "override_decision" : decision === "rejected" ? "reject" : "decide";
+  const d = denyFor(role, perm);
+  if (d) return d;
   if (authorId && authorId === reviewerId) return "You can't decide on your own submission.";
-  if (decision === "override" && role !== "admin") return "Only an admin can record an override.";
   if ((decision !== "approved") && (!notes || notes.trim().length < 5))
     return "Add a short reason (5+ characters) for this decision.";
   return null;
@@ -32,12 +32,14 @@ function denyReason(role: Role, decision: Decision, reviewerId: string, authorId
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    let {
+      reviewerName = "Unknown user",
+    } = body as { reviewerName?: string };
     const {
       submissionId,
       decision,
       notes,
-      reviewerId = "usr_daksh",
-      reviewerName = "Daksh Agrawal",
+      reviewerId = "",
       reviewerRole: roleField,
       role,
       organizationId = "org_uideas_digital",
@@ -46,22 +48,20 @@ export async function POST(req: NextRequest) {
       decision?: Decision;
       notes?: string;
       reviewerId?: string;
-      reviewerName?: string;
-      reviewerRole?: Role;
-      role?: Role;
+      reviewerRole?: string;
+      role?: string;
       organizationId?: string;
     };
 
-    // Approvals page sends reviewerRole; submission page sends role.
-    const reviewerRole: Role = roleField ?? role ?? "admin";
+    // Server-side identity: whatever role the client claims, the stored profile wins.
+    const reviewerRole = db.getUserRole(reviewerId) as AppRole | undefined;
+    const claimedRole = roleField ?? role;
+    reviewerName = db.getUserName(reviewerId) ?? reviewerName;
     if (!submissionId || !decision || !DECISIONS.includes(decision)) {
       return NextResponse.json(
         { success: false, error: "submissionId and a valid decision are required" },
         { status: 400 }
       );
-    }
-    if (!ROLES.includes(reviewerRole)) {
-      return NextResponse.json({ success: false, error: "Unknown role" }, { status: 400 });
     }
 
     const submission = db.getSubmission(submissionId);
@@ -69,16 +69,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Submission not found" }, { status: 404 });
     }
 
-    const denied = denyReason(reviewerRole, decision, reviewerId, submission.authorId, notes);
+    const orgId = submission.organisation_id || organizationId;
+    const isOverride = decision === "override" || body.override === true;
+    const denied = denyReason(reviewerRole, decision, reviewerId, submission.authorId, notes, isOverride);
     if (denied) {
       db.recordAuditEvent({
-        organizationId,
+        organizationId: orgId,
         brandId: submission.brandId,
         userId: reviewerId,
         action: "decision_blocked",
         entityType: "submission",
         entityId: submissionId,
-        metadata: { attempted: decision, reviewerName, reviewerRole, reason: denied },
+        metadata: { attempted: decision, reviewerName, reviewerRole, reason: denied, claimedRole },
       });
       return NextResponse.json({ success: false, error: denied }, { status: 403 });
     }
@@ -87,7 +89,7 @@ export async function POST(req: NextRequest) {
     // recordApprovalDecision updates status and writes its own audit event.
     const recordedDecision = db.recordApprovalDecision({
       submissionId,
-      organizationId,
+      organizationId: orgId,
       reviewerId,
       reviewerName,
       decision: effective,
@@ -96,17 +98,17 @@ export async function POST(req: NextRequest) {
     });
 
     db.recordAuditEvent({
-      organizationId,
+      organizationId: orgId,
       brandId: submission.brandId,
       userId: reviewerId,
-      action: decision === "override" ? "override_recorded" : "decision_signed",
+      action: isOverride ? "override_recorded" : "decision_signed",
       entityType: "submission",
       entityId: submissionId,
       metadata: { decision, notes, reviewerName, reviewerRole },
     });
 
     db.createNotification({
-      organizationId,
+      organizationId: orgId,
       userId: submission.authorId,
       type: "approval_decision",
       title: `${decision === "override" ? "Override" : effective.replace("_", " ")}: ${submission.title}`,

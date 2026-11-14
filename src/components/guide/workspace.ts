@@ -6,10 +6,11 @@ import { useEffect, useState } from "react";
 // plus live counts read from the real API routes. One event keeps every surface in sync.
 
 export const BRANDS = ["Apex Nutrition", "Zenith Cloud"] as const;
-export type Role = "creator" | "reviewer" | "admin";
+export type Role = "creator" | "reviewer" | "brand_manager" | "admin";
 // Demo personas, matching the seeded users on the login page.
 export const PERSONAS = [
   { id: "daksh", name: "Daksh Agrawal", role: "admin" as Role, userId: "00000000-0000-4000-a000-000000000010", label: "Admin" },
+  { id: "brand_manager", name: "Demo Brand Manager", role: "brand_manager" as Role, userId: "00000000-0000-4000-a000-000000000013", label: "Brand Manager" },
   { id: "reviewer", name: "Demo Reviewer", role: "reviewer" as Role, userId: "00000000-0000-4000-a000-000000000012", label: "Reviewer" },
   { id: "creator", name: "Demo Creator", role: "creator" as Role, userId: "00000000-0000-4000-a000-000000000011", label: "Creator" },
 ];
@@ -17,6 +18,7 @@ export type Persona = (typeof PERSONAS)[number];
 export const ROLE_HELP: Record<Role, string> = {
   creator: "Writes and checks ads. Cannot approve.",
   reviewer: "Signs off ads written by others.",
+  brand_manager: "Signs off or rejects ads and can override a single issue with a reason.",
   admin: "Signs off ads and can override a decision with a reason.",
 };
 export function personaOf(p: Prefs): Persona {
@@ -163,7 +165,7 @@ export interface Workspace {
 export const SEED_WORKSPACES: Workspace[] = [
   { name: "Apex Nutrition", industry: "Health & nutrition", channels: ["Instagram", "Landing page", "Email"], description: "Sports supplements and recovery products." },
   { name: "Zenith Cloud", industry: "Software", channels: ["LinkedIn", "Landing page", "Ads"], description: "Enterprise cloud hosting and security." },
-  { name: "Lumina Labs", industry: "Beauty & skincare", channels: ["Instagram", "TikTok", "Product page"], description: "Clinical skincare and serums." },
+  { name: "Lumina Skincare", industry: "Beauty & skincare", channels: ["Instagram", "TikTok", "Product page"], description: "Clinical skincare and serums." },
 ];
 
 export const WS_KEY = "adsnitch:workspaces";

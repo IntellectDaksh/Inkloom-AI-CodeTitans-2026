@@ -39,6 +39,33 @@ function extractSignificantKeywords(text: string): string[] {
     .filter(word => word.length > 2 && !STOP_WORDS.has(word));
 }
 
+// Compiled once per (pattern, flags) so repeat scans don't rebuild regexes.
+const REGEX_CACHE = new Map<string, RegExp>();
+function compiled(source: string, flags: string): RegExp {
+  const key = `${flags}/${source}`;
+  let re = REGEX_CACHE.get(key);
+  if (!re) { re = new RegExp(source, flags); REGEX_CACHE.set(key, re); }
+  re.lastIndex = 0;
+  return re;
+}
+
+const UNIVERSAL_NEGATION = /\b(no|nothing|nobody|none)\s+(?:\w+\s+){0,2}(is|are|can\s+be)\s+$/i;
+const COPULA_NOT = /\b(is|are|was|were)\s+(not|never)\s+$|\b(isn't|aren't|wasn't|weren't)\s+$/i;
+
+/**
+ * True when a matched term should not count as the brand making the claim:
+ * - negated statements ("no system is bulletproof", "it is not unhackable")
+ * - mid-sentence Title Case word followed by another capitalised word (proper noun: "the Miracle Mile").
+ * "is no magic bullet" still counts: that phrasing invokes the term about the product.
+ * ponytail: lexical heuristic, not a parser. Gemini covers the long tail when a key is set.
+ */
+export function isSuppressedMatch(content: string, start: number, end: number): boolean {
+  const clause = content.slice(Math.max(0, start - 40), start).split(/[.!?;:\n]/).pop() ?? '';
+  if (UNIVERSAL_NEGATION.test(clause) || COPULA_NOT.test(clause)) return true;
+  const atSentenceStart = /(^|[.!?\n]\s*)$/.test(content.slice(Math.max(0, start - 3), start)) || start === 0;
+  return !atSentenceStart && /^[A-Z]/.test(content.slice(start, end)) && /^\s+[A-Z][a-z]/.test(content.slice(end, end + 20));
+}
+
 function findMatches(
   content: string,
   term: string,
@@ -68,10 +95,10 @@ function findMatches(
       }
       return matches;
     } else if (matchMode === 'regex') {
-      pattern = new RegExp(term, flags);
+      pattern = compiled(term, flags);
     } else {
       // word_boundary
-      pattern = new RegExp(`\\b${escapeRegex(term)}\\b`, flags);
+      pattern = compiled(`\\b${escapeRegex(term)}\\b`, flags);
     }
 
     let match: RegExpExecArray | null;
@@ -123,6 +150,7 @@ export function checkProhibitedTerms(
     );
 
     for (const match of matches) {
+      if (isSuppressedMatch(content, match.startIndex, match.endIndex)) continue;
       violations.push({
         id: `pt_${rule.id}_${match.startIndex}`,
         ruleId: rule.id,
@@ -170,8 +198,9 @@ export function checkRequiredPhrases(
     if (rule.placement === 'footer') {
       // Check last 30% of content or last 300 characters
       const footerCutoff = Math.max(0, Math.floor(content.length * 0.7));
-      const footerSegment = targetContent.slice(footerCutoff);
-      phraseFound = footerSegment.includes(phraseToFind);
+      // Footer = the phrase ENDS inside the last 30% (in a one-line ad the disclosure starts earlier).
+      const pos = targetContent.lastIndexOf(phraseToFind);
+      phraseFound = pos >= 0 && pos + phraseToFind.length >= footerCutoff;
     } else if (rule.placement === 'header') {
       const headerCutoff = Math.min(content.length, Math.ceil(content.length * 0.3) + 100);
       const headerSegment = targetContent.slice(0, headerCutoff);
@@ -377,7 +406,9 @@ export function checkOutOfScopeContext(
         /\ball\s+accounts\b/i,
       ];
 
-      const hasConflict = conflictingScopePatterns.some(pattern => pattern.test(content));
+      // Wording inside the approved claim itself ("...worldwide.") is not a broadening of it.
+      const surrounding = directMatch ? content.replace(new RegExp(escapeRegex(claim.claimText), 'gi'), ' ') : content;
+      const hasConflict = conflictingScopePatterns.some(pattern => pattern.test(surrounding));
 
       // Check if context qualifier is present
       const hasQualifier = allowedContextsLower.some(ctx => {
@@ -386,7 +417,10 @@ export function checkOutOfScopeContext(
         return lowerContent.includes(cleanCtx) || lowerContent.includes(ctx);
       });
 
-      if (hasConflict || !hasQualifier) {
+      // Only broadening language ("all users", "worldwide") contradicts a scoped claim. A missing qualifier
+      // alone is not a violation: tags like "benchmarked_hardware" never appear in natural copy, so requiring
+      // them flagged every verbatim use of an approved claim. A claim scoped "global" can't be over-broadened.
+      if (hasConflict && !allowedContextsLower.includes('global')) {
         violations.push({
           id: `scope_context_${claim.id}`,
           ruleId: claim.id,
@@ -408,6 +442,57 @@ export function checkOutOfScopeContext(
   }
 
   return violations;
+}
+
+/**
+ * 5. Regulatory disclosures that apply regardless of brand, keyed by channel + content signals.
+ * - FTC Endorsement Guides (16 CFR 255): a social post that reads as a creator endorsement
+ *   (first person + promo code / affiliate link / gifted) needs a clear #ad, #sponsored or "paid partnership".
+ * - FDA / DSHEA (21 CFR 101.93): a supplement structure/function claim needs the
+ *   "not evaluated by the Food and Drug Administration" disclaimer on any channel.
+ */
+const ENDORSEMENT_SIGNAL = /\b(use\s+(my\s+)?code\s+\w+|promo\s+code|discount\s+code|link\s+in\s+(my\s+)?bio|gifted|my\s+affiliate\s+link|ad\s+partner)\b/i;
+const FIRST_PERSON = /\b(i|i'm|i've|my|me)\b/i;
+const FTC_DISCLOSURE = /(#ad\b|#sponsored\b|#paidpartnership\b|paid\s+partnership|sponsored\s+by|#partner\b)/i;
+const SUPPLEMENT_CONTEXT = /\b(supplements?|capsules?|gummies|tea|teatox|powder|scoops?|greens|protein|vitamins?|blend|formula)\b/i;
+const STRUCTURE_FUNCTION = /\b(supports?|boosts?|promotes?|improves?|enhances?|aids?|cleanses?|detox(es|ifies)?|burns?|melts?)\s+(?:your\s+|the\s+)?(?:\w+\s+){0,2}?(immun\w*|energy|metabolism|digestion|gut|toxins?|fat|weight|recovery|focus|sleep|skin|joints?|heart)\b/i;
+const FDA_DISCLAIMER = /not\s+been\s+evaluated\s+by\s+the\s+food\s+and\s+drug\s+administration/i;
+
+export function checkChannelDisclosures(content: string, channel: ContentChannel): RuleViolation[] {
+  const out: RuleViolation[] = [];
+  const endorsement = channel === 'social_media' && FIRST_PERSON.test(content) ? ENDORSEMENT_SIGNAL.exec(content) : null;
+  if (endorsement && !FTC_DISCLOSURE.test(content)) {
+    out.push({
+      id: `ftc_endorsement_${endorsement.index}`,
+      ruleId: 'reg_ftc_endorsement',
+      ruleType: 'missing_required_phrase',
+      category: 'missing_disclosure',
+      severity: 'high',
+      matchedText: endorsement[0],
+      startIndex: endorsement.index,
+      endIndex: endorsement.index + endorsement[0].length,
+      message: 'Reads as a paid creator endorsement on social but has no clear "#ad" / "paid partnership" disclosure (FTC Endorsement Guides, 16 CFR 255).',
+      suggestedReplacement: 'Add "#ad" or "Paid partnership with <brand>" at the start of the caption.',
+      metadata: { requiredPhrase: '#ad', regulation: 'FTC 16 CFR 255', targetChannel: channel },
+    });
+  }
+  const sf = SUPPLEMENT_CONTEXT.test(content) ? STRUCTURE_FUNCTION.exec(content) : null;
+  if (sf && !FDA_DISCLAIMER.test(content)) {
+    out.push({
+      id: `fda_dshea_${sf.index}`,
+      ruleId: 'reg_fda_dshea',
+      ruleType: 'missing_required_phrase',
+      category: 'missing_disclosure',
+      severity: 'high',
+      matchedText: sf[0],
+      startIndex: sf.index,
+      endIndex: sf.index + sf[0].length,
+      message: 'Supplement structure/function claim without the DSHEA disclaimer (21 CFR 101.93).',
+      suggestedReplacement: 'Add: "These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease."',
+      metadata: { requiredPhrase: 'These statements have not been evaluated by the Food and Drug Administration.', regulation: 'FDA DSHEA 21 CFR 101.93', targetChannel: channel },
+    });
+  }
+  return out;
 }
 
 // ============================================================================
@@ -440,6 +525,9 @@ export function runDeterministicRuleChecks(
   // 4. Out-of-scope context claims
   const outOfScopeViolations = checkOutOfScopeContext(content, channel, rulesData.allClaims);
   violations.push(...outOfScopeViolations);
+
+  // 5. Regulatory (FTC endorsement / FDA DSHEA) disclosures per channel
+  violations.push(...checkChannelDisclosures(content, channel));
 
   const totalRulesEvaluated =
     rulesData.prohibitedTerms.length +

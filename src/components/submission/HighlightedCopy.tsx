@@ -39,27 +39,43 @@ export function HighlightedCopy({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  // Split segments on newlines so each source line gets its own numbered row.
+  const lines: Seg[][] = [[]];
+  for (const seg of segment(content, findings)) {
+    seg.text.split(/\r?\n/).forEach((part, i) => {
+      if (i > 0) lines.push([]);
+      if (part) lines[lines.length - 1].push({ text: part, finding: seg.finding });
+    });
+  }
+  const seen = new Set<string>();
   return (
-    <div className="whitespace-pre-wrap break-words font-sans text-[15px] leading-8 text-text-primary">
-      {segment(content, findings).map((s, i) =>
-        s.finding ? (
-          <button
-            key={i}
-            id={`hl-${s.finding.id}`}
-            type="button"
-            onClick={() => onSelect(s.finding!.id)}
-            aria-label={`${s.text}: ${SEVERITY[sevOf(s.finding.severity)].label} issue. Show details.`}
-            className={`rounded border px-1 py-0.5 text-left font-medium transition-shadow focus-visible:outline-2 focus-visible:outline-blue cursor-pointer ${
-              SEVERITY[sevOf(s.finding.severity)].mark
-            } ${selectedId === s.finding.id ? "ring-2 ring-ink ring-offset-1 ring-offset-canvas" : ""}`}
-          >
-            {s.text}
-          </button>
-        ) : (
-          <React.Fragment key={i}>{s.text}</React.Fragment>
-        )
-      )}
-    </div>
+    <ol className="font-sans text-[15px] leading-8 text-text-primary" aria-label="Ad copy with line numbers">
+      {lines.map((line, n) => (
+        <li key={n} className="flex gap-3">
+          <span aria-hidden className="w-6 shrink-0 select-none text-right text-[12px] tabular-nums text-text-muted">{n + 1}</span>
+          <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">
+            {line.length === 0 ? " " : line.map((s, i) =>
+              s.finding ? (
+                <button
+                  key={i}
+                  id={seen.has(s.finding.id) ? undefined : (seen.add(s.finding.id), `hl-${s.finding.id}`)}
+                  type="button"
+                  onClick={() => onSelect(s.finding!.id)}
+                  aria-label={`Line ${n + 1}, ${s.text}: ${SEVERITY[sevOf(s.finding.severity)].label} issue. Show details.`}
+                  className={`rounded border px-1 py-0.5 text-left font-medium transition-shadow focus-visible:outline-2 focus-visible:outline-blue cursor-pointer ${
+                    SEVERITY[sevOf(s.finding.severity)].mark
+                  } ${selectedId === s.finding.id ? "ring-2 ring-ink ring-offset-1 ring-offset-canvas" : ""}`}
+                >
+                  {s.text}
+                </button>
+              ) : (
+                <React.Fragment key={i}>{s.text}</React.Fragment>
+              )
+            )}
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

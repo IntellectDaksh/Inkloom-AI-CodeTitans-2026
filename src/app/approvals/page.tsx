@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { InfoTip } from "@/components/guide/HelpPanel";
 import { PERSONAS, ROLE_HELP, personaOf, usePrefs, focusRing } from "@/components/guide/workspace";
 
-type Tab = "pending" | "changes_requested" | "approved";
-type Action = "approve" | "changes" | "override";
+type Tab = "pending" | "changes_requested" | "rejected" | "approved";
+type Action = "approve" | "changes" | "reject" | "override";
 
 interface Decision {
   by: string;
@@ -37,6 +37,7 @@ interface Item {
 const TABS: { id: Tab; label: string }[] = [
   { id: "pending", label: "To review" },
   { id: "changes_requested", label: "Sent back" },
+  { id: "rejected", label: "Rejected" },
   { id: "approved", label: "Approved" },
 ];
 
@@ -58,7 +59,7 @@ function fromApi(s: any): Item {
     author: s.creator?.full_name ?? s.authorName ?? "Unknown author",
     authorId: s.creator_id ?? s.authorId ?? "",
     channel: s.metadata?.target_channels?.[0] ?? s.submission_type?.replace(/_/g, " ") ?? "",
-    status: st === "approved" ? "approved" : st === "changes_requested" || st === "rejected" ? "changes_requested" : "pending",
+    status: st === "approved" ? "approved" : st === "changes_requested" ? "changes_requested" : st === "rejected" ? "rejected" : "pending",
     score: s.latest_analysis?.overall_score ?? null,
     issues: open.length,
     highRisk: open.filter((f) => f.severity === "critical" || f.severity === "high").length,
@@ -118,7 +119,8 @@ export default function ApprovalsPage() {
 
   /** Why an action is blocked for the current persona, or null if allowed. */
   const blocked = (i: Item, a: Action): string | null => {
-    if (me.role === "creator") return "Creators cannot approve or send back ads. Switch to a reviewer or admin to decide.";
+    // Mirrors PERMISSIONS in src/app/api/approvals/rbac.ts; the server enforces it regardless.
+    if (me.role === "creator") return "Creators cannot approve, reject or send back ads. Switch to a reviewer, brand manager or admin to decide.";
     // Server rejects any decision on your own ad (api/approvals denyReason), so block all three here.
     if (i.authorId === me.userId) return "You wrote this ad, so someone else has to decide on it.";
     if (a === "override") return me.role === "admin" ? null : "Only an admin can override a decision.";
@@ -142,22 +144,23 @@ export default function ApprovalsPage() {
       noteRef.current?.focus();
       return;
     }
-    const decision = open.action === "approve" ? "approved" : open.action === "changes" ? "changes_requested" : i.status === "approved" ? "changes_requested" : "approved";
+    const decision =
+      open.action === "approve" ? "approved" : open.action === "changes" ? "changes_requested" : open.action === "reject" ? "rejected" : i.status === "approved" ? "changes_requested" : "approved";
     const notes = open.action === "override" ? `Override by ${me.label.toLowerCase()}: ${trimmed}` : trimmed || undefined;
     setBusy(true);
     try {
       const r = await fetch("/api/approvals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId: i.id, decision, notes, reviewerId: me.userId, reviewerName: me.name, reviewerRole: me.role }),
+        body: JSON.stringify({ submissionId: i.id, decision, notes, reviewerId: me.userId, reviewerName: me.name, reviewerRole: me.role, override: open.action === "override" }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.success) throw new Error(d.error || "The decision was not saved.");
-      const status: Tab = decision === "approved" ? "approved" : "changes_requested";
+      const status: Tab = decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : "changes_requested";
       setItems((prev) =>
         (prev ?? []).map((x) => (x.id === i.id ? { ...x, status, decision: { by: me.name, at: new Date().toISOString(), decision, note: notes } } : x))
       );
-      setAnnounce(`${i.title}: ${decision === "approved" ? "approved" : "sent back for changes"} by ${me.name}.`);
+      setAnnounce(`${i.title}: ${decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : "sent back for changes"} by ${me.name}.`);
       setOpen(null);
       setCursor((c) => Math.max(0, Math.min(c, list.length - 2)));
     } catch (e) {
@@ -238,7 +241,7 @@ export default function ApprovalsPage() {
         ) : list.length === 0 ? (
           <div className="glass rounded-xl p-10 text-center">
             <p className="text-sm font-medium text-text-primary">
-              {tab === "pending" ? "Nothing waiting for sign-off" : tab === "approved" ? "No approved ads yet" : "Nothing has been sent back"}
+              {tab === "pending" ? "Nothing waiting for sign-off" : tab === "approved" ? "No approved ads yet" : tab === "rejected" ? "Nothing has been rejected" : "Nothing has been sent back"}
             </p>
             <p className="mt-1 text-[13px] text-text-muted">New ads appear here after someone checks them.</p>
             <Link href="/submissions/new" className={`mt-3 inline-block rounded text-[13px] font-medium text-text-primary underline underline-offset-4 ${focusRing}`}>Check an ad</Link>
@@ -249,7 +252,7 @@ export default function ApprovalsPage() {
               const v = verdict(i);
               const isOpen = open?.id === i.id;
               const selected = idx === cursor;
-              const actions: Action[] = tab === "pending" ? ["changes", "approve"] : ["override"];
+              const actions: Action[] = tab === "pending" ? ["reject", "changes", "approve"] : ["override"];
               return (
                 <li key={i.id}>
                   <article
@@ -307,7 +310,7 @@ export default function ApprovalsPage() {
                         onSubmit={(e) => { e.preventDefault(); submit(i); }}
                       >
                         <label htmlFor={`note-${i.id}`} className="block text-sm font-medium text-text-primary">
-                          {open.action === "approve" ? "Note for the record (optional)" : open.action === "changes" ? "What should change? (required)" : "Reason for override (required)"}
+                          {open.action === "approve" ? "Note for the record (optional)" : open.action === "changes" ? "What should change? (required)" : open.action === "reject" ? "Why can't this ad run? (required)" : "Reason for override (required)"}
                         </label>
                         <textarea
                           id={`note-${i.id}`}
@@ -328,7 +331,7 @@ export default function ApprovalsPage() {
                         <div className="flex flex-wrap justify-end gap-2">
                           <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(null)}>Cancel</Button>
                           <Button type="submit" size="sm" variant={open.action === "approve" ? "primary" : "secondary"} loading={busy}>
-                            {open.action === "approve" ? "Approve" : open.action === "changes" ? "Send back" : i.status === "approved" ? "Override to sent back" : "Override to approved"}
+                            {open.action === "approve" ? "Approve" : open.action === "changes" ? "Send back" : open.action === "reject" ? "Reject" : i.status === "approved" ? "Override to sent back" : "Override to approved"}
                           </Button>
                         </div>
                       </form>
@@ -352,7 +355,7 @@ export default function ApprovalsPage() {
                                   onClick={() => start(i, a)}
                                   className="min-h-11 flex-1 justify-center sm:flex-none"
                                 >
-                                  {a === "approve" ? "Approve" : a === "changes" ? "Request changes" : "Override…"}
+                                  {a === "approve" ? "Approve" : a === "changes" ? "Request changes" : a === "reject" ? "Reject" : "Override…"}
                                 </Button>
                               );
                             })}

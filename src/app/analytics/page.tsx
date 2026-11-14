@@ -84,12 +84,15 @@ export default function AnalyticsPage() {
   for (const s of mine) for (const f of s.findings ?? []) flagCounts[f.category] = (flagCounts[f.category] ?? 0) + 1;
   const flags = Object.entries(flagCounts).sort((a, b) => b[1] - a[1]);
   const maxFlag = flags[0]?.[1] ?? 1;
+  const sevCounts: Record<string, number> = {};
+  for (const s of mine) for (const f of s.findings ?? []) sevCounts[f.severity ?? "unrated"] = (sevCounts[f.severity ?? "unrated"] ?? 0) + 1;
+  const severities = ["critical", "high", "medium", "low", "unrated"].filter((k) => sevCounts[k]);
 
-  // Claims expiring in 90 days (or already expired)
+  // Claims expiring in 30 days (or already expired)
   const expiring = myClaims
     .filter((c) => c.expires_at)
     .map((c) => ({ c, days: Math.ceil((Date.parse(c.expires_at) - now) / DAY) }))
-    .filter((x) => x.days <= 90)
+    .filter((x) => x.days <= 30)
     .sort((a, b) => a.days - b.days);
 
   // Time from submission to the latest decision
@@ -157,6 +160,12 @@ export default function AnalyticsPage() {
             {loading ? <div className="h-40 animate-pulse rounded-xl bg-panel-hover" /> : flags.length === 0 ? (
               <Empty>No issues flagged yet. Check an ad to start seeing patterns.</Empty>
             ) : (
+              <>
+              <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-text-secondary" aria-label="Issues by severity">
+                {severities.map((k) => (
+                  <span key={k}><span className={k === "critical" ? "text-status-critical" : k === "high" ? "text-status-warning" : "text-text-primary"}>{k[0].toUpperCase() + k.slice(1)}</span> <span className="tabular-nums">{sevCounts[k]}</span></span>
+                ))}
+              </p>
               <ul className="space-y-3">
                 {flags.map(([cat, n]) => (
                   <li key={cat}>
@@ -170,13 +179,14 @@ export default function AnalyticsPage() {
                   </li>
                 ))}
               </ul>
+              </>
             )}
           </Section>
 
           <Section id="expiry-h" title="Which claims expire soon?" href="/knowledge-base/claims" linkLabel="Open claims"
-            tip="Approved claims whose proof expires within 90 days, or already has. An expired claim gets flagged in every ad that uses it.">
+            tip="Approved claims whose proof expires within 30 days, or already has. An expired claim gets flagged in every ad that uses it.">
             {loading ? <div className="h-40 animate-pulse rounded-xl bg-panel-hover" /> : expiring.length === 0 ? (
-              <Empty>No claim proof expires in the next 90 days.</Empty>
+              <Empty>No claim proof expires in the next 30 days.</Empty>
             ) : (
               <ul className="-mx-3 space-y-1">
                 {expiring.slice(0, 6).map(({ c, days }) => (

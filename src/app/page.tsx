@@ -217,7 +217,7 @@ const scenarios = [
   },
   {
     short: "Skincare",
-    brand: "Lumina Labs",
+    brand: "Lumina Skincare",
     score: 24,
     copy: "Our miracle serum permanently reverses wrinkles and repairs skin at the cellular level in 48 hours.",
     flags: [
@@ -249,7 +249,7 @@ const scenarios = [
       claimCode: "CLM-LUM-008",
       source: "Instrumental skin assessment and approved cosmetic claims",
       reference: "Evidence record · no permanent-effect study found",
-      scope: "Lumina Labs workspace only",
+      scope: "Lumina Skincare workspace only",
     },
   },
 ];

@@ -39,7 +39,10 @@ function ProblemRow({ r }: { r: ItemResult }) {
       <details className="group rounded-xl border border-border-default bg-panel">
         <summary className={`flex cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3 hover:bg-panel-hover ${focusRing}`}>
           <span className="font-mono text-xs text-text-muted">{r.id}</span>
-          <span className="min-w-0 flex-1 truncate text-sm text-text-primary">{r.text}</span>
+          <span className="min-w-0 flex-1 truncate text-sm text-text-primary">{r.caseRef ?? r.text}</span>
+          {r.group === "landmark" && (
+            <Badge variant={r.missed.length ? "warning" : "approved"} size="xs">{r.hits.length} of {r.expected.length} caught</Badge>
+          )}
           {r.missed.length > 0 && <Badge variant="warning" size="xs">{r.missed.length} missed</Badge>}
           {r.falseAlarms.length > 0 && <Badge variant="neutral" size="xs">{r.falseAlarms.length} false alarm{r.falseAlarms.length > 1 ? "s" : ""}</Badge>}
           {r.wrongCategory.length > 0 && <Badge variant="neutral" size="xs">{r.wrongCategory.length} wrong label</Badge>}
@@ -108,6 +111,7 @@ export default function EvaluationsPage() {
 
   useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
 
+  const landmarks = report?.results.filter((r) => r.group === "landmark") ?? [];
   const problems = report?.results.filter((r) => r.missed.length || r.falseAlarms.length || r.wrongCategory.length || r.error) ?? [];
 
   return (
@@ -164,6 +168,11 @@ export default function EvaluationsPage() {
               <p className="text-[13px] text-text-muted">
                 Pipeline time per draft: median {report.latency.p50} ms, slowest 5% {report.latency.p95} ms. Model: {report.modelUsed}.
               </p>
+              {report.scanner && (
+                <p className="text-[13px] text-text-muted">
+                  Deterministic scanner (banned words, absolute promises, disclosures), measured this run: median {report.scanner.evalSetP50Ms} ms per draft, slowest 5% {report.scanner.evalSetP95Ms} ms. On a {report.scanner.longDraftWords.toLocaleString()}-word draft: median {report.scanner.longDraftP50Ms} ms, slowest 5% {report.scanner.longDraftP95Ms} ms over {report.scanner.runs} runs (target under {report.scanner.targetMs} ms).
+                </p>
+              )}
             </section>
 
             <section aria-labelledby="bycat">
@@ -198,6 +207,16 @@ export default function EvaluationsPage() {
               </div>
             </section>
 
+            {landmarks.length > 0 && (
+              <section aria-labelledby="landmarks">
+                <h2 id="landmarks" className="text-lg font-semibold text-text-primary">Landmark cases</h2>
+                <p className="mt-1 text-sm text-text-secondary">Drafts modelled on real enforcement actions and public incidents. Rewritten for the demo brands, labelled the same way as the rest of the set.</p>
+                <ul className="mt-3 space-y-2">
+                  {landmarks.map((r) => <ProblemRow key={r.id} r={r} />)}
+                </ul>
+              </section>
+            )}
+
             <section aria-labelledby="problems">
               <h2 id="problems" className="text-lg font-semibold text-text-primary">Every miss and false alarm ({problems.length} drafts)</h2>
               <p className="mt-1 text-sm text-text-secondary">Open a row to see the draft, what the reviewer expected, and what AdSnitch flagged.</p>
@@ -212,7 +231,8 @@ export default function EvaluationsPage() {
           <h2 id="limits" className="text-base font-semibold text-text-primary">Limitations</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>The drafts are synthetic and were labelled by our own team, not an independent reviewer.</li>
-            <li>The set is small (35 drafts across three demo brands), so one draft can swing a percentage by several points.</li>
+            <li>The set is small ({report?.items ?? 39} drafts across three demo brands), so one draft can swing a percentage by several points.</li>
+            <li>Rule-only gaps found by earlier runs (negations, proper nouns, verbatim approved claims, medical wording) were fixed against this same set, so these numbers flatter performance on copy it has never seen.</li>
             <li>A flag counts as caught only when it lands on the labelled text with the same issue type. Right text under the wrong label is shown separately and counts against &ldquo;flags that were right&rdquo;.</li>
             <li>Missing disclosures have no text to point at, so they are matched on issue type alone.</li>
             <li>Without a Gemini key the run is rule-only. Gemini results vary between runs.</li>

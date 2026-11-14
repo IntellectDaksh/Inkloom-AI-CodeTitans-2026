@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, FilePlus2, FileText, CheckCircle2, ShieldCheck, BookOpen, Tag, FolderOpen,
-  BarChart3, FlaskConical, Building2, Users, Settings, type LucideIcon,
+  BarChart3, FlaskConical, Building2, Users, Settings, ScrollText, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -80,6 +80,11 @@ export const NAV: NavGroup[] = [
         "How well the checker performs on known test ads.",
         "Useful before trusting it with a new brand.",
         "Results here are tests, not live ads.",
+      ] },
+      { name: "Audit log", href: "/audit", icon: ScrollText, help: [
+        "Every check, edit, decision and override, with who did it and when.",
+        "Each event is sealed with a SHA-256 hash of the one before it.",
+        "Verify chain recomputes every hash on the server and shows where it breaks, if anywhere.",
       ] },
     ],
   },

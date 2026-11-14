@@ -51,7 +51,16 @@ export function PersonaLogin({ title, intro, next = "/dashboard" }: { title: str
           </ul>
         </section>
 
+        <Link
+          href="/prototype-notice?feature=sso"
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border border-border-default bg-panel px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:bg-panel-hover ${focusRing}`}
+        >
+          Sign in with Okta (SSO) <span className="font-normal text-text-muted">sandbox, not connected</span>
+        </Link>
+
         <p className="text-[13px] text-text-muted">
+          Okta SSO and Stripe billing are sandbox placeholders here: no real identity provider or payment is used.{" "}
+          <Link href="/prototype-notice?feature=stripe" className={`rounded text-text-primary underline underline-offset-4 ${focusRing}`}>How billing will work</Link>.{" "}
           Real accounts, passwords and SSO arrive with the database move.{" "}
           <Link href="/prototype-notice" className={`rounded text-text-primary underline underline-offset-4 ${focusRing}`}>What works today</Link>
         </p>

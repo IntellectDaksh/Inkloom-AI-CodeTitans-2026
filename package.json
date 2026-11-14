@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx tests/full-e2e.test.ts && npx tsx tests/proposal-features.test.ts && npx tsx src/lib/ai/__tests__/extract.test.ts",
+    "test": "npx tsx tests/full-e2e.test.ts && npx tsx tests/proposal-features.test.ts && npx tsx tests/brand-isolation.test.ts && npx tsx src/lib/ai/__tests__/extract.test.ts && npx tsx src/lib/ai/__tests__/round6.test.ts",
     "eval": "npx tsx src/lib/eval/run.ts"
   },
   "dependencies": {
