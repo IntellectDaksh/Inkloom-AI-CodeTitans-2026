@@ -141,7 +141,7 @@ async function runMasterTestSuite() {
     currentContent: unverifiedCopy,
     brandId: brandApex,
     organizationId: orgId,
-    authorId: SEED_IDS.USER_RIDDHI,
+    authorId: SEED_IDS.USER_CREATOR,
     channel: "social_media",
     submissionType: "reel_script",
     status: "submitted",

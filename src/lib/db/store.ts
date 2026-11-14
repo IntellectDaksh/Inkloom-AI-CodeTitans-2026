@@ -1408,7 +1408,7 @@ export class InkloomStore {
         state.notifications.unshift({
           id: crypto.randomUUID(),
           organisation_id: sub.organisation_id,
-          user_id: sub.assigned_reviewer_id || SEED_IDS.USER_LAKSH,
+          user_id: sub.assigned_reviewer_id || SEED_IDS.USER_REVIEWER,
           title: `Finding Disputed: ${sub.title}`,
           message: `Creator challenged finding "${finding.title}": ${reason}`,
           notification_type: 'finding_disputed',

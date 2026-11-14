@@ -24,7 +24,7 @@ Generic AI writing tools churn out convincing text but routinely hallucinate cli
 > ### Live Application & Judge Quick Access
 > * **Production Link:** [https://inkloom-ai-tau.vercel.app](https://inkloom-ai-tau.vercel.app)
 > * **Live Audit Workbench:** Test copy on the home page hero with three pre-loaded vertical presets (Clinical Nutrition, Enterprise SaaS SLA, and Skincare).
-> * **1-Click Persona Logins:** Switch roles on the [Login Page](https://inkloom-ai-tau.vercel.app/auth/login) as Admin (Daksh), Legal Reviewer (Laksh), or Content Creator (Riddhi).
+> * **1-Click Persona Logins:** Switch roles on the [Login Page](https://inkloom-ai-tau.vercel.app/auth/login) as Admin (Daksh), Legal Reviewer (Reviewer), or Content Creator (Creator).
 > * **Automated Test Suite:** 58 out of 58 automated assertions passing green (`npm test`).
 
 ---
@@ -153,9 +153,9 @@ All 58 tests run locally without external cloud dependencies.
 
 **Team AGRAWALDAKSH008 — CodeTitans India 2026**
 * **Daksh Agrawal:** Lead & Full-Stack Architect
-* **Laksh Khatri:** Lead Regulatory Reviewer
-* **Riddhi Shah:** Senior Content Producer
-* **Mansoor Rupawala:** VP of Brand Governance
+* **Demo Reviewer:** Lead Regulatory Reviewer
+* **Demo Creator:** Senior Content Producer
+* **Demo Analyst:** VP of Brand Governance
 
 ---
 

@@ -31,7 +31,7 @@ async function verifyProposalCoreFunctions() {
     const targetFinding = findings[0];
     const disputeRes = db.raiseDispute(
       targetFinding.id,
-      "usr_riddhi",
+      "usr_creator",
       "Statutory safe harbor applies per 21 CFR § 101.93; trial cohort CT-882 confirms efficacy.",
       "https://clinicaltrials.gov/ct2/show/NCT048821"
     );

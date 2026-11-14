@@ -106,9 +106,9 @@
 - **Running Header:** `INKLOOM AI · TEAM, STATUS & FUTURE ROADMAP | CODETITANS INDIA 2026`
 - **Team Responsibilities Grid (4 Members):**
   - **Daksh Agrawal:** Admin & Architecture Lead (Deterministic regex engine, PostgreSQL RLS, Next.js 16 core, Vercel deployment).
-  - **Laksh Khatri:** Lead Regulatory Reviewer (Statutory rules FTC/FDA/MoCRA, channel disclaimers, reviewer override gate).
-  - **Riddhi Shah:** Senior Content Producer (Creator studio intake UX, word-level surgical diffing, finding disputes).
-  - **Mansoor Rupawala:** VP of Brand Governance (Evidence provenance drawer, clinical trial ingestion, cascade dependency engine).
+  - **Demo Reviewer:** Lead Regulatory Reviewer (Statutory rules FTC/FDA/MoCRA, channel disclaimers, reviewer override gate).
+  - **Demo Creator:** Senior Content Producer (Creator studio intake UX, word-level surgical diffing, finding disputes).
+  - **Demo Analyst:** VP of Brand Governance (Evidence provenance drawer, clinical trial ingestion, cascade dependency engine).
 - **Implementation Reality Grid (2-Column Comparison):**
   - *Completed Implementation (16 items verified):* 29 routes, tenant RLS, DOIs, 8-stage compiler, zero-hallucination, surgical diff, provenance drawer, dispute/dismissal/override, cascade re-review, benchmark suite, expiry alerts, SHA-256 audit, RBAC, 58 passing tests.
   - *Current Limitations (Explicit Disclosure):* SAML 2.0 / Okta SSO prototype sandbox mode, Stripe prototype sandbox mode, scanned paper PDF OCR deferred, auto-publishing intentionally not implemented by design.

@@ -30,7 +30,7 @@ The audit directly evaluated the five specific problem areas highlighted by stak
 |---|---|---|---|---|
 | **1** | **Live Content Audit Workbench** | `src/app/page.tsx` (lines 527–887) | **CRITICAL** | Cramped 7:5 split layout; textarea forces draft marketing copy into `text-xs font-mono`; 4-layer nested border boxes; loud red/green fills; labelled as `• INTERACTIVE HARDWARE TERMINAL`. |
 | **2** | **4 Landmark Cases** | `src/app/page.tsx` (lines 1033–1122) | **HIGH** | Heavy black boxes with neon red/amber borders; tiny 10px–11px console text; repetitive uppercase tags (`CASE 01`, `STATUTE:`, `INKLOOM REMEDY:`); remedy copy placed in nested green terminal wells. |
-| **3** | **Team Section** | `src/app/page.tsx` (lines 1334–1396) | **MANDATE: MUST BE DELETED** | "Built for Truth by Compliance Engineers" with 4 personal cards (Daksh, Laksh, Riddhi, Mansoor) and student emails (`@uideas.digital`). Destroys enterprise authority. **Must be excised completely.** |
+| **3** | **Team Section** | `src/app/page.tsx` (lines 1334–1396) | **MANDATE: MUST BE DELETED** | "Built for Truth by Compliance Engineers" with 4 personal cards (Daksh, Reviewer, Creator, Analyst) and student emails (`@uideas.digital`). Destroys enterprise authority. **Must be excised completely.** |
 | **4** | **Hero Section** | `src/app/page.tsx` (lines 408–525) | **HIGH** | Headline cramped into 7-col split alongside a simulated `PRE-PUBLICATION COPILOT` terminal box; tiny 10px metrics; micro-tag in monospace; weak button sizing (38px height). |
 | **5** | **Benchmark Dashboard** | `src/app/evaluations/page.tsx` (lines 1–457) | **CRITICAL** | Dense matrix of terminal cards; glowing electric cyan dots/accents (`#00F2FE`); blue navy borders (`#1E2E50`); copy snippet in tiny monospace; illegible 10px confusion matrix cells. |
 
@@ -225,9 +225,9 @@ The user interface nests bordered containers inside bordered containers with lit
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { name: "Daksh Agrawal", ... },
-          { name: "Laksh Khatri", ... },
-          { name: "Riddhi Shah", ... },
-          { name: "Mansoor Rupawala", ... }
+          { name: "Demo Reviewer", ... },
+          { name: "Demo Creator", ... },
+          { name: "Demo Analyst", ... }
         ].map(...)}
       </div>
     </div>
@@ -312,7 +312,7 @@ PREVENTABLE BRAND CATASTROPHES (Red Monospace)
 [ BEFORE: Unwanted Hackathon Team Section ]
 TEAM AGRAWALDAKSH008 · CODETITANS INDIA 2026
 "Built for Truth by Compliance Engineers"
-[Card 1: Daksh] [Card 2: Laksh] [Card 3: Riddhi] [Card 4: Mansoor]
+[Card 1: Daksh] [Card 2: Reviewer] [Card 3: Creator] [Card 4: Analyst]
 ```
 
 #### Remediation Plan for Agent 3:

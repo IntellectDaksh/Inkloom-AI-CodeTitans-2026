@@ -54,7 +54,7 @@ Every feature below is implemented, verified via automated test suites (58/58 pa
 24. **SOC-2 Cryptographic Audit Trail Ledger (`audit_events`):** Tamper-evident ledger recording all preflights, draft revisions, disputes, overrides, and approvals with SHA-256 hashes.
 25. **In-App Notification Center (`/notifications`):** Real-time alerts for review assignments, claim expiry warnings, and sign-offs.
 26. **Role-Based Access Control (RBAC):** Four discrete permissions tiers: Admin, Brand Manager, Compliance Reviewer, and Content Creator.
-27. **1-Click Persona Demo Switcher (`/auth/login`):** Pre-authenticated test accounts for instant evaluation as Admin (Daksh), Reviewer (Laksh), or Creator (Riddhi).
+27. **1-Click Persona Demo Switcher (`/auth/login`):** Pre-authenticated test accounts for instant evaluation as Admin (Daksh), Reviewer (Reviewer), or Creator (Creator).
 28. **Global Keyboard Accelerators:** `Ctrl+Enter` for preflight audit execution, `Ctrl+K` for global command palette, and `Esc` for modal dismissal.
 
 ---
@@ -128,6 +128,6 @@ The project evaluates its engine against four canonical real-world compliance di
 
 From the verified project roster (Team AGRAWALDAKSH008):
 - **Daksh Agrawal:** Admin & Compliance Architect (Deterministic Engine, RLS Isolation, Next.js Core).
-- **Laksh Khatri:** Lead Regulatory Reviewer (Statutory Rules: FTC/FDA/MoCRA, Override Gates).
-- **Riddhi Shah:** Senior Content Producer (Creator Studio, Surgical Diffing, Workflow UX).
-- **Mansoor Rupawala:** VP of Brand Governance (Evidence Provenance, Cascade Engine, Trial Ingest).
+- **Demo Reviewer:** Lead Regulatory Reviewer (Statutory Rules: FTC/FDA/MoCRA, Override Gates).
+- **Demo Creator:** Senior Content Producer (Creator Studio, Surgical Diffing, Workflow UX).
+- **Demo Analyst:** VP of Brand Governance (Evidence Provenance, Cascade Engine, Trial Ingest).

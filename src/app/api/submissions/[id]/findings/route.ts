@@ -15,7 +15,7 @@ export async function POST(
       evidence = "",
       memo = "Override authorized under Legal Memo LM-2026-44",
       reviewerId = "usr_daksh",
-      userId = "usr_riddhi",
+      userId = "usr_creator",
     } = body;
 
     if (!findingId || !action) {

@@ -10,8 +10,8 @@ export type Role = "creator" | "reviewer" | "admin";
 // Demo personas, matching the seeded users on the login page.
 export const PERSONAS = [
   { id: "daksh", name: "Daksh Agrawal", role: "admin" as Role, userId: "00000000-0000-4000-a000-000000000010", label: "Admin" },
-  { id: "laksh", name: "Demo Reviewer", role: "reviewer" as Role, userId: "00000000-0000-4000-a000-000000000012", label: "Reviewer" },
-  { id: "riddhi", name: "Demo Creator", role: "creator" as Role, userId: "00000000-0000-4000-a000-000000000011", label: "Creator" },
+  { id: "reviewer", name: "Demo Reviewer", role: "reviewer" as Role, userId: "00000000-0000-4000-a000-000000000012", label: "Reviewer" },
+  { id: "creator", name: "Demo Creator", role: "creator" as Role, userId: "00000000-0000-4000-a000-000000000011", label: "Creator" },
 ];
 export type Persona = (typeof PERSONAS)[number];
 export const ROLE_HELP: Record<Role, string> = {

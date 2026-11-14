@@ -137,9 +137,9 @@ Inkloom evaluates its governance engine against four documented real-world corpo
 
 ### Team Bifurcation & Responsibilities (Team AGRAWALDAKSH008)
 - **Daksh Agrawal — Admin & Compliance Architect:** Responsible for the deterministic regex engine, PostgreSQL Row-Level Security tenant isolation, Next.js 16 core architecture, and serverless edge deployment.
-- **Laksh Khatri — Lead Regulatory Reviewer:** Responsible for statutory compliance rules (FTC Act § 5, FDA DSHEA, MoCRA), channel disclosure logic, and reviewer override authorization workflows.
-- **Riddhi Shah — Senior Content Producer:** Responsible for creator intake studio UX, token-level surgical diff visualization, finding dispute workflows, and editorial interaction design.
-- **Mansoor Rupawala — VP of Brand Governance:** Responsible for the evidence provenance citation drawer, clinical trial ingestion, and the claim-expiry cascade re-review dependency engine.
+- **Demo Reviewer — Lead Regulatory Reviewer:** Responsible for statutory compliance rules (FTC Act § 5, FDA DSHEA, MoCRA), channel disclosure logic, and reviewer override authorization workflows.
+- **Demo Creator — Senior Content Producer:** Responsible for creator intake studio UX, token-level surgical diff visualization, finding dispute workflows, and editorial interaction design.
+- **Demo Analyst — VP of Brand Governance:** Responsible for the evidence provenance citation drawer, clinical trial ingestion, and the claim-expiry cascade re-review dependency engine.
 
 ### Completed Implementation Summary
 - 29 fully functional routes with zero dead buttons.

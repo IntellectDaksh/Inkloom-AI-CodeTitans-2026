@@ -56,7 +56,7 @@
   - Strict Anti-Auto-Publishing Policy
   - High-Availability Offline Heuristic Resilience
 - [ ] **Team & Acknowledgments Section**
-  - Team AGRAWALDAKSH008 credits: Daksh Agrawal, Laksh Khatri, Riddhi Shah, Mansoor Rupawala
+  - Team AGRAWALDAKSH008 credits: Daksh Agrawal, Demo Reviewer, Demo Creator, Demo Analyst
   - Central Motto: "CHECK THE CLAIM. SHOW THE SOURCE. KEEP PEOPLE IN CONTROL."
 - [ ] **Footer Section**
   - Navigation Columns: Product, Knowledge Base, Governance, Legal
@@ -195,7 +195,7 @@
 ---
 
 ## Page 14: Team & Permissions (`/team`)
-- [ ] Member directory: Daksh Agrawal (Admin), Laksh Khatri (Reviewer), Riddhi Shah (Creator), Mansoor Rupawala (Brand Manager)
+- [ ] Member directory: Daksh Agrawal (Admin), Demo Reviewer (Reviewer), Demo Creator (Creator), Demo Analyst (Brand Manager)
 - [ ] Role capability permissions matrix
 
 ---
@@ -214,7 +214,7 @@
 ---
 
 ## Page 17: Login (`/auth/login`)
-- [ ] 1-Click Demo Persona Access (Daksh Agrawal Admin, Laksh Khatri Reviewer, Riddhi Shah Creator)
+- [ ] 1-Click Demo Persona Access (Daksh Agrawal Admin, Demo Reviewer Reviewer, Demo Creator Creator)
 - [ ] Credentials input form with email & password
 - [ ] Sign in action button
 - [ ] Prototype status routing for external enterprise OAuth / SSO

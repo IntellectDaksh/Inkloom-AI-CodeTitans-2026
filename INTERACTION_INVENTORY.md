@@ -27,8 +27,8 @@
 | Element | Visual Label | Target / Action | Behavior |
 |---|---|---|---|
 | Persona 1 | "Log In as Daksh (Admin)" | `loginAs('usr_daksh')` | Instantly logs in as Admin, redirects to `/dashboard` |
-| Persona 2 | "Log In as Laksh (Reviewer)" | `loginAs('usr_laksh')` | Instantly logs in as Reviewer, redirects to `/approvals` |
-| Persona 3 | "Log In as Riddhi (Creator)" | `loginAs('usr_riddhi')` | Instantly logs in as Creator, redirects to `/submissions/new` |
+| Persona 2 | "Log In as Reviewer (Reviewer)" | `loginAs('usr_reviewer')` | Instantly logs in as Reviewer, redirects to `/approvals` |
+| Persona 3 | "Log In as Creator (Creator)" | `loginAs('usr_creator')` | Instantly logs in as Creator, redirects to `/submissions/new` |
 | SSO Button | "Sign in with Google Workspace" | `/prototype-notice?feature=google_sso` | Explains SAML 2.0 integration & provides 1-click bypass |
 | SSO Button | "Sign in with Okta SAML" | `/prototype-notice?feature=okta_saml` | Explains enterprise SSO & provides 1-click bypass |
 | External Billing | "Upgrade to Enterprise Tier" | `/prototype-notice?feature=enterprise_billing` | Explains contract licensing & provides contact form |

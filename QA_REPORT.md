@@ -49,7 +49,7 @@ Every route in the Next.js App Router tree was audited for interactivity, typogr
 | `/team` | Client Page | Team member registry, interactive 1-Click Active Role Switcher (Admin, Reviewer, Creator), interactive "Invite Member" modal, statutory RBAC capability matrix | ✅ **PASSED** |
 | `/notifications` | Client Page | Unread notifications feed, filter tabs (`All`, `Unread`, `Submissions`, `Claims & Expiry`, `Approvals`), single/all mark-as-read actions, action routing to target submissions | ✅ **PASSED** |
 | `/settings` | Client Page | Multi-tenant organization settings, strict zero-hallucination policy toggle, mandatory human approval switch, deterministic vocabulary scanner switch, Gemini reasoning model selector | ✅ **PASSED** |
-| `/auth/login` | Client Page | 1-Click Pre-Authenticated Demo Profile logins (Daksh Agrawal Admin, Laksh K. Reviewer, Riddhi S. Creator), credentials form, SSO bridge links to prototype notice | ✅ **PASSED** |
+| `/auth/login` | Client Page | 1-Click Pre-Authenticated Demo Profile logins (Daksh Agrawal Admin, Demo Reviewer Reviewer, Creator S. Creator), credentials form, SSO bridge links to prototype notice | ✅ **PASSED** |
 | `/auth/register` | Client Page | Organization workspace setup, 1-click instant demo onboarding presets, tenant security policy initialization | ✅ **PASSED** |
 | `/onboarding` | Client Page | 3-step guided wizard configuring brand workspace, voice & writing style, and initial approved claim | ✅ **PASSED** |
 | `/prototype-notice` | Client Page | System Prototype Notice for CodeTitans 2026, 1-click persona bypasses (Brand Admin, Compliance Reviewer, Content Creator), diagnostics terminal telemetry, back to app navigation | ✅ **PASSED** |
