@@ -7772,3 +7772,65 @@ em.ev-ok { background: rgba(115, 224, 186, 0.2); color: #1c7d5c; }
   .final-section { padding-top: 64px !important; padding-bottom: 64px !important; }
   .hero-section { padding-top: 120px !important; }
 }
+
+/* Seamless sections: one continuous page gradient instead of per-section fills */
+.site {
+  background:
+    radial-gradient(ellipse 70% 40% at 30% 2%, rgba(124, 221, 255, 0.2), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 85% 38%, rgba(153, 200, 255, 0.14), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 10% 62%, rgba(124, 221, 255, 0.12), transparent 70%),
+    linear-gradient(180deg, #f7f9ff 0%, #eef4f8 30%, #e9f1f6 55%, #eef4f8 80%, #e4f4fa 100%) !important;
+}
+.signal-rail,
+.intro-section,
+.comparison-section,
+.lab,
+.incident-section,
+.pipeline-section,
+.ev,
+.sectors-section,
+.final-section {
+  background: transparent !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+.pipeline-section::before,
+.evidence-section::before { opacity: 0.5; }
+.signal-rail {
+  position: relative;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45) 20%, rgba(255, 255, 255, 0.45) 80%, transparent) !important;
+}
+
+/* Dark band feathers in and out instead of a hard edge */
+.security-section {
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+  padding-top: 170px !important;
+  padding-bottom: 170px !important;
+}
+.security-section::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 80% 30%, rgba(124, 221, 255, 0.12), transparent 70%),
+    var(--navy);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 150px, #000 calc(100% - 150px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 150px, #000 calc(100% - 150px), transparent 100%);
+  content: "";
+  pointer-events: none;
+}
+@media (max-width: 900px) {
+  .security-section { padding-top: 130px !important; padding-bottom: 130px !important; }
+  .security-section::before {
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 100px, #000 calc(100% - 100px), transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 100px, #000 calc(100% - 100px), transparent 100%);
+  }
+}
+footer#footer { position: relative; isolation: isolate; background: transparent !important; padding-top: 150px !important; }
+footer#footer::before {
+  position: absolute; z-index: -1; inset: 0; background: #050d14; content: ""; pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 120px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 120px);
+}
