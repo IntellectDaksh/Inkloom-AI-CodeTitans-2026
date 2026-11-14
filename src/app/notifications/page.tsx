@@ -116,7 +116,7 @@ export default function NotificationsPage() {
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="led-indicator led-turquoise" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-text-primary">
                 Governance Alert Feed
               </h1>
               {unreadCount > 0 && (
@@ -125,7 +125,7 @@ export default function NotificationsPage() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+            <p className="text-xs text-text-muted max-w-2xl leading-relaxed">
               Real-time audit triage alerts for regulatory safe-harbor breaches, impending claim expirations, and cascade review triggers.
             </p>
           </div>
@@ -140,8 +140,8 @@ export default function NotificationsPage() {
         </div>
 
         {/* Filter Toolbar Tabs */}
-        <div className="tactile-card rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center bg-[#080C16] border border-[#1E2B4A] rounded-lg p-0.5 text-xs font-mono">
+        <div className="glass rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center bg-panel border border-border-subtle rounded-lg p-0.5 text-xs font-mono">
             {[
               { id: "all", label: `All (${notifications.length})` },
               { id: "unread", label: `Unread (${unreadCount})` },
@@ -154,8 +154,8 @@ export default function NotificationsPage() {
                 onClick={() => setFilterType(tab.id)}
                 className={`px-3 py-1.5 rounded-md transition-all cursor-pointer font-medium ${
                   filterType === tab.id
-                    ? "bg-[#162445] text-white border border-[#2E416E] shadow-xs"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-panel-elevated text-text-primary border border-border-default shadow-xs"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
               >
                 {tab.label}
@@ -163,22 +163,22 @@ export default function NotificationsPage() {
             ))}
           </div>
 
-          <span className="text-[11px] font-mono text-slate-500">
+          <span className="text-[11px] font-mono text-text-primary0">
             SHOWING {filteredNotifications.length} OF {notifications.length} ALERTS
           </span>
         </div>
 
         {/* Notification Cards List */}
-        <div className="tactile-card rounded-xl overflow-hidden">
-          <div className="divide-y divide-[#162038]">
+        <div className="glass rounded-xl overflow-hidden">
+          <div className="divide-y divide-border-subtle">
             {filteredNotifications.length > 0 ? (
               filteredNotifications.map((n) => (
                 <div
                   key={n.id}
                   className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
                     n.isRead
-                      ? "hover:bg-[#191919] bg-[#141414]"
-                      : "bg-[#191919] hover:bg-[#202020] border-l-2 border-l-white"
+                      ? "hover:bg-panel-hover bg-panel"
+                      : "bg-panel-hover hover:bg-panel-elevated border-l-2 border-l-blue"
                   }`}
                 >
                   <div className="flex items-start gap-3.5">
@@ -186,12 +186,12 @@ export default function NotificationsPage() {
                     <div
                       className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border shadow-inner ${
                         n.severity === "critical"
-                          ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                          ? "bg-status-critical/10 border-status-critical/30 text-status-critical"
                           : n.severity === "warning"
-                          ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                          ? "bg-status-warning/10 border-status-warning/30 text-status-warning"
                           : n.severity === "success"
-                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                          : "bg-[#191919] border-[#303030] text-[#B5B5B5]"
+                          ? "bg-status-success/10 border-status-success/30 text-status-success"
+                          : "bg-panel-hover border-border-default text-text-secondary"
                       }`}
                     >
                       {n.type === "submission" ? (
@@ -207,21 +207,21 @@ export default function NotificationsPage() {
 
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-100 text-xs">
+                        <span className="font-semibold text-text-primary text-xs">
                           {n.title}
                         </span>
                         {!n.isRead && (
                           <span className="led-indicator led-turquoise" title="Unread" />
                         )}
-                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-[#080C16] border border-[#1E2B4A] text-slate-400">
+                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-panel border border-border-subtle text-text-muted">
                           {n.type.replace("_", " ")}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-2xl">
+                      <p className="text-xs text-text-secondary leading-relaxed font-sans max-w-2xl">
                         {n.message}
                       </p>
-                      <div className="text-[10px] font-mono text-slate-500 flex items-center gap-1.5 pt-0.5">
-                        <Clock className="w-3 h-3 text-slate-600" />
+                      <div className="text-[10px] font-mono text-text-primary0 flex items-center gap-1.5 pt-0.5">
+                        <Clock className="w-3 h-3 text-text-muted" />
                         <span>{n.time}</span>
                       </div>
                     </div>
@@ -231,7 +231,7 @@ export default function NotificationsPage() {
                     {!n.isRead && (
                       <button
                         onClick={() => markSingleRead(n.id)}
-                        className="text-[10px] font-mono text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-[#111C35] transition-colors cursor-pointer"
+                        className="text-[10px] font-mono text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-panel-hover transition-colors cursor-pointer"
                       >
                         Dismiss
                       </button>
@@ -246,7 +246,7 @@ export default function NotificationsPage() {
                 </div>
               ))
             ) : (
-              <div className="p-12 text-center text-slate-500 font-mono text-xs">
+              <div className="p-12 text-center text-text-primary0 font-mono text-xs">
                 NO NOTIFICATIONS FOUND IN CURRENT FILTER
               </div>
             )}

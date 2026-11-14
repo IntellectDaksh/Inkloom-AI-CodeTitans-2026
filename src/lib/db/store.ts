@@ -7,6 +7,7 @@
  */
 
 import fs from 'fs';
+import { createHash } from 'crypto';
 import path from 'path';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
@@ -728,6 +729,19 @@ export class InkloomStore {
   // Findings & Revisions
   // --------------------------------------------------------------------------
 
+  /** Drop still-open findings before a re-check so they don't pile up; decided ones stay for the audit trail. */
+  public static clearOpenFindings(submissionId: string): number {
+    const state = loadState();
+    const before = state.findings.length;
+    state.findings = state.findings.filter(
+      (f) =>
+        !((f.submission_id === submissionId || (f as any).submissionId === submissionId) &&
+          (!(f as any).status || (f as any).status === 'open'))
+    );
+    saveState(state);
+    return before - state.findings.length;
+  }
+
   public static listFindings(submissionId: string): FindingWithDetails[] {
     const state = loadState();
     return state.findings
@@ -869,9 +883,22 @@ export class InkloomStore {
         event.metadata || { previousValue: event.previousValue, updatedValue: event.updatedValue },
       created_at: new Date().toISOString(),
     };
+    const prev = state.audit_events.find((e) => e.hash) ?? null;
+    audit.prev_hash = prev?.hash ?? null;
+    audit.hash = createHash('sha256')
+      .update(`${audit.prev_hash ?? ''}|${audit.id}|${audit.entity_id}|${audit.action}|${audit.user_id}|${audit.created_at}|${JSON.stringify(audit.metadata)}`)
+      .digest('hex');
     state.audit_events.unshift(audit);
     saveState(state);
     return audit;
+  }
+
+  /** Audit trail for one entity, oldest first, for the submission timeline. */
+  public static listAuditForEntity(entityId: string): AuditEvent[] {
+    return loadState()
+      .audit_events.filter((e) => e.entity_id === entityId || (e.metadata as any)?.submission_id === entityId)
+      .slice()
+      .reverse();
   }
 
   // --------------------------------------------------------------------------

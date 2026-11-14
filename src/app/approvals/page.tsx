@@ -1,553 +1,383 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  CheckCircle2,
-  Clock,
-  XCircle,
-  ArrowRight,
-  ShieldCheck,
-  Check,
-  AlertTriangle,
-  AlertOctagon,
-  User,
-  Filter,
-  Search,
-  ExternalLink,
-  ChevronRight,
-  Layers,
-  FileText,
-  Lock,
-  Download,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { Check, CornerUpLeft, ChevronRight, Lock, RotateCcw } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { InfoTip } from "@/components/guide/HelpPanel";
+import { PERSONAS, ROLE_HELP, personaOf, usePrefs, focusRing } from "@/components/guide/workspace";
 
-interface ApprovalItem {
+type Tab = "pending" | "changes_requested" | "approved";
+type Action = "approve" | "changes" | "override";
+
+interface Decision {
+  by: string;
+  at: string;
+  decision: string;
+  note?: string | null;
+}
+
+interface Item {
   id: string;
   title: string;
   author: string;
-  authorInitials: string;
-  reviewer: string;
-  type: string;
+  authorId: string;
   channel: string;
-  status: "pending" | "approved" | "changes_requested";
-  severity: "critical" | "high" | "medium";
-  score: number;
-  criticalIssues: number;
-  submittedAt: string;
-  timestamp: string;
-  summary: string;
-  flaggedText?: string;
-  suggestedFix?: string;
+  status: Tab;
+  score: number | null;
+  issues: number;
+  highRisk: number;
+  copy: string;
+  topIssue?: { text: string; why: string };
+  decision?: Decision | null;
 }
 
-const INITIAL_APPROVAL_ITEMS: ApprovalItem[] = [
-  {
-    id: "sub_reel_script",
-    title: "Q4 Campaign – Clinical Protein Reel Script",
-    author: "Riddhi S.",
-    authorInitials: "RS",
-    reviewer: "Daksh Agrawal (Brand Director)",
-    type: "Video Script",
-    channel: "Instagram Reel",
-    status: "pending",
-    severity: "critical",
-    score: 18,
-    criticalIssues: 3,
-    submittedAt: "14m ago",
-    timestamp: "2026-11-08 14:18 UTC",
-    summary:
-      "Our new protein blend gives you 2x faster results and helps build muscle in just 14 days without dietary changes.",
-    flaggedText: "2x faster results / in just 14 days",
-    suggestedFix: "supports accelerated muscle protein synthesis when paired with resistance training",
-  },
-  {
-    id: "sub_linkedin_update",
-    title: "LinkedIn Corporate – Enterprise Wellness Initiative",
-    author: "Laksh K.",
-    authorInitials: "LK",
-    reviewer: "Elena Rostova (Legal Counsel)",
-    type: "Social Copy",
-    channel: "LinkedIn Feed",
-    status: "pending",
-    severity: "high",
-    score: 58,
-    criticalIssues: 1,
-    submittedAt: "42m ago",
-    timestamp: "2026-11-08 13:50 UTC",
-    summary:
-      "Unveiling our enterprise wellness initiative guaranteed to completely eradicate workplace burnout.",
-    flaggedText: "guaranteed to completely eradicate workplace burnout",
-    suggestedFix: "designed to support cognitive resilience and workplace well-being programs",
-  },
-  {
-    id: "sub_ad_creative",
-    title: "Paid Social Ad Creative – Hydration Electrolytes V2",
-    author: "Mansoor R.",
-    authorInitials: "MR",
-    reviewer: "Dr. Aris Vance (VP Medical)",
-    type: "Ad Copy",
-    channel: "Meta Ads",
-    status: "pending",
-    severity: "medium",
-    score: 72,
-    criticalIssues: 1,
-    submittedAt: "1.2h ago",
-    timestamp: "2026-11-08 13:12 UTC",
-    summary:
-      "Experience sustained energy without midday crashes using our hospital-grade cellular formula.",
-    flaggedText: "hospital-grade cellular formula",
-    suggestedFix: "isotonic electrolyte hydration formula conforming to USP <785>",
-  },
-  {
-    id: "sub_insta_launch",
-    title: "Product Launch – Recovery Blend Carousel",
-    author: "Laksh K.",
-    authorInitials: "LK",
-    reviewer: "Daksh Agrawal (Brand Director)",
-    type: "Social Copy",
-    channel: "Instagram Carousel",
-    status: "approved",
-    severity: "medium",
-    score: 96,
-    criticalIssues: 0,
-    submittedAt: "3h ago",
-    timestamp: "2026-11-08 11:24 UTC",
-    summary:
-      "Introducing our Informed-Sport certified recovery formula, backed by double-blind clinical trials.",
-  },
-  {
-    id: "sub_banner_v2",
-    title: "Global Website Banner – Winter Immunity V2",
-    author: "Mansoor R.",
-    authorInitials: "MR",
-    reviewer: "Elena Rostova (Compliance)",
-    type: "Web Copy",
-    channel: "Homepage Hero",
-    status: "changes_requested",
-    severity: "high",
-    score: 34,
-    criticalIssues: 2,
-    submittedAt: "5h ago",
-    timestamp: "2026-11-08 09:30 UTC",
-    summary:
-      "The ultimate miracle defense against seasonal illness with 100% all-natural organic bio-peptides.",
-    flaggedText: "miracle defense against seasonal illness",
-  },
+const TABS: { id: Tab; label: string }[] = [
+  { id: "pending", label: "To review" },
+  { id: "changes_requested", label: "Sent back" },
+  { id: "approved", label: "Approved" },
 ];
 
+const nameOf = (id?: string | null) => PERSONAS.find((p) => p.userId === id)?.name ?? "A reviewer";
+const fmt = (iso: string) =>
+  new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fromApi(s: any): Item {
+  const st: string = s.status;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const findings: any[] = s.findings ?? [];
+  const open = findings.filter((f) => !["resolved", "dismissed", "ignored"].includes(f.status));
+  const worst = open.find((f) => f.severity === "critical") ?? open.find((f) => f.severity === "high") ?? open[0];
+  const d = s.latest_decision;
+  return {
+    id: s.id,
+    title: s.title,
+    author: s.creator?.full_name ?? s.authorName ?? "Unknown author",
+    authorId: s.creator_id ?? s.authorId ?? "",
+    channel: s.metadata?.target_channels?.[0] ?? s.submission_type?.replace(/_/g, " ") ?? "",
+    status: st === "approved" ? "approved" : st === "changes_requested" || st === "rejected" ? "changes_requested" : "pending",
+    score: s.latest_analysis?.overall_score ?? null,
+    issues: open.length,
+    highRisk: open.filter((f) => f.severity === "critical" || f.severity === "high").length,
+    copy: s.raw_content ?? s.currentContent ?? "",
+    topIssue: worst ? { text: worst.highlighted_snippet ?? worst.flaggedText ?? "", why: worst.description ?? worst.title ?? "" } : undefined,
+    decision: d ? { by: nameOf(d.decided_by), at: d.decided_at, decision: d.decision, note: d.comments } : null,
+  };
+}
+
+function verdict(i: Item) {
+  if (i.score === null) return { label: "Not checked yet", variant: "neutral" as const };
+  if (i.highRisk > 0) return { label: `${i.highRisk} high-risk issue${i.highRisk > 1 ? "s" : ""}`, variant: "critical" as const };
+  if (i.issues > 0) return { label: `${i.issues} minor issue${i.issues > 1 ? "s" : ""}`, variant: "warning" as const };
+  return { label: "No issues found", variant: "approved" as const };
+}
+
 export default function ApprovalsPage() {
-  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "changes_requested">("pending");
-  const [items, setItems] = useState<ApprovalItem[]>(INITIAL_APPROVAL_ITEMS);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
-  const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
+  const prefs = usePrefs();
+  const me = personaOf(prefs);
+  const [items, setItems] = useState<Item[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [tab, setTab] = useState<Tab>("pending");
+  const [cursor, setCursor] = useState(0);
+  const [open, setOpen] = useState<{ id: string; action: Action } | null>(null);
+  const [note, setNote] = useState("");
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [announce, setAnnounce] = useState("");
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
 
-  // Modal State for 1-Click Approve / Reject with audit note input
-  const [modalItem, setModalItem] = useState<{ item: ApprovalItem; action: "approve" | "reject" } | null>(null);
-  const [auditNote, setAuditNote] = useState("");
-  const [reviewerSigner, setReviewerSigner] = useState("Daksh Agrawal (Admin / Brand Director)");
+  const load = useCallback(() => {
+    setLoadError(false);
+    fetch("/api/submissions")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => setItems((d.submissions ?? []).filter((s: { status: string }) => s.status !== "draft" && s.status !== "archived").map(fromApi)))
+      .catch(() => setLoadError(true));
+  }, []);
 
-  const handleOpenDecisionModal = (item: ApprovalItem, action: "approve" | "reject") => {
-    setModalItem({ item, action });
-    setAuditNote(
-      action === "approve"
-        ? "Verified against ISO 22196 clinical records. Formally cleared under 21 CFR Part 11 electronic signature."
-        : "Unsubstantiated superlative metrics detected. Changes required before publication approval."
-    );
+  useEffect(() => {
+    load();
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && TABS.some((x) => x.id === t)) setTab(t as Tab);
+  }, [load]);
+
+  const switchTab = (t: Tab) => {
+    setTab(t);
+    setCursor(0);
+    setOpen(null);
+    const u = new URL(window.location.href);
+    u.searchParams.set("tab", t);
+    window.history.replaceState(null, "", u);
   };
 
-  const handleConfirmDecision = () => {
-    if (!modalItem) return;
-    const { item, action } = modalItem;
-    setActionInProgress(item.id);
+  const list = (items ?? []).filter((i) => i.status === tab);
+  const counts = Object.fromEntries(TABS.map((t) => [t.id, (items ?? []).filter((i) => i.status === t.id).length])) as Record<Tab, number>;
 
-    setTimeout(() => {
+  /** Why an action is blocked for the current persona, or null if allowed. */
+  const blocked = (i: Item, a: Action): string | null => {
+    if (me.role === "creator") return "Creators cannot approve or send back ads. Switch to a reviewer or admin to decide.";
+    if (a === "override") return me.role === "admin" ? null : "Only an admin can override a decision.";
+    if (i.authorId === me.userId && a === "approve") return "You wrote this ad, so someone else has to approve it.";
+    return null;
+  };
+
+  const start = (i: Item, a: Action) => {
+    if (blocked(i, a)) return;
+    setOpen({ id: i.id, action: a });
+    setNote("");
+    setNoteError(null);
+    setTimeout(() => noteRef.current?.focus(), 0);
+  };
+
+  const submit = async (i: Item) => {
+    if (!open) return;
+    const needsNote = open.action !== "approve";
+    const trimmed = note.trim();
+    if (needsNote && trimmed.length < 5) {
+      setNoteError("Add a short reason so the author knows what to change.");
+      noteRef.current?.focus();
+      return;
+    }
+    const decision = open.action === "approve" ? "approved" : open.action === "changes" ? "changes_requested" : i.status === "approved" ? "changes_requested" : "approved";
+    const notes = open.action === "override" ? `Override by ${me.label.toLowerCase()}: ${trimmed}` : trimmed || undefined;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/approvals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionId: i.id, decision, notes, reviewerId: me.userId, reviewerName: me.name, reviewerRole: me.role }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error(d.error || "The decision was not saved.");
+      const status: Tab = decision === "approved" ? "approved" : "changes_requested";
       setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id
-            ? {
-                ...i,
-                status: action === "approve" ? ("approved" as const) : ("changes_requested" as const),
-                score: action === "approve" ? 96 : i.score,
-                criticalIssues: action === "approve" ? 0 : i.criticalIssues,
-              }
-            : i
-        )
+        (prev ?? []).map((x) => (x.id === i.id ? { ...x, status, decision: { by: me.name, at: new Date().toISOString(), decision, note: notes } } : x))
       );
-
-      setFeedbackBanner(
-        action === "approve"
-          ? `Submission "${item.title}" successfully approved with audit note: "${auditNote}".`
-          : `Changes requested for "${item.title}". Submitter notified with audit note.`
-      );
-      setActionInProgress(null);
-      setModalItem(null);
-      setTimeout(() => setFeedbackBanner(null), 4000);
-    }, 400);
+      setAnnounce(`${i.title}: ${decision === "approved" ? "approved" : "sent back for changes"} by ${me.name}.`);
+      setOpen(null);
+      setCursor((c) => Math.max(0, Math.min(c, list.length - 2)));
+    } catch (e) {
+      setNoteError(e instanceof Error ? e.message : "The decision was not saved. Try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const pendingCount = items.filter((i) => i.status === "pending").length;
-  const approvedCount = items.filter((i) => i.status === "approved").length;
-  const rejectedCount = items.filter((i) => i.status === "changes_requested").length;
-
-  const displayItems = items.filter((item) => {
-    const matchesTab = item.status === activeTab;
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.summary.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
+  // Keyboard: J/K move, A approve, R request changes. Ignored while typing.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.metaKey || e.ctrlKey || e.altKey || el.closest("input, textarea, select, [contenteditable]")) return;
+      const k = e.key.toLowerCase();
+      if (k === "j" || k === "k") {
+        e.preventDefault();
+        setCursor((c) => {
+          const n = Math.max(0, Math.min(list.length - 1, c + (k === "j" ? 1 : -1)));
+          cardRefs.current[n]?.focus();
+          return n;
+        });
+      } else if ((k === "a" || k === "r") && list[cursor] && tab === "pending") {
+        e.preventDefault();
+        start(list[cursor], k === "a" ? "approve" : "changes");
+      } else if (e.key === "Escape" && open) {
+        setOpen(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   });
 
   return (
-    <AppLayout
-      title="Approvals Queue"
-      subtitle="Formal human-in-the-loop sign-off desk for high-liability marketing claims."
-    >
-      <div className="space-y-6">
-        {/* Header & Meta Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="led-indicator led-amber" />
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                Human Sign-off &amp; Approvals Triage
-              </h1>
-              <Badge variant="metadata" size="xs">
-                21 CFR PART 11
-              </Badge>
-              <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
-                HUMAN-IN-THE-LOOP MANDATE
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Marketing submissions with critical statutory findings require formal reviewer sign-off before publication. AI proposes; authorized officers dispose.
+    <AppLayout title="Approvals">
+      <div className="mx-auto max-w-4xl space-y-6 pb-20">
+        <header>
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-primary">Approvals</h1>
+          <p className="mt-1 max-w-[62ch] text-sm text-text-secondary">
+            Ads that AdSnitch has checked and a person now needs to sign off. Approve it, or send it back with a reason.
+          </p>
+        </header>
+
+        <div className="glass flex flex-col gap-1 rounded-xl px-4 py-3 text-[13px] text-text-secondary sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            Signed in as <strong className="font-medium text-text-primary">{me.name}</strong> ({me.label}). {ROLE_HELP[me.role]}
+          </span>
+          <span className="text-text-muted">Switch person in the header.</span>
+        </div>
+
+        <div role="tablist" aria-label="Approval status" className="flex gap-1 overflow-x-auto rounded-lg border border-border-default bg-panel p-1">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => switchTab(t.id)}
+              className={`flex-1 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium ${focusRing} ${
+                tab === t.id ? "bg-panel-elevated text-text-primary" : "text-text-muted hover:text-text-primary"
+              }`}
+            >
+              {t.label} <span className="tabular-nums text-text-muted">({items ? counts[t.id] : "…"})</span>
+            </button>
+          ))}
+        </div>
+
+        <p className="sr-only" aria-live="polite">{announce}</p>
+
+        {loadError ? (
+          <div className="glass rounded-xl p-8 text-center">
+            <p className="text-sm font-medium text-text-primary">Could not load the approval queue.</p>
+            <Button size="sm" variant="secondary" className="mt-3" icon={<RotateCcw className="h-4 w-4" />} onClick={load}>Try again</Button>
+          </div>
+        ) : items === null ? (
+          <ul className="space-y-4" aria-busy="true">
+            {[0, 1].map((i) => <li key={i} className="glass h-48 animate-pulse rounded-xl" />)}
+          </ul>
+        ) : list.length === 0 ? (
+          <div className="glass rounded-xl p-10 text-center">
+            <p className="text-sm font-medium text-text-primary">
+              {tab === "pending" ? "Nothing waiting for sign-off" : tab === "approved" ? "No approved ads yet" : "Nothing has been sent back"}
             </p>
+            <p className="mt-1 text-[13px] text-text-muted">New ads appear here after someone checks them.</p>
+            <Link href="/submissions/new" className={`mt-3 inline-block rounded text-[13px] font-medium text-text-primary underline underline-offset-4 ${focusRing}`}>Check an ad</Link>
           </div>
-
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Link href="/prototype-notice?feature=veeva_sap_bridge">
-              <Button
-                size="sm"
-                variant="secondary"
-                icon={<Lock className="w-3.5 h-3.5 text-white" />}
-              >
-                Veeva / SAP Sync
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Feedback Alert Banner */}
-        {feedbackBanner && (
-          <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center justify-between animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{feedbackBanner}</span>
-            </div>
-            <button
-              onClick={() => setFeedbackBanner(null)}
-              className="text-emerald-400 hover:text-white font-mono text-xs cursor-pointer"
-            >
-              DISMISS
-            </button>
-          </div>
-        )}
-
-        {/* Filter Tabs and Quick Search Bar */}
-        <div className="bg-[#141414] border border-[#303030] rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Segmented Tabs: Pending, Approved, Rejected */}
-          <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs font-medium overflow-x-auto whitespace-nowrap scrollbar-none max-w-full">
-            <button
-              onClick={() => setActiveTab("pending")}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-2 ${
-                activeTab === "pending"
-                  ? "bg-[#222222] text-amber-400 font-semibold"
-                  : "text-[#888888] hover:text-white"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <span>Pending ({pendingCount})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("approved")}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-2 ${
-                activeTab === "approved"
-                  ? "bg-[#222222] text-emerald-400 font-semibold"
-                  : "text-[#888888] hover:text-white"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Approved ({approvedCount})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("changes_requested")}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-2 ${
-                activeTab === "changes_requested"
-                  ? "bg-[#222222] text-rose-400 font-semibold"
-                  : "text-[#888888] hover:text-white"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-rose-400" />
-              <span>Rejected ({rejectedCount})</span>
-            </button>
-          </div>
-
-          {/* Quick Search */}
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#737373]" />
-            <input
-              type="text"
-              placeholder="Filter queue by copy or author..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#0A0A0A] border border-[#2E2E2E] focus:border-white focus:outline-none rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder:text-[#666666] transition-colors"
-            />
-          </div>
-        </div>
-
-        {/* Approvals Queue Cards */}
-        <div className="space-y-4">
-          {displayItems.length > 0 ? (
-            displayItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-[#141414] border border-[#303030] rounded-xl p-6 space-y-5 shadow-sm"
-              >
-                {/* Header Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#262626] pb-4">
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <Link
-                        href={`/submissions/${item.id}`}
-                        className="text-base font-semibold text-white hover:underline transition-colors"
-                      >
-                        {item.title}
-                      </Link>
-                      <Badge variant="neutral" size="xs">
-                        {item.type}
-                      </Badge>
-                      <span className="px-2 py-0.5 rounded bg-[#191919] text-xs text-[#A0A0A0] border border-[#2E2E2E]">
-                        {item.channel}
-                      </span>
-                      {/* Functional Severity Badge */}
-                      <Badge
-                        variant={
-                          item.severity === "critical"
-                            ? "critical"
-                            : item.severity === "high"
-                            ? "high"
-                            : "medium"
-                        }
-                        size="xs"
-                      >
-                        {item.severity.toUpperCase()}
-                      </Badge>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-[#888888]">
-                      <span>Author: <strong className="text-white font-medium">{item.author}</strong></span>
-                      <span>•</span>
-                      <span>Reviewer: <strong className="text-[#D4D4D4] font-medium">{item.reviewer}</strong></span>
-                      <span>•</span>
-                      <span>{item.timestamp}</span>
-                    </div>
-                  </div>
-
-                  {/* Score & Status */}
-                  <div className="flex items-center gap-4 self-start sm:self-center">
-                    <div className="text-right">
-                      <div
-                        className={`text-base font-bold ${
-                          item.score >= 80
-                            ? "text-emerald-400"
-                            : item.score >= 50
-                            ? "text-amber-400"
-                            : "text-rose-400"
-                        }`}
-                      >
-                        {item.score}% Score
+        ) : (
+          <ul className="space-y-4">
+            {list.map((i, idx) => {
+              const v = verdict(i);
+              const isOpen = open?.id === i.id;
+              const selected = idx === cursor;
+              const actions: Action[] = tab === "pending" ? ["changes", "approve"] : ["override"];
+              return (
+                <li key={i.id}>
+                  <article
+                    ref={(el) => { cardRefs.current[idx] = el; }}
+                    tabIndex={-1}
+                    onFocus={() => setCursor(idx)}
+                    onClick={() => setCursor(idx)}
+                    aria-labelledby={`t-${i.id}`}
+                    className={`glass rounded-xl p-5 outline-none sm:p-6 ${selected ? "ring-2 ring-ink/30" : ""}`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <h2 id={`t-${i.id}`} className="text-base font-semibold text-text-primary">
+                          <Link href={`/submissions/${i.id}`} className={`rounded hover:underline ${focusRing}`}>{i.title}</Link>
+                        </h2>
+                        <p className="mt-1 text-[13px] text-text-muted">
+                          By {i.author}{i.channel ? `, for ${i.channel}` : ""}
+                          {i.authorId === me.userId && <span className="text-text-secondary"> (you)</span>}
+                        </p>
                       </div>
-                      <div className="text-xs text-[#888888]">
-                        {item.criticalIssues > 0
-                          ? `${item.criticalIssues} High Risk Flags`
-                          : "Zero Statutory Flags"}
+                      <div className="flex shrink-0 items-center gap-2">
+                        {i.score !== null && (
+                          <span className="flex items-center text-[13px] tabular-nums text-text-secondary">
+                            {Math.round(i.score)}/100
+                            <InfoTip label="score">How closely the ad matches approved claims and rules. Under 60 usually needs edits.</InfoTip>
+                          </span>
+                        )}
+                        <Badge variant={v.variant} size="xs">{v.label}</Badge>
                       </div>
                     </div>
 
-                    <Badge
-                      variant={
-                        item.status === "approved"
-                          ? "approved"
-                          : item.status === "changes_requested"
-                          ? "rejected"
-                          : "pending"
-                      }
-                      size="sm"
-                    >
-                      {item.status === "approved"
-                        ? "Approved"
-                        : item.status === "changes_requested"
-                        ? "Rejected"
-                        : "Pending"}
-                    </Badge>
-                  </div>
-                </div>
+                    <blockquote className="mt-4 line-clamp-3 border-l-2 border-border-default pl-4 text-sm leading-relaxed text-text-primary">
+                      {i.copy || "No copy text saved."}
+                    </blockquote>
 
-                {/* Content snippet with clean readable 15px typography */}
-                <div className="p-5 rounded-xl bg-[#0D0D0D] border border-[#262626] text-[15px] text-[#EDEDED] leading-relaxed">
-                  <div className="text-xs text-[#888888] mb-2 uppercase font-semibold tracking-wider">
-                    Submitted Copy Payload:
-                  </div>
-                  <p className="italic text-white">&ldquo;{item.summary}&rdquo;</p>
-
-                  {item.flaggedText && item.suggestedFix && (
-                    <div className="mt-4 pt-3 border-t border-[#242424] text-sm space-y-2">
-                      <div className="text-rose-400 flex items-center gap-2">
-                        <span className="font-bold select-none">-</span>
-                        <span className="line-through decoration-rose-500/70">{item.flaggedText}</span>
+                    {i.topIssue?.text && (
+                      <div className="mt-4 rounded-lg bg-panel px-4 py-3 text-[13px]">
+                        <p className="text-text-muted">Main issue</p>
+                        <p className="mt-1 font-medium text-text-primary">&ldquo;{i.topIssue.text}&rdquo;</p>
+                        {i.topIssue.why && <p className="mt-1 text-text-secondary line-clamp-2">{i.topIssue.why}</p>}
                       </div>
-                      <div className="text-emerald-300 flex items-center gap-2 font-medium">
-                        <span className="font-bold select-none">+</span>
-                        <span>{item.suggestedFix}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer Action Bar */}
-                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="text-xs text-[#888888]">
-                    Record ID: <span className="text-[#A0A0A0] font-mono">{item.id}</span>
-                  </div>
-
-                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full sm:w-auto">
-                    {item.status === "pending" && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleOpenDecisionModal(item, "reject")}
-                          loading={actionInProgress === item.id}
-                          className="flex-1 sm:flex-none min-h-[44px] justify-center"
-                        >
-                          Reject Draft
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="success"
-                          onClick={() => handleOpenDecisionModal(item, "approve")}
-                          loading={actionInProgress === item.id}
-                          icon={<Check className="w-4 h-4" />}
-                          className="flex-1 sm:flex-none min-h-[44px] justify-center"
-                        >
-                          1-Click Approve
-                        </Button>
-                      </>
                     )}
 
-                    <Link href={`/submissions/${item.id}`} className="w-full sm:w-auto">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        icon={<ChevronRight className="w-4 h-4" />}
-                        className="w-full sm:w-auto min-h-[44px] justify-center"
+                    {i.decision && (
+                      <p className="mt-4 text-[13px] text-text-secondary">
+                        {i.decision.decision === "approved" ? "Approved" : "Sent back"} by{" "}
+                        <strong className="font-medium text-text-primary">{i.decision.by}</strong> on {fmt(i.decision.at)}
+                        {i.decision.note ? <>: &ldquo;{i.decision.note}&rdquo;</> : "."}
+                      </p>
+                    )}
+
+                    {isOpen && open ? (
+                      <form
+                        className="mt-4 space-y-2 border-t border-border-subtle pt-4"
+                        onSubmit={(e) => { e.preventDefault(); submit(i); }}
                       >
-                        Inspect Workspace
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="bg-[#141414] border border-[#303030] rounded-xl p-12 text-center text-[#888888] text-sm">
-              Queue clear: No submissions in this status.
-            </div>
-          )}
-        </div>
-
-        {/* 1-Click Decision Modal with Clean Typography */}
-        {modalItem && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#141414] border border-[#303030] rounded-xl max-w-lg w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-[#262626] pb-4">
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  <h2 className="text-base font-semibold text-white tracking-tight">
-                    {modalItem.action === "approve" ? "Record Formal Human Sign-off" : "Confirm Rejection & Revisions"}
-                  </h2>
-                </div>
-                <button
-                  onClick={() => setModalItem(null)}
-                  className="text-[#888888] hover:text-white cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4 text-sm">
-                <div>
-                  <span className="text-xs uppercase tracking-wider text-[#888888] font-semibold block">Submission Record</span>
-                  <span className="text-white font-semibold text-base mt-1 block">{modalItem.item.title}</span>
-                </div>
-
-                <div>
-                  <label className="block text-xs uppercase tracking-wider text-[#888888] font-semibold mb-2">
-                    Reviewer Electronic Signature (21 CFR Part 11):
-                  </label>
-                  <input
-                    type="text"
-                    value={reviewerSigner}
-                    onChange={(e) => setReviewerSigner(e.target.value)}
-                    className="w-full bg-[#0D0D0D] border border-[#2E2E2E] focus:border-white focus:outline-none rounded-lg p-3 text-white text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs uppercase tracking-wider text-[#888888] font-semibold mb-2">
-                    Audit Note / Legal Justification *:
-                  </label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={auditNote}
-                    onChange={(e) => setAuditNote(e.target.value)}
-                    placeholder="Enter statutory justification, verified citation ID, or required revision notes..."
-                    className="w-full bg-[#0D0D0D] border border-[#2E2E2E] focus:border-white focus:outline-none rounded-lg p-3 text-white text-sm resize-none leading-relaxed"
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-3">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setModalItem(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={modalItem.action === "approve" ? "primary" : "danger"}
-                    onClick={handleConfirmDecision}
-                    loading={actionInProgress === modalItem.item.id}
-                    icon={modalItem.action === "approve" ? <Check className="w-4 h-4" /> : undefined}
-                  >
-                    {modalItem.action === "approve" ? "Commit 21 CFR Sign-off" : "Confirm Rejection"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+                        <label htmlFor={`note-${i.id}`} className="block text-sm font-medium text-text-primary">
+                          {open.action === "approve" ? "Note for the record (optional)" : open.action === "changes" ? "What should change? (required)" : "Reason for override (required)"}
+                        </label>
+                        <textarea
+                          id={`note-${i.id}`}
+                          ref={noteRef}
+                          rows={3}
+                          value={note}
+                          onChange={(e) => { setNote(e.target.value); setNoteError(null); }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(i); }
+                            if (e.key === "Escape") setOpen(null);
+                          }}
+                          aria-invalid={!!noteError}
+                          aria-describedby={`note-err-${i.id}`}
+                          placeholder={open.action === "approve" ? "e.g. Checked against claim CT-8842…" : "e.g. Remove “2x faster”, we have no study for it…"}
+                          className={`w-full resize-y rounded-lg border bg-panel p-3 text-base text-text-primary placeholder:text-text-muted sm:text-sm ${noteError ? "border-status-critical" : "border-border-default"} ${focusRing}`}
+                        />
+                        <p id={`note-err-${i.id}`} className="min-h-5 text-[13px] text-status-critical" aria-live="polite">{noteError}</p>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(null)}>Cancel</Button>
+                          <Button type="submit" size="sm" variant={open.action === "approve" ? "primary" : "secondary"} loading={busy}>
+                            {open.action === "approve" ? "Approve" : open.action === "changes" ? "Send back" : i.status === "approved" ? "Override to sent back" : "Override to approved"}
+                          </Button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="mt-4 flex flex-col gap-2 border-t border-border-subtle pt-4 sm:flex-row sm:items-center sm:justify-between">
+                        <Link href={`/submissions/${i.id}`} className={`inline-flex items-center gap-1 rounded text-[13px] font-medium text-text-secondary hover:text-text-primary ${focusRing}`}>
+                          See all issues <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
+                        <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                          <div className="flex flex-wrap gap-2">
+                            {actions.map((a) => {
+                              const why = blocked(i, a);
+                              return (
+                                <Button
+                                  key={a}
+                                  size="sm"
+                                  variant={a === "approve" ? "primary" : "secondary"}
+                                  disabled={!!why}
+                                  aria-describedby={why ? `why-${i.id}` : undefined}
+                                  icon={why ? <Lock className="h-4 w-4" /> : a === "approve" ? <Check className="h-4 w-4" /> : <CornerUpLeft className="h-4 w-4" />}
+                                  onClick={() => start(i, a)}
+                                  className="min-h-11 flex-1 justify-center sm:flex-none"
+                                >
+                                  {a === "approve" ? "Approve" : a === "changes" ? "Request changes" : "Override…"}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                          {actions.map((a) => blocked(i, a)).find(Boolean) && (
+                            <p id={`why-${i.id}`} className="text-xs text-text-muted sm:text-right">{actions.map((a) => blocked(i, a)).find(Boolean)}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
         )}
+      </div>
+
+      {/* Keyboard hint bar */}
+      <div className="glass-strong fixed bottom-4 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-4 rounded-full px-4 py-2 text-xs text-text-secondary md:flex" aria-hidden="true">
+        {[["J", "next"], ["K", "previous"], ["A", "approve"], ["R", "request changes"]].map(([k, l]) => (
+          <span key={k} className="flex items-center gap-1.5">
+            <kbd className="rounded border border-border-default bg-panel px-1.5 py-0.5 font-sans text-xs text-text-primary">{k}</kbd>
+            {l}
+          </span>
+        ))}
       </div>
     </AppLayout>
   );

@@ -110,7 +110,7 @@ export default function BrandsPage() {
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="led-indicator led-turquoise" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-text-primary">
                 Brand Workspaces &amp; Tenancy
               </h1>
               <Badge variant="verified" size="xs">
@@ -120,7 +120,7 @@ export default function BrandsPage() {
                 ZERO DATA LEAKAGE GUARANTEED
               </span>
             </div>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+            <p className="text-xs text-text-secondary max-w-2xl leading-relaxed">
               Row-Level Security (RLS) guarantees that claims, assay reports, and trial excerpts belonging to Brand A are walled off from Brand B.
             </p>
           </div>
@@ -129,7 +129,7 @@ export default function BrandsPage() {
             <Button
               size="sm"
               variant="gold"
-              icon={<Plus className="w-3.5 h-3.5 text-[#080C16]" />}
+              icon={<Plus className="w-3.5 h-3.5 text-ghost" />}
               onClick={() => setIsModalOpen(true)}
             >
               Create Brand Workspace
@@ -139,14 +139,14 @@ export default function BrandsPage() {
 
         {/* Feedback Alert Toast */}
         {toastMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="p-3.5 rounded-xl bg-status-success/10 border border-status-success/30 text-status-success text-xs flex items-center justify-between gap-3 animate-in fade-in">
             <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-status-success shrink-0" />
               <span className="font-sans font-medium">{toastMessage}</span>
             </div>
             <button
               onClick={() => setToastMessage(null)}
-              className="text-emerald-400 hover:text-white cursor-pointer"
+              className="text-status-success hover:text-text-primary cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -158,19 +158,19 @@ export default function BrandsPage() {
           {brands.map((b) => (
             <div
               key={b.id}
-              className={`tactile-card rounded-xl p-5 flex flex-col justify-between space-y-4 transition-all ${
-                b.isActive ? "border-white bg-[#191919]" : "border-[#303030] bg-[#141414]"
+              className={`glass rounded-xl p-5 flex flex-col justify-between space-y-4 transition-all ${
+                b.isActive ? "border-blue bg-panel-hover" : "border-border-default bg-panel"
               }`}
             >
               <div className="space-y-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#141414] border border-[#303030] text-white font-bold text-sm flex items-center justify-center font-mono shadow-inner">
+                    <div className="w-10 h-10 rounded-lg bg-panel border border-border-default text-text-primary font-bold text-sm flex items-center justify-center font-mono shadow-inner">
                       {b.name.charAt(0)}
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-white">{b.name}</h2>
-                      <div className="text-[10px] font-mono text-[#858585]">{b.category}</div>
+                      <h2 className="text-sm font-bold text-text-primary">{b.name}</h2>
+                      <div className="text-[10px] font-mono text-text-muted">{b.category}</div>
                     </div>
                   </div>
                   {b.isActive ? (
@@ -180,35 +180,35 @@ export default function BrandsPage() {
                   ) : (
                     <button
                       onClick={() => handleSetActive(b.id, b.name)}
-                      className="text-[10px] font-mono text-[#858585] hover:text-white transition-colors cursor-pointer"
+                      className="text-[10px] font-mono text-text-muted hover:text-text-primary transition-colors cursor-pointer"
                     >
                       Set Active
                     </button>
                   )}
                 </div>
 
-                <p className="text-xs text-[#B5B5B5] leading-relaxed font-sans">{b.description}</p>
+                <p className="text-xs text-text-secondary leading-relaxed font-sans">{b.description}</p>
 
-                <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-[#0A0A0A] border border-[#303030] text-xs font-mono">
+                <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-canvas border border-border-default text-xs font-mono">
                   <div>
-                    <span className="text-[#858585] block text-[10px]">ACTIVE CLAIMS</span>
-                    <span className="text-[#10B981] font-semibold mt-0.5 block font-mono">
+                    <span className="text-text-muted block text-[10px]">ACTIVE CLAIMS</span>
+                    <span className="text-status-success font-semibold mt-0.5 block font-mono">
                       {b.activeClaims} verified
                     </span>
                   </div>
                   <div>
-                    <span className="text-[#858585] block text-[10px]">SUBMISSIONS</span>
-                    <span className="text-white font-semibold mt-0.5 block font-mono">
+                    <span className="text-text-muted block text-[10px]">SUBMISSIONS</span>
+                    <span className="text-text-primary font-semibold mt-0.5 block font-mono">
                       {b.submissionsCount} drafts
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[#303030] flex items-center justify-between">
+              <div className="pt-2 border-t border-border-default flex items-center justify-between">
                 <Link
                   href="/knowledge-base/guidelines"
-                  className="text-xs text-white hover:underline font-mono"
+                  className="text-xs text-text-primary hover:underline font-mono"
                 >
                   Voice Rules &rarr;
                 </Link>
@@ -224,18 +224,18 @@ export default function BrandsPage() {
 
         {/* Create Brand Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-[#303030] bg-[#141414]">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3">
+          <div className="fixed inset-0 z-50 bg-ink/25 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="glass-strong rounded-xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-border-default pb-3">
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-white" />
-                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                  <Building2 className="w-4 h-4 text-text-primary" />
+                  <h3 className="eyebrow text-text-primary">
                     Deploy Brand Workspace
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
+                  className="text-text-muted hover:text-text-primary cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -243,41 +243,41 @@ export default function BrandsPage() {
 
               <form onSubmit={handleCreateBrand} className="space-y-3.5 text-xs font-mono">
                 <div>
-                  <label className="block text-[#858585] mb-1">BRAND NAME *</label>
+                  <label className="block text-text-muted mb-1">BRAND NAME *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Apex Performance Labs"
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-sans"
+                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-primary font-sans"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[#858585] mb-1">INDUSTRY / SECTOR</label>
+                  <label className="block text-text-muted mb-1">INDUSTRY / SECTOR</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Clinical Nutrition & Dietary Supplements"
                     value={categoryInput}
                     onChange={(e) => setCategoryInput(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-sans"
+                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-primary font-sans"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[#858585] mb-1">BRAND DESCRIPTION</label>
+                  <label className="block text-text-muted mb-1">BRAND DESCRIPTION</label>
                   <textarea
                     rows={3}
                     placeholder="Mission, product line, and regulatory requirements..."
                     value={descriptionInput}
                     onChange={(e) => setDescriptionInput(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] font-sans resize-none"
+                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-secondary font-sans resize-none"
                   />
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
+                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-border-default">
                   <Button
                     type="button"
                     size="sm"

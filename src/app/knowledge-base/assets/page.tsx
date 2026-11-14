@@ -1,244 +1,102 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Upload,
-  FileText,
-  CheckCircle2,
-  Clock,
-  Trash2,
-  Eye,
-  Plus,
-  ShieldCheck,
-  FileCode2,
-} from "lucide-react";
+import { FileText, FileUp } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { FileDrop, KbHeader, Modal, Toast, UNVERIFIED, focusRing } from "@/components/knowledge/kb";
 
-interface DocumentAsset {
+interface Asset {
   id: string;
   name: string;
   size: string;
   type: string;
-  status: "indexed" | "parsing" | "verified";
-  claimsExtracted: number;
   date: string;
-  doi?: string;
+  reference?: string;
+  excerpt?: string;
+  chars?: number;
+  uploaded?: boolean;
 }
 
-const INITIAL_DOCUMENTS: DocumentAsset[] = [
-  {
-    id: "doc_ct_2024",
-    name: "Clinical_Trial_CT_2024_B8_Absorption_Report.pdf",
-    size: "2.4 MB",
-    type: "PDF",
-    status: "indexed",
-    claimsExtracted: 3,
-    date: "2026-10-12",
-    doi: "10.1016/j.nutres.2024.108421",
-  },
-  {
-    id: "doc_iso_cert",
-    name: "ISO_9001_NTR_Bioavailability_Assay.pdf",
-    size: "1.1 MB",
-    type: "PDF",
-    status: "indexed",
-    claimsExtracted: 2,
-    date: "2026-09-18",
-    doi: "ISO 22196 Annex C",
-  },
-  {
-    id: "doc_brand_guide",
-    name: "Apex_Nutrition_Brand_Voice_v2.4.docx",
-    size: "840 KB",
-    type: "DOCX",
-    status: "indexed",
-    claimsExtracted: 5,
-    date: "2026-11-01",
-  },
-  {
-    id: "doc_wada_cert",
-    name: "WADA_Banned_Substances_Assay_2025.pdf",
-    size: "1.8 MB",
-    type: "PDF",
-    status: "indexed",
-    claimsExtracted: 1,
-    date: "2026-08-30",
-    doi: "LGC-IS-2026-Q1",
-  },
+// Demo documents: fictional, not independently verified.
+const INITIAL: Asset[] = [
+  { id: "doc_ct_2024", name: "Clinical trial report APX-2024-C3.pdf", size: "2.4 MB", type: "PDF", date: "2026-10-12", reference: "DOI 10.1016/j.nutres.2024.108421" },
+  { id: "doc_iso", name: "Bioavailability assay ISO-NTR.pdf", size: "1.1 MB", type: "PDF", date: "2026-09-18", reference: "ISO 22196 Annex C" },
+  { id: "doc_brand", name: "Apex Nutrition brand voice v2.4.docx", size: "840 KB", type: "DOCX", date: "2026-11-01" },
+  { id: "doc_wada", name: "Banned substance batch test 2025.pdf", size: "1.8 MB", type: "PDF", date: "2026-08-30", reference: "LGC-IS-2026-Q1" },
 ];
 
-export default function DocumentAssetsPage() {
-  const [documents, setDocuments] = useState<DocumentAsset[]>(INITIAL_DOCUMENTS);
-  const [uploading, setUploading] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+const sizeOf = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
+const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-  const handleSimulateUpload = () => {
-    setUploading(true);
-    setTimeout(() => {
-      const newDoc: DocumentAsset = {
-        id: `doc_${Date.now()}`,
-        name: "Q4_Recovery_Pilot_Trial_2026.pdf",
-        size: "1.6 MB",
-        type: "PDF",
-        status: "indexed",
-        claimsExtracted: 2,
-        date: new Date().toISOString().split("T")[0],
-        doi: "10.1249/MSS.0000000000003189",
-      };
-      setDocuments([newDoc, ...documents]);
-      setUploading(false);
-      setToastMessage("Document uploaded: 2 new claims extracted and indexed in Truth Library.");
-      setTimeout(() => setToastMessage(null), 4000);
-    }, 1200);
-  };
+export default function DocumentAssetsPage() {
+  const [docs, setDocs] = useState<Asset[]>(INITIAL);
+  const [open, setOpen] = useState<Asset | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const uploadRef = useRef<HTMLDialogElement>(null);
+  const viewRef = useRef<HTMLDialogElement>(null);
 
   return (
-    <AppLayout
-      title="Trial Assays & Evidence Assets Manager"
-      subtitle="Upload clinical trials, ISO laboratory assay reports, and legal memorandums for automated vector decomposition and claim extraction."
-    >
-      <div className="space-y-6">
-        {/* Top Header */}
-        <div className="space-y-4">
-          <Link
-            href="/knowledge-base"
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>KNOWLEDGE BASE / EVIDENCE ASSETS</span>
-          </Link>
+    <AppLayout>
+      <div className="mx-auto max-w-6xl space-y-8">
+        <KbHeader title="Evidence documents" intro="Studies, lab reports and legal memos that back your claims. Upload a file and we read its text so reviewers can quote it.">
+          <Button size="sm" className="h-10" icon={<FileUp className="h-4 w-4" />} onClick={() => uploadRef.current?.showModal()}>Upload document</Button>
+        </KbHeader>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="led-indicator led-turquoise" />
-                <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
-                  Document &amp; Evidence Assets
-                </h1>
-                <Badge variant="verified" size="xs">
-                  {documents.length} SOURCE FILES
-                </Badge>
-                <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
-                  SHA-256 SIGNED
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-                Source clinical papers and certified assay documents are parsed by the text-extraction pipeline and stored with permanent SHA-256 signatures.
-              </p>
-            </div>
-
-            <Button
-              size="sm"
-              variant="gold"
-              icon={<Upload className="w-3.5 h-3.5 text-[#080C16]" />}
-              onClick={handleSimulateUpload}
-              loading={uploading}
-            >
-              Upload Evidence PDF
-            </Button>
+        <section aria-labelledby="docs-h" className="glass rounded-2xl p-5 sm:p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="docs-h" className="text-lg font-semibold text-text-primary">{docs.length} documents</h2>
+            <p className="text-[13px] text-text-muted">
+              To turn sentences into claims, use <Link href="/knowledge-base/claims" className={`rounded underline underline-offset-4 hover:text-text-primary ${focusRing}`}>Add claims, Pick from a document</Link>.
+            </p>
           </div>
-        </div>
-
-        {/* Feedback Alert Toast */}
-        {toastMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="font-sans font-medium">{toastMessage}</span>
-            </div>
-            <button
-              onClick={() => setToastMessage(null)}
-              className="text-emerald-400 hover:text-white cursor-pointer"
-            >
-              ×
-            </button>
-          </div>
-        )}
-
-        {/* Upload Dropzone */}
-        <div
-          onClick={handleSimulateUpload}
-          className="tactile-card rounded-xl p-8 text-center cursor-pointer hover:border-[#404040] transition-all space-y-3 group bg-[#141414] border border-[#303030]"
-        >
-          <div className="w-12 h-12 rounded-xl bg-[#191919] border border-[#303030] group-hover:border-[#404040] text-white mx-auto flex items-center justify-center shadow-inner transition-colors">
-            <Upload className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-white group-hover:text-white">
-              Click to upload or drag and drop certified clinical trials
-            </div>
-            <div className="text-xs text-[#858585] mt-1 font-mono">
-              Supports PDF, DOCX, TXT up to 25MB · Text extraction and claim indexing run automatically
-            </div>
-          </div>
-        </div>
-
-        {/* Stored Documents Table */}
-        <div className="tactile-card rounded-xl overflow-hidden bg-[#141414] border border-[#303030]">
-          <div className="p-4 border-b border-[#303030] bg-[#191919] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileCode2 className="w-4 h-4 text-white" />
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
-                Indexed Evidence Repository ({documents.length} Files)
-              </h3>
-            </div>
-            <span className="text-[10px] font-mono text-[#858585]">ISO 17025 ACCREDITED</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#191919] border-b border-[#303030] text-[11px] uppercase tracking-wider text-[#858585]">
-                <tr>
-                  <th className="px-5 py-3">Document File</th>
-                  <th className="px-4 py-3">Format</th>
-                  <th className="px-4 py-3">Payload Size</th>
-                  <th className="px-4 py-3">Extracted Claims</th>
-                  <th className="px-4 py-3">Indexing Gate</th>
-                  <th className="px-4 py-3 text-right">Date Ingested</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#303030]">
-                {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-[#191919] transition-colors">
-                    <td className="px-5 py-3.5 font-sans font-medium text-white flex items-center gap-2.5">
-                      <FileText className="w-4 h-4 text-white shrink-0" />
-                      <div className="truncate max-w-sm">
-                        <div className="truncate font-mono text-xs">{doc.name}</div>
-                        {doc.doi && (
-                          <div className="text-[10px] text-[#858585] font-mono">
-                            DOI: {doc.doi}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <Badge variant="tag" size="xs">
-                        {doc.type}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-400">{doc.size}</td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-emerald-400 font-semibold font-mono">
-                        {doc.claimsExtracted} verified claims
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <Badge variant="verified" size="xs">
-                        Indexed
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3.5 text-right text-slate-400">{doc.date}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <ul className="-mx-3 mt-4 space-y-1">
+            {docs.map((d) => (
+              <li key={d.id}>
+                <button onClick={() => { setOpen(d); viewRef.current?.showModal(); }}
+                  className={`flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left hover:bg-panel-hover ${focusRing}`}>
+                  <FileText className="h-5 w-5 shrink-0 text-text-muted" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-text-primary">{d.name}</p>
+                    <p className="mt-1 text-[13px] text-text-muted">{d.type}, {d.size}, added {dateFmt.format(new Date(d.date))}{d.reference ? `, ${d.reference}` : ""}</p>
+                  </div>
+                  <Badge variant={d.uploaded ? "warning" : "draft"} size="xs">{d.uploaded ? "Unverified" : "Demo"}</Badge>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
+
+      <Modal ref={uploadRef} title="Upload a document">
+        <FileDrop label="Choose a file" hint="PDF, Word, image or text, up to 15 MB."
+          onText={(r, file) => {
+            const d: Asset = {
+              id: `doc-${Date.now()}`, name: r.fileName, size: sizeOf(file.size), uploaded: true,
+              type: (r.fileName.split(".").pop() ?? "file").toUpperCase(), date: new Date().toISOString().slice(0, 10),
+              excerpt: r.text.slice(0, 1200), chars: r.chars,
+            };
+            setDocs((p) => [d, ...p]);
+            uploadRef.current?.close();
+            setToast(`${r.fileName} added. ${r.chars.toLocaleString()} characters read.`);
+            window.setTimeout(() => setToast(null), 4000);
+          }} />
+        <p className="text-[13px] text-text-muted">Uploaded documents are {UNVERIFIED.toLowerCase()}.</p>
+      </Modal>
+
+      <Modal ref={viewRef} title={open?.name ?? "Document"} wide onClose={() => setOpen(null)}>
+        {open && (open.excerpt ? (
+          <>
+            <p className="text-[13px] text-text-muted">{open.chars?.toLocaleString()} characters read. Showing the start. {UNVERIFIED}.</p>
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-border-default bg-panel p-4 font-sans text-sm leading-relaxed text-text-secondary">{open.excerpt}</pre>
+          </>
+        ) : (
+          <p className="text-sm text-text-secondary">Demo document. Its contents are fictional and not stored here. Upload a real file to read its text.</p>
+        ))}
+      </Modal>
+      <Toast msg={toast} />
     </AppLayout>
   );
 }

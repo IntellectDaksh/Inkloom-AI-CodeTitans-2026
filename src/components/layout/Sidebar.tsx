@@ -1,24 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  FileText,
-  BookOpen,
-  CheckCircle2,
-  BarChart3,
-  Settings,
-  ChevronDown,
-  ShieldCheck,
-  PanelLeftClose,
-  PanelLeft,
-  Check,
-  Plus,
-  Info,
-  X,
-} from "lucide-react";
+import { ShieldCheck, PanelLeftClose, PanelLeft, Info, X } from "lucide-react";
+import { NAV, isActive } from "../guide/nav";
+import { usePrefs, useWorkspaceCounts, focusRing, personaOf } from "../guide/workspace";
 
 export interface SidebarProps {
   pendingApprovalsCount?: number;
@@ -31,470 +18,185 @@ export interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
-const BRANDS = [
-  { id: "apex", name: "Apex Nutrition", category: "Health & Fitness", active: true },
-  { id: "zenith", name: "Zenith Cloud SaaS", category: "Enterprise Software", active: false },
-];
+function initials(name: string) {
+  return name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+}
+
+function NavList({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
+  const pathname = usePathname() ?? "";
+  const counts = useWorkspaceCounts();
+  const badgeFor = (b?: "approvals" | "reviews") =>
+    b === "approvals" ? counts.pendingApprovals : b === "reviews" ? counts.inReview : 0;
+
+  return (
+    <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-3">
+      {NAV.map((group) => (
+        <div key={group.label} className="mb-4 last:mb-0">
+          {collapsed ? (
+            <div className="mx-auto mb-2 h-px w-6 bg-border-subtle" aria-hidden="true" />
+          ) : (
+            <p className="mb-1 px-3 text-xs font-medium text-text-muted">{group.label}</p>
+          )}
+          <ul className="space-y-0.5">
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href, pathname);
+              const count = badgeFor(item.badge);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onNavigate}
+                    aria-current={active ? "page" : undefined}
+                    title={collapsed ? (count ? `${item.name} (${count})` : item.name) : undefined}
+                    className={`relative flex min-h-10 items-center rounded-lg text-sm font-medium transition-colors ${focusRing} ${
+                      collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2"
+                    } ${
+                      active
+                        ? "bg-panel-hover text-text-primary shadow-[inset_2px_0_0_var(--color-ink,#111)]"
+                        : "text-text-secondary hover:bg-panel hover:text-text-primary"
+                    }`}
+                  >
+                    <Icon aria-hidden="true" className={`h-4 w-4 shrink-0 ${active ? "text-text-primary" : "text-text-muted"}`} />
+                    {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
+                    {count > 0 &&
+                      (collapsed ? (
+                        <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-ink" aria-hidden="true" />
+                      ) : (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1.5 text-xs font-semibold tabular-nums text-canvas">
+                          {count}
+                          <span className="sr-only"> waiting</span>
+                        </span>
+                      ))}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+function Logo({ onClick }: { onClick?: () => void }) {
+  return (
+    <Link href="/dashboard" onClick={onClick} className={`flex min-h-10 items-center gap-2.5 rounded-lg ${focusRing}`}>
+      <span className="app-brand-mark h-7 w-7">
+        <ShieldCheck className="h-4 w-4 text-ice" aria-hidden="true" />
+      </span>
+      <span className="text-base font-semibold tracking-tight text-text-primary" translate="no">AdSnitch</span>
+    </Link>
+  );
+}
 
 export function Sidebar({
-  pendingApprovalsCount = 3,
-  userName = "Daksh Agrawal",
-  userRole = "Brand Director",
-  orgName = "Apex Nutrition",
-  isCollapsed: controlledCollapsed,
+  userName: userNameProp,
+  userRole,
+  isCollapsed = false,
   onToggleCollapse,
   isMobileOpen = false,
   onCloseMobile,
 }: SidebarProps) {
+  const prefs = usePrefs();
+  const persona = personaOf(prefs);
+  const role = userRole ?? persona.label;
+  const userName = userNameProp ?? persona.name;
   const pathname = usePathname();
-  const [internalCollapsed, setInternalCollapsed] = useState(false);
-  const [isBrandMenuOpen, setIsBrandMenuOpen] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState(orgName);
 
-  const collapsed =
-    controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+  // Close the drawer on route change and on Escape.
+  useEffect(() => {
+    onCloseMobile?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseMobile?.();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isMobileOpen, onCloseMobile]);
 
-  const handleToggle = () => {
-    if (onToggleCollapse) {
-      onToggleCollapse();
-    } else {
-      setInternalCollapsed(!internalCollapsed);
-    }
-  };
-
-  const navItems = [
-    {
-      name: "Overview",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      active: pathname === "/dashboard" || pathname === "/dashboard/",
-    },
-    {
-      name: "Submissions",
-      href: "/submissions",
-      icon: FileText,
-      active: pathname.startsWith("/submissions"),
-    },
-    {
-      name: "Knowledge Base",
-      href: "/knowledge-base",
-      icon: BookOpen,
-      active: pathname.startsWith("/knowledge-base"),
-    },
-    {
-      name: "Approvals",
-      href: "/approvals",
-      icon: CheckCircle2,
-      active: pathname.startsWith("/approvals"),
-      badge: pendingApprovalsCount,
-    },
-    {
-      name: "Analytics",
-      href: "/analytics",
-      icon: BarChart3,
-      active: pathname.startsWith("/analytics"),
-    },
-    {
-      name: "Brand Workspaces",
-      href: "/brands",
-      icon: ShieldCheck,
-      active: pathname.startsWith("/brands"),
-    },
-  ];
+  const footer = (collapsed: boolean, onNavigate?: () => void) => (
+    <div className="space-y-2 border-t border-border-subtle p-3">
+      <Link
+        href="/prototype-notice"
+        onClick={onNavigate}
+        title={collapsed ? "About this prototype" : undefined}
+        className={`flex min-h-10 items-center rounded-lg text-[13px] text-text-secondary hover:bg-panel hover:text-text-primary ${focusRing} ${
+          collapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2"
+        }`}
+      >
+        <Info className="h-4 w-4 shrink-0 text-text-muted" aria-hidden="true" />
+        {!collapsed && <span>About this prototype</span>}
+      </Link>
+      <div className={`flex items-center gap-2.5 rounded-lg ${collapsed ? "justify-center py-1" : "border border-border-subtle bg-panel p-2.5"}`}>
+        <span
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border-default bg-panel-elevated text-xs font-semibold text-text-primary"
+          title={collapsed ? `${userName}, ${role}` : undefined}
+        >
+          {initials(userName)}
+        </span>
+        {!collapsed && (
+          <span className="min-w-0">
+            <span className="block truncate text-[13px] font-medium text-text-primary">{userName}</span>
+            <span className="block truncate text-xs text-text-muted">{role} at {prefs.brand}</span>
+          </span>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <>
-      {/* Mobile Drawer Backdrop */}
+      {/* Mobile drawer */}
       {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 md:hidden transition-opacity duration-200"
-          onClick={onCloseMobile}
-          aria-hidden="true"
-        />
+        <div className="fixed inset-0 z-50 bg-ink/25 backdrop-blur-sm md:hidden" onClick={onCloseMobile} aria-hidden="true" />
       )}
-
-      {/* Mobile Drawer (Slide-Over, Full Touch Friendly) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0A0A0A] border-r border-[#282828] flex flex-col md:hidden transition-transform duration-200 ease-in-out shadow-2xl ${
+        aria-label="Navigation"
+        aria-hidden={!isMobileOpen}
+        inert={!isMobileOpen}
+        className={`glass-strong fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overscroll-contain rounded-none border-r border-border-subtle shadow-2xl transition-transform duration-200 md:hidden motion-reduce:transition-none ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        aria-label="Mobile Navigation"
       >
-        {/* Mobile Header with Brand & Close Button */}
-        <div className="h-16 px-4 flex items-center justify-between border-b border-[#282828] bg-[#0A0A0A]">
-          <Link
-            href="/dashboard"
-            onClick={onCloseMobile}
-            className="flex items-center gap-2.5 min-h-[44px]"
-          >
-            <div className="w-8 h-8 rounded-md bg-white flex items-center justify-center shrink-0 shadow-sm">
-              <ShieldCheck className="w-4 h-4 text-[#0A0A0A]" />
-            </div>
-            <span className="font-semibold text-base tracking-tight text-white flex items-center gap-2">
-              AdSnitch
-              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-[#1C1C1C] text-[#E0E0E0] border border-[#303030]">
-                AI
-              </span>
-            </span>
-          </Link>
-
+        <div className="flex h-16 items-center justify-between border-b border-border-subtle px-4">
+          <Logo onClick={onCloseMobile} />
           <button
+            type="button"
             onClick={onCloseMobile}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-[#737373] hover:text-white hover:bg-[#191919] transition-colors cursor-pointer"
             aria-label="Close menu"
+            className={`flex h-11 w-11 items-center justify-center rounded-lg text-text-muted hover:bg-panel-hover hover:text-text-primary ${focusRing}`}
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-
-        {/* Mobile Brand Workspace */}
-        <div className="p-3 border-b border-[#282828] bg-[#0A0A0A]">
-          <div className="px-3 py-2.5 rounded-md bg-[#141414] border border-[#282828] flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-[#1F1F1F] border border-[#333333] text-white font-semibold text-xs flex items-center justify-center shrink-0">
-              {selectedBrand.charAt(0)}
-            </div>
-            <div className="truncate">
-              <div className="text-sm font-medium text-white truncate">
-                {selectedBrand}
-              </div>
-              <div className="text-xs text-[#888888] flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>Active Workspace</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Nav items */}
-        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={onCloseMobile}
-                className={`flex items-center justify-between px-3.5 py-3 rounded-md text-sm font-medium min-h-[44px] transition-colors ${
-                  item.active
-                    ? "bg-[#181818] text-white border border-[#2E2E2E]"
-                    : "text-[#A0A0A0] hover:text-white hover:bg-[#141414]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    className={`w-5 h-5 shrink-0 ${
-                      item.active ? "text-white" : "text-[#737373]"
-                    }`}
-                  />
-                  <span>{item.name}</span>
-                </div>
-
-                {item.badge !== undefined && item.badge > 0 && (
-                  <span className="h-5 min-w-5 px-1.5 rounded-full bg-[#222222] text-[#FFFFFF] text-xs font-semibold flex items-center justify-center border border-[#333333]">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Mobile Settings & User Footer */}
-        <div className="p-3 border-t border-[#282828] space-y-2 bg-[#0A0A0A]">
-          <Link
-            href="/settings"
-            onClick={onCloseMobile}
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-md text-sm font-medium min-h-[44px] transition-colors ${
-              pathname.startsWith("/settings")
-                ? "bg-[#181818] text-white border border-[#2E2E2E]"
-                : "text-[#A0A0A0] hover:text-white hover:bg-[#141414]"
-            }`}
-          >
-            <Settings className="w-5 h-5 text-[#737373] shrink-0" />
-            <span>Settings</span>
-          </Link>
-
-          <div className="flex items-center justify-between p-2.5 rounded-md bg-[#141414] border border-[#282828]">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-7 h-7 rounded-md bg-[#1F1F1F] border border-[#333333] text-white font-semibold text-xs flex items-center justify-center shrink-0">
-                {userName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)}
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-medium text-white truncate">
-                  {userName}
-                </div>
-                <div className="text-[11px] text-[#888888] truncate">
-                  {userRole}
-                </div>
-              </div>
-            </div>
-            <span
-              className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"
-              title="Online"
-            />
-          </div>
-        </div>
+        <NavList collapsed={false} onNavigate={onCloseMobile} />
+        {footer(false, onCloseMobile)}
       </aside>
 
-      {/* Desktop Persistent Sidebar */}
+      {/* Desktop sidebar */}
       <aside
-        className={`hidden md:flex bg-[#0A0A0A] border-r border-[#282828] flex-col h-screen sticky top-0 select-none z-30 transition-all duration-150 shrink-0 ${
-          collapsed ? "w-16" : "w-64"
+        aria-label="Navigation"
+        className={`glass sticky top-0 z-30 hidden h-screen shrink-0 flex-col rounded-none border-y-0 border-l-0 border-r border-border-subtle transition-[width] duration-150 md:flex motion-reduce:transition-none ${
+          isCollapsed ? "w-16" : "w-64"
         }`}
       >
-      {/* Brand Header & Collapse Toggle */}
-      <div className="h-14 px-4 flex items-center justify-between border-b border-[#282828] bg-[#0A0A0A]">
-        {!collapsed ? (
-          <>
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2.5 group overflow-hidden"
-            >
-              <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 shadow-sm">
-                <ShieldCheck className="w-4 h-4 text-[#0A0A0A]" />
-              </div>
-              <span className="font-semibold text-base tracking-tight text-white flex items-center gap-2">
-                AdSnitch
-                <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-[#1C1C1C] text-[#E0E0E0] border border-[#303030]">
-                  AI
-                </span>
-              </span>
-            </Link>
-
-            <button
-              onClick={handleToggle}
-              className="p-1.5 rounded-md text-[#737373] hover:text-white hover:bg-[#191919] transition-colors cursor-pointer"
-              title="Collapse sidebar"
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
-          </>
-        ) : (
-          <div className="w-full flex items-center justify-center">
-            <button
-              onClick={handleToggle}
-              className="p-1.5 rounded-md text-[#737373] hover:text-white hover:bg-[#191919] transition-colors cursor-pointer"
-              title="Expand sidebar"
-            >
-              <PanelLeft className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Brand Workspace Selector */}
-      <div className="p-3 border-b border-[#282828] relative bg-[#0A0A0A]">
-        {!collapsed ? (
-          <div>
-            <button
-              onClick={() => setIsBrandMenuOpen(!isBrandMenuOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#141414] hover:bg-[#1A1A1A] border border-[#2E2E2E] hover:border-[#383838] transition-colors text-left cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-6 h-6 rounded bg-[#222222] border border-[#333333] text-white font-semibold text-xs flex items-center justify-center shrink-0">
-                  {selectedBrand.charAt(0)}
-                </div>
-                <div className="truncate">
-                  <div className="text-sm font-medium text-white truncate">
-                    {selectedBrand}
-                  </div>
-                  <div className="text-xs text-[#888888] flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>Active</span>
-                  </div>
-                </div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-[#737373] shrink-0" />
-            </button>
-
-            {/* Brand Dropdown Menu */}
-            {isBrandMenuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsBrandMenuOpen(false)}
-                />
-                <div className="absolute left-3 right-3 top-16 rounded-xl bg-[#141414] border border-[#303030] shadow-xl py-1 z-50 animate-in fade-in duration-100">
-                  <div className="px-3 py-2 text-xs font-semibold text-[#888888] border-b border-[#262626]">
-                    Select Brand Workspace
-                  </div>
-                  {BRANDS.map((b) => (
-                    <button
-                      key={b.id}
-                      onClick={() => {
-                        setSelectedBrand(b.name);
-                        setIsBrandMenuOpen(false);
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#1E1E1E] transition-colors text-left cursor-pointer"
-                    >
-                      <div>
-                        <div className="font-medium text-white">{b.name}</div>
-                        <div className="text-xs text-[#888888]">
-                          {b.category}
-                        </div>
-                      </div>
-                      {selectedBrand === b.name && (
-                        <Check className="w-4 h-4 text-white" />
-                      )}
-                    </button>
-                  ))}
-                  <div className="p-2 border-t border-[#262626]">
-                    <Link
-                      href="/brands"
-                      onClick={() => setIsBrandMenuOpen(false)}
-                      className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-white hover:text-neutral-300 font-medium rounded-md hover:bg-[#1E1E1E] transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Manage All Brands</span>
-                    </Link>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="flex justify-center">
-            <button
-              onClick={handleToggle}
-              className="w-8 h-8 rounded-md bg-[#141414] border border-[#2E2E2E] text-white font-medium text-xs flex items-center justify-center hover:border-[#3E3E3E] cursor-pointer"
-              title={selectedBrand}
-            >
-              {selectedBrand.charAt(0)}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Clean 14-15px Navigation */}
-      <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              title={collapsed ? item.name : undefined}
-              className={`flex items-center rounded-lg text-sm font-medium transition-colors ${
-                collapsed
-                  ? "justify-center p-2.5"
-                  : "justify-between px-3 py-2.5"
-              } ${
-                item.active
-                  ? "bg-[#191919] text-white border border-[#303030]"
-                  : "text-[#A0A0A0] hover:text-white hover:bg-[#141414] border border-transparent"
-              }`}
-            >
-              <div className="flex items-center gap-3 truncate">
-                <Icon
-                  className={`w-4 h-4 shrink-0 transition-colors ${
-                    item.active ? "text-white" : "text-[#888888]"
-                  }`}
-                />
-                {!collapsed && <span className="truncate">{item.name}</span>}
-              </div>
-
-              {!collapsed && item.badge !== undefined && item.badge > 0 && (
-                <span className="h-5 min-w-5 px-1.5 rounded-full bg-[#262626] text-white text-xs font-semibold flex items-center justify-center border border-[#333333]">
-                  {item.badge}
-                </span>
-              )}
-
-              {/* Collapsed Badge Pill */}
-              {collapsed && item.badge !== undefined && item.badge > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-white" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Prototype Notice Callout */}
-      <div className="p-3 border-t border-[#282828] bg-[#0A0A0A]">
-        <Link
-          href="/prototype-notice"
-          title={collapsed ? "Prototype Notice: CodeTitans 2026" : undefined}
-          className={`flex items-center rounded-lg text-xs transition-colors ${
-            collapsed
-              ? "justify-center p-2 bg-[#141414] hover:bg-[#1A1A1A]"
-              : "gap-2.5 px-3 py-2 bg-[#141414] hover:bg-[#1A1A1A] border border-[#262626]"
-          } text-[#D4D4D4] hover:text-white`}
-        >
-          <Info className="w-4 h-4 text-[#888888] shrink-0" />
-          {!collapsed && (
-            <div className="truncate">
-              <div className="text-xs font-semibold text-white truncate">
-                Prototype Sandbox
-              </div>
-              <div className="text-[11px] text-[#737373] truncate">
-                CodeTitans 2026
-              </div>
-            </div>
-          )}
-        </Link>
-      </div>
-
-      {/* Settings & User Profile Footer */}
-      <div className="p-3 border-t border-[#282828] space-y-2 bg-[#0A0A0A]">
-        <Link
-          href="/settings"
-          title={collapsed ? "Settings" : undefined}
-          className={`flex items-center rounded-lg text-sm font-medium transition-colors ${
-            collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2"
-          } ${
-            pathname.startsWith("/settings")
-              ? "bg-[#191919] text-white border border-[#303030]"
-              : "text-[#A0A0A0] hover:text-white hover:bg-[#141414]"
-          }`}
-        >
-          <Settings className="w-4 h-4 text-[#888888] shrink-0" />
-          {!collapsed && <span>Settings</span>}
-        </Link>
-
-        {/* User Profile Card */}
-        {!collapsed ? (
-          <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#141414] border border-[#2E2E2E]">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-7 h-7 rounded-md bg-[#222222] border border-[#333333] text-white font-semibold text-xs flex items-center justify-center shrink-0">
-                {userName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)}
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-semibold text-white truncate">
-                  {userName}
-                </div>
-                <div className="text-[11px] text-[#888888] truncate">
-                  {userRole}
-                </div>
-              </div>
-            </div>
-            <span
-              className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"
-              title="Online"
-            />
-          </div>
-        ) : (
-          <div className="flex justify-center py-1">
-            <div
-              className="w-7 h-7 rounded-md bg-[#141414] border border-[#2E2E2E] text-white font-semibold text-xs flex items-center justify-center"
-              title={`${userName} (${userRole})`}
-            >
-              {userName
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)}
-            </div>
-          </div>
-        )}
-      </div>
-    </aside>
+        <div className={`flex h-16 items-center border-b border-border-subtle px-3 ${isCollapsed ? "justify-center" : "justify-between"}`}>
+          {!isCollapsed && <Logo />}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!isCollapsed}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg text-text-muted hover:bg-panel-hover hover:text-text-primary ${focusRing}`}
+          >
+            {isCollapsed ? <PanelLeft className="h-4 w-4" aria-hidden="true" /> : <PanelLeftClose className="h-4 w-4" aria-hidden="true" />}
+          </button>
+        </div>
+        <NavList collapsed={isCollapsed} />
+        {footer(isCollapsed)}
+      </aside>
     </>
   );
 }

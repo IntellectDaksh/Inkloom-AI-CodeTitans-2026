@@ -108,6 +108,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
+### File upload and claim import APIs
+
+* `POST /api/extract` (multipart field `file`, max 15 MB) returns `{ text, fileName, mime, method, pages, chars, warnings }`.
+  `.txt .md .json .csv .html .rtf .docx` are read locally; `.pdf .png .jpg .jpeg .webp` are transcribed by Gemini and need `GEMINI_API_KEY` (503 without it).
+* `POST /api/claims/import` takes a JSON array or CSV text (columns: claim, brand, type, channels, source name, DOI/reference, excerpt, expiry).
+  Returns `{ imported, rejected: [{ row, reason }] }`. Imported claims are stored as `under_review` with unverified evidence until a human approves them.
+* `POST /api/submissions` also accepts `text` (alias of `content`) and `sourceFile: { fileName, mime, method }`, saved to submission metadata.
+* Test: `npx tsx src/lib/ai/__tests__/extract.test.ts`
+
+
+---
+
 ## Running Automated Tests
 
 Run the complete 58-assertion test suite:

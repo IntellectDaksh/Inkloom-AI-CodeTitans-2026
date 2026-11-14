@@ -1,313 +1,248 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  FileText,
-  Search,
-  Filter,
-  Plus,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  ChevronRight,
-  ShieldCheck,
-  ArrowRight,
-  Sliders,
-} from "lucide-react";
+import { ChevronRight, FileText, Plus, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { FindingItem, dedupeFindings, estimateScore, humanize } from "@/components/submission/shared";
 
-interface SubmissionRow {
+interface Row {
   id: string;
   title: string;
-  type?: string;
+  status: string;
   channel?: string;
-  status: "submitted" | "under_review" | "approved" | "changes_requested" | "rejected" | "needs_re_review";
-  score?: number;
-  complianceScore?: number;
-  issuesCount?: number;
+  currentContent?: string;
   authorName?: string;
-  creator?: { full_name: string };
-  submittedAt?: string;
   created_at?: string;
-  metadata?: any;
+  brand?: { name?: string };
+  metadata?: { sourceFile?: { fileName?: string; method?: string }; campaign?: string };
+  latest_analysis?: { overall_score?: number } | null;
+  complianceScore?: number;
+  findings?: FindingItem[];
 }
 
-const DEFAULT_SUBMISSIONS: SubmissionRow[] = [
-  {
-    id: "sub_reel_script",
-    title: "Q4 Campaign – Clinical Protein Reel Script",
-    type: "Video Script",
-    channel: "Instagram Reel",
-    issuesCount: 3,
-    authorName: "Riddhi S.",
-    status: "submitted",
-    score: 18,
-    submittedAt: "14m ago",
-  },
-  {
-    id: "sub_insta_launch",
-    title: "Product Launch – Recovery Blend Carousel",
-    type: "Social Copy",
-    channel: "Instagram Carousel",
-    issuesCount: 0,
-    authorName: "Laksh K.",
-    status: "approved",
-    score: 96,
-    submittedAt: "1h ago",
-  },
-  {
-    id: "sub_banner_v2",
-    title: "Global Website Banner – Winter Immunity V2",
-    type: "Web Copy",
-    channel: "Homepage Hero",
-    issuesCount: 1,
-    authorName: "Mansoor R.",
-    status: "changes_requested",
-    score: 64,
-    submittedAt: "2h ago",
-  },
-  {
-    id: "sub_email_promo",
-    title: "Enterprise SaaS SLA Email Announcement",
-    type: "Email Direct",
-    channel: "B2B Newsletter",
-    issuesCount: 0,
-    authorName: "Daksh A.",
-    status: "approved",
-    score: 98,
-    submittedAt: "4h ago",
-  },
-  {
-    id: "sub_clinical_whitepaper",
-    title: "Bio-Peptide Cutaneous Efficacy Study Summary",
-    type: "Whitepaper",
-    channel: "Healthcare Portal",
-    issuesCount: 2,
-    authorName: "Dr. Marcus Lin",
-    status: "under_review",
-    score: 42,
-    submittedAt: "6h ago",
-  },
-];
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "under_review", label: "Waiting for reviewer" },
+  { id: "changes_requested", label: "Changes requested" },
+  { id: "approved", label: "Approved" },
+  { id: "submitted", label: "Draft" },
+] as const;
 
-export default function SubmissionsHistoryPage() {
-  const [submissions, setSubmissions] = useState<SubmissionRow[]>(DEFAULT_SUBMISSIONS);
+const STATUS: Record<string, { label: string; dot: string }> = {
+  submitted: { label: "Draft", dot: "bg-text-muted" },
+  under_review: { label: "Waiting for reviewer", dot: "bg-status-warning" },
+  needs_re_review: { label: "Needs re-review", dot: "bg-status-warning" },
+  changes_requested: { label: "Changes requested", dot: "bg-status-critical" },
+  rejected: { label: "Rejected", dot: "bg-status-critical" },
+  approved: { label: "Approved", dot: "bg-status-success" },
+};
+
+const scoreOf = (r: Row) =>
+  r.complianceScore ?? r.latest_analysis?.overall_score ?? (r.findings ? estimateScore(dedupeFindings(r.findings), r.currentContent || "") : null);
+
+const ago = (iso?: string) => {
+  if (!iso) return "";
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (isNaN(m)) return "";
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  if (m < 1440) return `${Math.round(m / 60)} h ago`;
+  return new Date(iso).toLocaleDateString();
+};
+
+export default function SubmissionsPage() {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<string>("all");
+  const [created, setCreated] = useState(0);
+
+  const load = () => {
+    setState("loading");
+    fetch("/api/submissions?orgId=org_uideas_digital")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        setRows(d.submissions || []);
+        setState("ready");
+      })
+      .catch(() => setState("error"));
+  };
 
   useEffect(() => {
-    fetch("/api/submissions?orgId=org_uideas_digital")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.submissions && data.submissions.length > 0) {
-          // Merge API submissions
-          setSubmissions(data.submissions);
-        }
-      })
-      .catch(() => {});
+    load();
+    const qs = new URLSearchParams(window.location.search);
+    setCreated(Number(qs.get("created")) || 0);
+    const st = qs.get("status");
+    if (st && FILTERS.some((f) => f.id === st)) setFilter(st);
   }, []);
 
-  const filtered = submissions.filter((s) => {
-    const titleMatch = s.title?.toLowerCase().includes(search.toLowerCase());
-    const channelVal = ((s.metadata as any)?.channel || s.channel || "").toLowerCase();
-    const channelMatch = channelVal.includes(search.toLowerCase());
-    const authorVal = (s.creator?.full_name || s.authorName || "").toLowerCase();
-    const authorMatch = authorVal.includes(search.toLowerCase());
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: rows.length };
+    for (const r of rows) c[r.status] = (c[r.status] || 0) + 1;
+    return c;
+  }, [rows]);
 
-    const matchesSearch = titleMatch || channelMatch || authorMatch;
-    const matchesStatus = statusFilter === "all" ? true : s.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const q = search.trim().toLowerCase();
+  const shown = rows.filter(
+    (r) =>
+      (filter === "all" || r.status === filter) &&
+      (!q ||
+        [r.title, r.channel, r.authorName, r.brand?.name, r.metadata?.sourceFile?.fileName, r.metadata?.campaign].some((v) => v?.toLowerCase().includes(q)))
+  );
 
   return (
-    <AppLayout
-      title="Submissions Audit Desk"
-      subtitle="Complete chronological archive of all evaluated marketing communications, token surgical diffs, and cryptographic approval stamps."
-    >
+    <AppLayout title="Reviews" subtitle="Every ad you've checked, and where it is in approval.">
       <div className="space-y-6">
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="led-indicator led-turquoise" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
-                Content Submissions Archive
-              </h1>
-              <Badge variant="verified" size="xs">
-                {submissions.length} AUDITED RECORDS
-              </Badge>
-              <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
-                RLS TENANT SCOPED
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Every marketing draft submitted across Instagram, LinkedIn, Paid Social, or packaging is cryptographically archived with its deterministic findings ledger.
-            </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">Reviews</h1>
+            <p className="mt-1 text-sm text-text-secondary">Open one to see issues and fixes, or start a new check.</p>
           </div>
-
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Link href="/submissions/new">
-              <Button
-                size="sm"
-                variant="gold"
-                icon={<Plus className="w-3.5 h-3.5 text-[#080C16]" />}
-                shortcut="N"
-              >
-                Audit New Draft
-              </Button>
-            </Link>
-          </div>
+          <Link href="/submissions/new">
+            <Button icon={<Plus className="h-4 w-4" />}>New review</Button>
+          </Link>
         </div>
 
-        {/* Filter Toolbar */}
-        <div className="tactile-card rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        {created > 1 && (
+          <p role="status" className="rounded-xl border border-border-default bg-panel p-4 text-sm text-text-primary">
+            {created} ads were checked. They're at the top of the list.
+          </p>
+        )}
+
+        <div className="space-y-3">
+          <div className="relative max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" aria-hidden />
+            <label htmlFor="search" className="sr-only">
+              Search reviews
+            </label>
             <input
-              type="text"
-              placeholder="Search by title, channel, or author..."
+              id="search"
+              type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-[#858585] transition-colors"
+              placeholder="Search by title, brand, file or author"
+              autoComplete="off"
+              className="h-11 w-full rounded-lg glass-inset pl-9 pr-3 font-sans text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue/50"
             />
           </div>
-
-          <div className="flex items-center bg-[#141414] border border-[#303030] rounded-lg p-0.5 text-xs font-mono font-medium overflow-x-auto">
-            {["all", "submitted", "under_review", "approved", "changes_requested"].map(
-              (st) => (
-                <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-md transition-all cursor-pointer capitalize shrink-0 ${
-                    statusFilter === st
-                      ? "bg-[#191919] text-white font-semibold border border-[#303030] shadow-xs"
-                      : "text-[#858585] hover:text-white"
-                  }`}
-                >
-                  {st.replace("_", " ")}
-                </button>
-              )
-            )}
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={filter === f.id}
+                onClick={() => setFilter(f.id)}
+                className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-blue cursor-pointer ${
+                  filter === f.id ? "border-ink bg-ink text-ghost" : "border-border-default bg-panel text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                {f.label}
+                <span className="tabular-nums opacity-70">{counts[f.id] || 0}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Table */}
-        <div className="tactile-card rounded-xl overflow-hidden bg-[#141414] border border-[#303030]">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#191919] border-b border-[#303030] text-[11px] font-semibold uppercase tracking-wider text-[#858585] font-mono">
-                <tr>
-                  <th className="px-4 py-3">Content Title</th>
-                  <th className="px-3 py-3">Format / Channel</th>
-                  <th className="px-3 py-3 text-center">Score</th>
-                  <th className="px-3 py-3">Author</th>
-                  <th className="px-3 py-3">Governance Gate</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#303030]">
-                {filtered.map((sub) => {
-                  const isApproved = sub.status === "approved";
-                  const isPending = sub.status === "submitted" || sub.status === "under_review";
-                  const scoreVal = sub.complianceScore || sub.score || (isApproved ? 96 : 32);
-
-                  return (
-                    <tr
-                      key={sub.id}
-                      className="hover:bg-[#191919] transition-colors group"
+        <div className="glass overflow-hidden rounded-2xl" aria-live="polite" aria-busy={state === "loading"}>
+          {state === "loading" ? (
+            <ul className="divide-y divide-border-subtle">
+              {[0, 1, 2].map((i) => (
+                <li key={i} className="flex items-center gap-4 p-4">
+                  <div className="h-4 flex-1 animate-pulse rounded bg-panel-elevated motion-reduce:animate-none" />
+                  <div className="h-4 w-16 animate-pulse rounded bg-panel-elevated motion-reduce:animate-none" />
+                </li>
+              ))}
+            </ul>
+          ) : state === "error" ? (
+            <div className="space-y-3 p-10 text-center">
+              <p className="text-sm font-medium text-text-primary">Couldn't load your reviews</p>
+              <Button variant="secondary" size="sm" onClick={load}>
+                Try again
+              </Button>
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="space-y-3 p-10 text-center">
+              <FileText className="mx-auto h-8 w-8 text-text-muted" aria-hidden />
+              <p className="text-base font-semibold text-text-primary">No reviews yet</p>
+              <p className="mx-auto max-w-sm text-sm text-text-secondary">Paste or upload an ad and we'll check it against your brand's rules in seconds.</p>
+              <Link href="/submissions/new" className="inline-block">
+                <Button icon={<Plus className="h-4 w-4" />}>Check your first ad</Button>
+              </Link>
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="space-y-3 p-10 text-center">
+              <p className="text-sm font-medium text-text-primary">Nothing matches</p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSearch("");
+                  setFilter("all");
+                }}
+              >
+                Clear search and filters
+              </Button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border-subtle">
+              {shown.map((r) => {
+                const s = STATUS[r.status] || { label: humanize(r.status), dot: "bg-text-muted" };
+                const score = scoreOf(r);
+                const file = r.metadata?.sourceFile?.fileName;
+                return (
+                  <li key={r.id}>
+                    <Link
+                      href={`/submissions/${r.id}`}
+                      className="flex items-center gap-4 px-4 py-4 transition-colors hover:bg-panel-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue sm:px-5"
                     >
-                      <td className="px-4 py-3.5 font-medium text-white">
-                        <Link
-                          href={`/submissions/${sub.id}`}
-                          className="hover:text-white transition-colors flex items-center gap-2.5 max-w-sm truncate"
-                        >
-                          <span
-                            className={`led-indicator ${
-                              isApproved
-                                ? "led-emerald"
-                                : isPending
-                                ? "led-amber"
-                                : "led-amber"
-                            }`}
-                          />
-                          <span className="truncate font-sans font-medium">{sub.title}</span>
-                        </Link>
-                      </td>
-
-                      <td className="px-3 py-3.5 text-slate-400 font-mono text-[11px]">
-                        <span className="px-2 py-0.5 rounded bg-[#080C16] border border-[#1E2B4A] text-slate-300">
-                          {((sub.metadata as any)?.channel || sub.channel || "Social Reel").replace("_", " ")}
-                        </span>
-                      </td>
-
-                      <td className="px-3 py-3.5 text-center">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-text-primary">{r.title}</p>
+                        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-text-muted">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className={`h-2 w-2 rounded-full ${s.dot}`} aria-hidden />
+                            {s.label}
+                          </span>
+                          <span aria-hidden>·</span>
+                          <span>{r.brand?.name || humanize(r.channel)}</span>
+                          {r.created_at && (
+                            <>
+                              <span aria-hidden>·</span>
+                              <span>{ago(r.created_at)}</span>
+                            </>
+                          )}
+                          {file && (
+                            <span className="inline-flex max-w-[12rem] items-center gap-1 truncate rounded-md border border-border-default bg-panel px-1.5 py-0.5 text-xs text-text-secondary">
+                              <FileText className="h-3 w-3 shrink-0" aria-hidden />
+                              <span className="truncate">{file}</span>
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      {score !== null && (
                         <span
-                          className={`font-mono font-semibold tabular-nums text-xs px-2 py-0.5 rounded ${
-                            scoreVal >= 80
-                              ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/25"
-                              : scoreVal >= 50
-                              ? "text-amber-400 bg-amber-500/10 border border-amber-500/25"
-                              : "text-rose-400 bg-rose-500/10 border border-rose-500/25"
+                          className={`shrink-0 text-base font-semibold tabular-nums ${
+                            score >= 80 ? "text-status-success" : score >= 50 ? "text-status-warning" : "text-status-critical"
                           }`}
+                          aria-label={`Score ${score} out of 100`}
                         >
-                          {scoreVal}%
+                          {score}
                         </span>
-                      </td>
-
-                      <td className="px-3 py-3.5 text-slate-300 text-xs">
-                        {sub.creator?.full_name || sub.authorName || "Riddhi S."}
-                      </td>
-
-                      <td className="px-3 py-3.5">
-                        <Badge
-                          variant={
-                            sub.status === "approved"
-                              ? "verified"
-                              : sub.status === "changes_requested"
-                              ? "warning"
-                              : "pending"
-                          }
-                          size="xs"
-                        >
-                          {sub.status?.replace("_", " ").toUpperCase() || "PENDING"}
-                        </Badge>
-                      </td>
-
-                      <td className="px-4 py-3.5 text-right">
-                        <Link href={`/submissions/${sub.id}`}>
-                          <Button size="xs" variant={isPending ? "primary" : "secondary"}>
-                            <span>Inspect</span>
-                            <ArrowRight className="w-3 h-3 ml-1" />
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-12 text-slate-500 font-mono text-xs">
-                      NO SUBMISSIONS FOUND MATCHING ACTIVE FILTER
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="px-4 py-3 bg-[#080C16] border-t border-[#1E2B4A] flex items-center justify-between text-[11px] font-mono text-slate-500">
-            <span>TOTAL: {filtered.length} OF {submissions.length} SUBMISSIONS</span>
-            <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-              <span className="led-indicator led-emerald" />
-              ORGANIZATION: APEX NUTRITION (STRICT TENANT ISOLATION)
-            </span>
-          </div>
+                      )}
+                      <ChevronRight className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
+        {state === "ready" && rows.length > 0 && (
+          <p className="text-[13px] text-text-muted">
+            Showing {shown.length} of {rows.length}
+          </p>
+        )}
       </div>
     </AppLayout>
   );

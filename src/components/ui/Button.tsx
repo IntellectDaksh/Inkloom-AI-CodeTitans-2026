@@ -37,7 +37,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "relative inline-flex items-center justify-center font-medium transition-colors duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] shrink-0 touch-manipulation";
+    "relative inline-flex items-center justify-center font-medium transition-colors duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freeze focus-visible:ring-offset-2 focus-visible:ring-offset-canvas shrink-0 touch-manipulation";
 
   // Height 44px for primary interactive buttons (.btn-primary and .btn-secondary), readable 14–15px font
   const sizeStyles = {
@@ -57,41 +57,41 @@ export function Button({
   const variantStyles: Record<ButtonVariant, string> = {
     // Primary: Solid white background (#FFFFFF), black text (#0A0A0A), font-semibold, hover neutral-200
     primary:
-      "bg-[#FFFFFF] hover:bg-neutral-200 text-[#0A0A0A] font-semibold border border-transparent shadow-sm active:translate-y-px",
+      "bg-ink hover:bg-navy-soft text-ghost font-semibold border border-transparent shadow-sm active:translate-y-px",
     gold:
-      "bg-[#FFFFFF] hover:bg-neutral-200 text-[#0A0A0A] font-semibold border border-transparent shadow-sm active:translate-y-px",
+      "bg-ink hover:bg-navy-soft text-ghost font-semibold border border-transparent shadow-sm active:translate-y-px",
     accent:
-      "bg-[#FFFFFF] hover:bg-neutral-200 text-[#0A0A0A] font-semibold border border-transparent shadow-sm active:translate-y-px",
+      "bg-ink hover:bg-navy-soft text-ghost font-semibold border border-transparent shadow-sm active:translate-y-px",
 
     // Secondary: #191919 background, 1px border #303030, white text, hover #222222
     secondary:
-      "bg-[#191919] hover:bg-[#222222] text-white font-medium border border-[#303030] active:translate-y-px",
+      "bg-panel-hover hover:bg-panel-elevated text-text-primary font-medium border border-border-default active:translate-y-px",
     subtle:
-      "bg-[#141414] hover:bg-[#191919] text-[#B5B5B5] hover:text-white border border-[#303030] active:translate-y-px",
+      "bg-panel hover:bg-panel-hover text-text-secondary hover:text-text-primary border border-border-default active:translate-y-px",
 
     // Outlined Minimalist
     outline:
-      "bg-transparent hover:bg-[#191919] text-white border border-[#303030] hover:border-[#404040] active:translate-y-px",
+      "bg-transparent hover:bg-panel-hover text-text-primary border border-border-default hover:border-border-strong active:translate-y-px",
 
     // Ghost
     ghost:
-      "bg-transparent hover:bg-[#191919] text-[#858585] hover:text-white border border-transparent active:translate-y-px",
+      "bg-transparent hover:bg-panel-hover text-text-muted hover:text-text-primary border border-transparent active:translate-y-px",
 
     // Functional Red / Critical violations only
     danger:
-      "bg-[#1C1214] hover:bg-[#2A1619] text-[#EF4444] border border-[#7F1D1D] active:translate-y-px",
+      "bg-status-critical/10 hover:bg-status-critical/15 text-status-critical border border-status-critical/30 active:translate-y-px",
     destructive:
-      "bg-[#1C1214] hover:bg-[#2A1619] text-[#EF4444] border border-[#7F1D1D] active:translate-y-px",
+      "bg-status-critical/10 hover:bg-status-critical/15 text-status-critical border border-status-critical/30 active:translate-y-px",
 
     // Functional Green / Success & Approvals only
     success:
-      "bg-[#0C1A14] hover:bg-[#0F241C] text-[#10B981] border border-[#065F46] active:translate-y-px",
+      "bg-status-success/10 hover:bg-status-success/15 text-status-success border border-status-success/30 active:translate-y-px",
     approve:
-      "bg-[#0C1A14] hover:bg-[#0F241C] text-[#10B981] border border-[#065F46] active:translate-y-px",
+      "bg-status-success/10 hover:bg-status-success/15 text-status-success border border-status-success/30 active:translate-y-px",
 
     // Neutralized legacy turquoise token
     turquoise:
-      "bg-[#FFFFFF] hover:bg-neutral-200 text-[#0A0A0A] font-semibold border border-transparent shadow-sm active:translate-y-px",
+      "bg-ink hover:bg-navy-soft text-ghost font-semibold border border-transparent shadow-sm active:translate-y-px",
   };
 
   return (
@@ -133,7 +133,7 @@ export function Button({
       )}
 
       {shortcut && (
-        <kbd className="ml-1 text-xs px-1.5 py-0.5 rounded bg-black/40 border border-white/20 text-current opacity-80 font-mono tracking-tight">
+        <kbd className="ml-1 text-xs px-1.5 py-0.5 rounded bg-ink/10 border border-white/20 text-current opacity-80 font-mono tracking-tight">
           {shortcut}
         </kbd>
       )}

@@ -129,18 +129,19 @@ function PrototypeNoticeContent() {
   const Icon = details.icon;
 
   return (
-    <div className="min-h-screen bg-[#080808] text-white flex flex-col justify-between font-sans selection:bg-white/20 selection:text-white">
+    <div className="relative isolate min-h-screen bg-canvas text-text-primary flex flex-col justify-between font-sans selection:bg-ice selection:text-text-primary">
+      <div className="atmosphere -z-10" aria-hidden><i /><i /><i /></div>
       {/* Precision Chrome Nav */}
-      <nav className="border-b border-white/10 bg-[#080808]/90 backdrop-blur-md px-6 sm:px-8 h-16 flex items-center justify-between">
+      <nav className="glass rounded-none border-x-0 border-t-0 px-6 sm:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-white text-black flex items-center justify-center font-bold text-sm tracking-tighter">
-            AS
+          <div className="app-brand-mark" aria-hidden>
+            <ShieldCheck className="w-4 h-4" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-base tracking-tight text-white">
+            <span className="font-semibold text-base tracking-tight text-text-primary">
               AdSnitch
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-[#A0A0A0] border border-white/10">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink/5 text-text-secondary border border-border-default">
               SYSTEM NOTICE
             </span>
           </div>
@@ -149,7 +150,7 @@ function PrototypeNoticeContent() {
         <div className="flex items-center gap-4 text-xs font-mono">
           <Link
             href="/dashboard"
-            className="text-white hover:underline flex items-center gap-1.5"
+            className="text-text-primary hover:underline flex items-center gap-1.5"
           >
             <span>Return to Application</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -162,7 +163,7 @@ function PrototypeNoticeContent() {
         <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-mono text-[#A0A0A0] hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>RETURN TO OVERVIEW</span>
@@ -170,39 +171,39 @@ function PrototypeNoticeContent() {
         </div>
 
         {/* Main Monochromatic Milled Card */}
-        <div className="rounded-xl bg-[#141414] border border-white/10 p-6 sm:p-8 space-y-8 shadow-2xl relative">
+        <div className="glass-strong rounded-2xl p-6 sm:p-8 space-y-8 relative">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-6">
+          <div className="flex items-start justify-between gap-4 border-b border-border-default pb-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#080808] border border-white/10 text-[10px] font-mono text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded glass-inset text-[10px] font-mono text-status-success">
+                <span className="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse" />
                 <span>SYSTEM PROTOTYPE NOTICE · CODETITANS 2026</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
                 {details.title}
               </h1>
-              <p className="text-xs sm:text-sm text-[#A0A0A0] leading-relaxed max-w-xl">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed max-w-xl">
                 This feature is currently in the development phase of the AdSnitch prototype and
                 requires enterprise cloud backend provisioning. All core compliance inspection and
                 claim verification features are live in the interactive sandbox and workspace.
               </p>
             </div>
 
-            <div className="w-12 h-12 rounded-lg bg-[#080808] border border-white/10 flex items-center justify-center shrink-0 text-white">
+            <div className="w-12 h-12 rounded-lg glass-inset flex items-center justify-center shrink-0 text-text-primary">
               <Icon className="w-6 h-6" />
             </div>
           </div>
 
           {/* 1-Click Persona Access Bypass Buttons */}
-          <div className="p-5 rounded-lg bg-[#080808] border border-white/10 space-y-4">
+          <div className="p-5 rounded-lg glass-inset space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-semibold text-white uppercase flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-mono font-semibold text-text-primary uppercase flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-status-success" />
                 <span>1-Click Hackathon Persona Bypass (Instant Access)</span>
               </span>
-              <span className="text-[10px] font-mono text-[#A0A0A0]">NO PASSWORD REQUIRED</span>
+              <span className="text-[10px] font-mono text-text-secondary">NO PASSWORD REQUIRED</span>
             </div>
-            <p className="text-xs text-[#A0A0A0]">
+            <p className="text-xs text-text-secondary">
               To evaluate the live dashboard, approvals queue, and clinical claims library immediately,
               select any pre-provisioned role below:
             </p>
@@ -217,15 +218,15 @@ function PrototypeNoticeContent() {
                     userId: "00000000-0000-4000-a000-000000000010",
                   })
                 }
-                className="p-3.5 rounded bg-[#141414] hover:bg-neutral-800 border border-white/10 hover:border-white text-left transition-all cursor-pointer group"
+                className="p-3.5 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-left transition-all cursor-pointer group"
               >
-                <div className="text-[10px] font-mono font-bold text-emerald-400 uppercase">
+                <div className="text-[10px] font-mono font-bold text-status-success uppercase">
                   ADMIN / ARCHITECT
                 </div>
-                <div className="text-xs font-semibold text-white group-hover:underline">
+                <div className="text-xs font-semibold text-text-primary group-hover:underline">
                   Daksh Agrawal
                 </div>
-                <div className="text-[10px] font-mono text-[#A0A0A0] truncate">
+                <div className="text-[10px] font-mono text-text-secondary truncate">
                   Full Policy Control
                 </div>
               </button>
@@ -239,15 +240,15 @@ function PrototypeNoticeContent() {
                     userId: "00000000-0000-4000-a000-000000000012",
                   })
                 }
-                className="p-3.5 rounded bg-[#141414] hover:bg-neutral-800 border border-white/10 hover:border-white text-left transition-all cursor-pointer group"
+                className="p-3.5 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-left transition-all cursor-pointer group"
               >
-                <div className="text-[10px] font-mono font-bold text-white uppercase">
+                <div className="text-[10px] font-mono font-bold text-text-primary uppercase">
                   REVIEWER / LEGAL
                 </div>
-                <div className="text-xs font-semibold text-white group-hover:underline">
+                <div className="text-xs font-semibold text-text-primary group-hover:underline">
                   Laksh Khatri
                 </div>
-                <div className="text-[10px] font-mono text-[#A0A0A0] truncate">
+                <div className="text-[10px] font-mono text-text-secondary truncate">
                   Approvals &amp; Overrides
                 </div>
               </button>
@@ -261,15 +262,15 @@ function PrototypeNoticeContent() {
                     userId: "00000000-0000-4000-a000-000000000011",
                   })
                 }
-                className="p-3.5 rounded bg-[#141414] hover:bg-neutral-800 border border-white/10 hover:border-white text-left transition-all cursor-pointer group"
+                className="p-3.5 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-left transition-all cursor-pointer group"
               >
-                <div className="text-[10px] font-mono font-bold text-[#A0A0A0] uppercase">
+                <div className="text-[10px] font-mono font-bold text-text-secondary uppercase">
                   CREATOR / WRITER
                 </div>
-                <div className="text-xs font-semibold text-white group-hover:underline">
+                <div className="text-xs font-semibold text-text-primary group-hover:underline">
                   Riddhi Shah
                 </div>
-                <div className="text-[10px] font-mono text-[#A0A0A0] truncate">
+                <div className="text-[10px] font-mono text-text-secondary truncate">
                   Submission &amp; Diffs
                 </div>
               </button>
@@ -280,20 +281,20 @@ function PrototypeNoticeContent() {
           {feature === "pilot" && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 rounded bg-[#080808] border border-white/10 space-y-1">
-                  <div className="text-[10px] font-mono text-[#A0A0A0] uppercase">DURATION</div>
-                  <div className="text-sm font-semibold text-white">30-Day Managed PoC</div>
-                  <div className="text-[11px] text-[#A0A0A0]">Dedicated compliance architect</div>
+                <div className="p-3 rounded glass-inset space-y-1">
+                  <div className="text-[10px] font-mono text-text-secondary uppercase">DURATION</div>
+                  <div className="text-sm font-semibold text-text-primary">30-Day Managed PoC</div>
+                  <div className="text-[11px] text-text-secondary">Dedicated compliance architect</div>
                 </div>
-                <div className="p-3 rounded bg-[#080808] border border-white/10 space-y-1">
-                  <div className="text-[10px] font-mono text-[#A0A0A0] uppercase">ISOLATION</div>
-                  <div className="text-sm font-semibold text-emerald-400">PostgreSQL Dedicated RLS</div>
-                  <div className="text-[11px] text-[#A0A0A0]">Zero cross-tenant leakage</div>
+                <div className="p-3 rounded glass-inset space-y-1">
+                  <div className="text-[10px] font-mono text-text-secondary uppercase">ISOLATION</div>
+                  <div className="text-sm font-semibold text-status-success">PostgreSQL Dedicated RLS</div>
+                  <div className="text-[11px] text-text-secondary">Zero cross-tenant leakage</div>
                 </div>
-                <div className="p-3 rounded bg-[#080808] border border-white/10 space-y-1">
-                  <div className="text-[10px] font-mono text-[#A0A0A0] uppercase">SLA COMMITMENT</div>
-                  <div className="text-sm font-semibold text-white">99.99% Uptime</div>
-                  <div className="text-[11px] text-[#A0A0A0]">Sub-500ms P95 latency</div>
+                <div className="p-3 rounded glass-inset space-y-1">
+                  <div className="text-[10px] font-mono text-text-secondary uppercase">SLA COMMITMENT</div>
+                  <div className="text-sm font-semibold text-text-primary">99.99% Uptime</div>
+                  <div className="text-[11px] text-text-secondary">Sub-500ms P95 latency</div>
                 </div>
               </div>
 
@@ -303,16 +304,16 @@ function PrototypeNoticeContent() {
                     e.preventDefault();
                     setSubmitted(true);
                   }}
-                  className="space-y-4 p-5 rounded-lg bg-[#080808] border border-white/10"
+                  className="space-y-4 p-5 rounded-lg glass-inset"
                 >
-                  <div className="text-xs font-mono font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Fingerprint className="w-4 h-4 text-white" />
+                  <div className="text-xs font-mono font-semibold text-text-primary uppercase tracking-wider flex items-center gap-2">
+                    <Fingerprint className="w-4 h-4 text-text-primary" />
                     <span>Request Institutional White-Glove Trial</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-mono text-[#A0A0A0] mb-1">
+                      <label className="block text-[11px] font-mono text-text-secondary mb-1">
                         ENTERPRISE EMAIL:
                       </label>
                       <input
@@ -320,11 +321,11 @@ function PrototypeNoticeContent() {
                         required
                         value={emailInput}
                         onChange={(e) => setEmailInput(e.target.value)}
-                        className="w-full bg-[#141414] border border-white/10 focus:border-white focus:outline-none rounded-md px-3 py-2 text-xs font-mono text-white"
+                        className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-md px-3 py-2 text-xs font-mono text-text-primary"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-[#A0A0A0] mb-1">
+                      <label className="block text-[11px] font-mono text-text-secondary mb-1">
                         ORGANIZATION:
                       </label>
                       <input
@@ -332,18 +333,18 @@ function PrototypeNoticeContent() {
                         required
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full bg-[#141414] border border-white/10 focus:border-white focus:outline-none rounded-md px-3 py-2 text-xs font-mono text-white"
+                        className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-md px-3 py-2 text-xs font-mono text-text-primary"
                       />
                     </div>
                   </div>
 
                   <div className="pt-2 flex items-center justify-between">
-                    <span className="text-[11px] text-[#737373] font-mono">
+                    <span className="text-[11px] text-text-muted font-mono">
                       Includes 10,000 monthly claim audits &amp; custom assay parsing.
                     </span>
                     <button
                       type="submit"
-                      className="bg-white hover:bg-neutral-200 text-black px-4 py-2 rounded text-xs font-semibold flex items-center gap-2 cursor-pointer"
+                      className="bg-ink hover:bg-navy-soft text-ghost px-4 py-2 rounded text-xs font-semibold flex items-center gap-2 cursor-pointer"
                     >
                       <span>Submit Pilot Request</span>
                       <Send className="w-3.5 h-3.5" />
@@ -351,12 +352,12 @@ function PrototypeNoticeContent() {
                   </div>
                 </form>
               ) : (
-                <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 space-y-1 text-xs">
+                <div className="p-4 rounded-lg bg-status-success/10 border border-status-success/30 text-status-success space-y-1 text-xs">
                   <div className="flex items-center gap-2 font-semibold">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-status-success" />
                     <span>Pilot Request Received</span>
                   </div>
-                  <p className="text-[#A0A0A0]">
+                  <p className="text-text-secondary">
                     A compliance engineer has reserved a dedicated tenant sandbox for {companyName}.
                     Confirmation sent to {emailInput}.
                   </p>
@@ -366,13 +367,13 @@ function PrototypeNoticeContent() {
           )}
 
           {/* Diagnostic Terminal Telemetry Box */}
-          <div className="p-4 rounded-lg bg-[#080808] border border-white/10 font-mono text-xs space-y-2 text-[#A0A0A0]">
-            <div className="flex items-center justify-between text-white border-b border-white/10 pb-2">
+          <div className="p-4 rounded-lg glass-inset font-mono text-xs space-y-2 text-text-secondary">
+            <div className="flex items-center justify-between text-text-primary border-b border-border-default pb-2">
               <span className="text-[11px] flex items-center gap-1.5">
-                <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                <Terminal className="w-3.5 h-3.5 text-status-success" />
                 <span>DIAGNOSTIC TERMINAL TELEMETRY</span>
               </span>
-              <span className="text-[10px] text-emerald-400">TEST STATUS: 54/54 PASSING</span>
+              <span className="text-[10px] text-status-success">TEST STATUS: 54/54 PASSING</span>
             </div>
             <div className="text-[11px] space-y-1">
               <div>
@@ -389,10 +390,10 @@ function PrototypeNoticeContent() {
           </div>
 
           {/* Action Navigation Footer */}
-          <div className="pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+          <div className="pt-4 border-t border-border-default flex flex-wrap items-center justify-between gap-4">
             <Link
               href="/"
-              className="text-xs font-mono text-[#A0A0A0] hover:text-white transition-colors flex items-center gap-1.5"
+              className="text-xs font-mono text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Return to Landing Page</span>
@@ -400,7 +401,7 @@ function PrototypeNoticeContent() {
 
             <Link
               href="/dashboard"
-              className="bg-white hover:bg-neutral-200 text-black px-5 py-2.5 rounded text-xs font-semibold flex items-center gap-2 transition-all active:scale-95"
+              className="bg-ink hover:bg-navy-soft text-ghost px-5 py-2.5 rounded text-xs font-semibold flex items-center gap-2 transition-all active:scale-95"
             >
               <span>Return to Application Dashboard</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -410,7 +411,7 @@ function PrototypeNoticeContent() {
       </main>
 
       {/* Minimal Footer */}
-      <footer className="border-t border-white/10 py-6 text-center text-xs font-mono text-[#737373]">
+      <footer className="border-t border-border-subtle py-6 text-center text-xs font-mono text-text-muted">
         AdSnitch · Sovereign Pre-Publication Brand Truth Governance · CodeTitans India 2026
       </footer>
     </div>
@@ -421,7 +422,7 @@ export default function PrototypeNoticePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#080808] flex items-center justify-center text-xs font-mono text-[#A0A0A0]">
+        <div className="min-h-screen bg-canvas flex items-center justify-center text-xs font-mono text-text-secondary">
           Loading governance module...
         </div>
       }

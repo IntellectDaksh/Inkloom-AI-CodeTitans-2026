@@ -2,18 +2,13 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { NAV } from "../guide/nav";
 import {
   Search,
-  FileText,
   BookOpen,
   CheckCircle2,
-  BarChart3,
-  Settings,
   PlusCircle,
   ShieldCheck,
-  Tag,
-  Building2,
-  FolderOpen,
   ArrowRight,
   X,
   Info,
@@ -31,148 +26,21 @@ export interface CommandItem {
 }
 
 const DEFAULT_COMMANDS: CommandItem[] = [
-  // Quick Actions
-  {
-    id: "action-new-audit",
-    title: "New Content Audit",
-    category: "Actions",
-    description: "Scan marketing text, social copy, or packaging against brand rules",
-    href: "/submissions/new",
-    icon: PlusCircle,
-    shortcut: "N",
-  },
-  {
-    id: "action-add-claim",
-    title: "Add Verified Claim",
-    category: "Actions",
-    description: "Index an approved legal or efficacy claim in knowledge base",
-    href: "/knowledge-base/claims",
-    icon: ShieldCheck,
-  },
-  {
-    id: "action-add-guideline",
-    title: "Add Brand Guideline",
-    category: "Actions",
-    description: "Define a tone of voice, formatting, or compliance restriction",
-    href: "/knowledge-base/guidelines",
-    icon: BookOpen,
-  },
-
-  // Navigation
-  {
-    id: "nav-dashboard",
-    title: "Dashboard Overview",
-    category: "Navigation",
-    description: "Metrics, high-risk flags, and active audit pipeline",
-    href: "/dashboard",
-    icon: BarChart3,
-    shortcut: "G D",
-  },
-  {
-    id: "nav-submissions",
-    title: "Content Submissions",
-    category: "Navigation",
-    description: "View all audited drafts, revisions, and approval statuses",
-    href: "/submissions",
-    icon: FileText,
-    shortcut: "G S",
-  },
-  {
-    id: "nav-knowledge",
-    title: "Knowledge Base Hub",
-    category: "Navigation",
-    description: "Single source of truth for brand claims and guidelines",
-    href: "/knowledge-base",
-    icon: BookOpen,
-    shortcut: "G K",
-  },
-  {
-    id: "nav-approvals",
-    title: "Pending Approvals",
-    category: "Navigation",
-    description: "Multi-tier approval queue for compliance officers",
-    href: "/approvals",
-    icon: CheckCircle2,
-    shortcut: "G A",
-  },
-  {
-    id: "nav-analytics",
-    title: "Governance Analytics",
-    category: "Navigation",
-    description: "Issue breakdown, pass rates, and compliance trends",
-    href: "/analytics",
-    icon: BarChart3,
-  },
-  {
-    id: "nav-settings",
-    title: "Workspace Settings",
-    category: "Navigation",
-    description: "API keys, team roles, and automation preferences",
-    href: "/settings",
-    icon: Settings,
-  },
-
-  // System & Prototype Notice
-  {
-    id: "system-prototype-notice",
-    title: "Prototype Environment Notice",
-    category: "System",
-    description: "CodeTitans 2026 sandbox preview notice & 1-click role bypasses",
-    href: "/prototype-notice",
-    icon: Info,
-  },
-
-  // Knowledge Base Quick Jump
-  {
-    id: "kb-claims",
-    title: "Approved Claims Library",
-    category: "Knowledge Base",
-    description: "Search and verify substantiated claims",
-    href: "/knowledge-base/claims",
-    icon: ShieldCheck,
-  },
-  {
-    id: "kb-guidelines",
-    title: "Voice & Style Rules",
-    category: "Knowledge Base",
-    description: "Tone, capitalization, prohibited terms",
-    href: "/knowledge-base/guidelines",
-    icon: BookOpen,
-  },
-  {
-    id: "kb-terminology",
-    title: "Terminology & Glossary",
-    category: "Knowledge Base",
-    description: "Preferred keywords and banned phrase mappings",
-    href: "/knowledge-base/terminology",
-    icon: Tag,
-  },
-  {
-    id: "kb-assets",
-    title: "Brand Digital Assets",
-    category: "Knowledge Base",
-    description: "Approved imagery, logos, and product spec sheets",
-    href: "/knowledge-base/assets",
-    icon: FolderOpen,
-  },
-
-  // Brands
-  {
-    id: "brand-apex",
-    title: "Apex Nutrition Workspace",
-    category: "Brands",
-    description: "Active Brand • Health & Wellness vertical",
-    href: "/brands",
-    icon: Building2,
-  },
-  {
-    id: "brand-zenith",
-    title: "Zenith Cloud SaaS Workspace",
-    category: "Brands",
-    description: "Enterprise Software & Cloud Security vertical",
-    href: "/brands",
-    icon: Building2,
-  },
+  { id: "a-check", title: "Check an ad", category: "Actions", description: "Paste copy or drop a file to find risky claims", href: "/submissions/new", icon: PlusCircle },
+  { id: "a-claim", title: "Add a claim", category: "Actions", description: "Save a statement your brand may make, with its proof", href: "/knowledge-base/claims", icon: ShieldCheck },
+  { id: "a-rule", title: "Add a brand rule", category: "Actions", description: "Write a tone, wording or legal guideline", href: "/knowledge-base/guidelines", icon: BookOpen },
+  { id: "a-approvals", title: "Go to approvals", category: "Actions", description: "Sign off ads waiting on a person", href: "/approvals", icon: CheckCircle2 },
+  { id: "a-tour", title: "Replay the welcome tour", category: "Actions", description: "Pick brand and role again", href: "/onboarding", icon: Info },
+  ...NAV.flatMap((g) =>
+    g.items.map((i) => ({
+      id: `nav-${i.href}`,
+      title: i.name,
+      category: (g.label === "Library" ? "Knowledge Base" : "Navigation") as CommandItem["category"],
+      description: i.help[0],
+      href: i.href,
+      icon: i.icon,
+    }))
+  ),
 ];
 
 export interface CommandKProps {
@@ -302,17 +170,20 @@ export function CommandK({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-120"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-ink/25 backdrop-blur-sm transition-opacity animate-in fade-in duration-120"
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-xl bg-[#0C0C0C] border border-[#282828] rounded-lg shadow-[0_16px_48px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden flex flex-col max-h-[75vh] animate-in zoom-in-95 duration-120"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search"
+        className="w-full max-w-xl glass-strong overflow-hidden flex flex-col max-h-[75vh] animate-in zoom-in-95 duration-120"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar (Recessed Milled Well) */}
-        <div className="p-3 bg-[#080808] border-b border-[#222222]">
-          <div className="flex items-center px-3.5 py-2 rounded bg-[#080808] border border-[#222222] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] gap-3">
-            <Search className="w-4 h-4 text-[#A0A0A0] shrink-0" />
+        <div className="p-3 border-b border-border-subtle">
+          <div className="flex items-center px-3.5 py-2 rounded-lg glass-inset gap-3">
+            <Search className="w-4 h-4 text-text-secondary shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -322,18 +193,20 @@ export function CommandK({
                 setSelectedIndex(0);
               }}
               onKeyDown={handleInputKeyDown}
-              placeholder="Type a command, claim, or jump to section..."
-              className="flex-1 bg-transparent text-sm text-white placeholder-[#737373] focus:outline-none font-medium"
+              placeholder="Try “check an ad” or “approvals”…"
+              aria-label="Search actions and pages"
+              className="flex-1 bg-transparent text-base sm:text-sm text-text-primary placeholder-text-muted focus:outline-none font-medium"
             />
             {query ? (
               <button
                 onClick={() => setQuery("")}
-                className="text-[#737373] hover:text-white transition-colors p-1"
+                aria-label="Clear search"
+                className="text-text-muted hover:text-text-primary transition-colors p-1"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <kbd className="text-[9px] text-[#A0A0A0] bg-[#141414] px-1.5 py-0.5 rounded border border-[#282828] font-mono">
+              <kbd className="text-xs text-text-secondary bg-panel px-1.5 py-0.5 rounded border border-border-subtle font-mono">
                 ESC
               </kbd>
             )}
@@ -341,9 +214,9 @@ export function CommandK({
         </div>
 
         {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-3 bg-[#0C0C0C]">
+        <div className="flex-1 overflow-y-auto p-2 space-y-3">
           {filteredCommands.length === 0 ? (
-            <div className="py-12 text-center text-xs text-[#737373] font-mono">
+            <div className="py-12 text-center text-sm text-text-muted">
               No results found for &ldquo;{query}&rdquo;
             </div>
           ) : (
@@ -353,8 +226,8 @@ export function CommandK({
 
               return (
                 <div key={cat} className="space-y-1">
-                  <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#737373]">
-                    {cat}
+                  <div className="px-3 py-1 text-xs font-medium text-text-muted">
+                    {cat === "Knowledge Base" ? "Library" : cat === "Navigation" ? "Go to" : cat}
                   </div>
                   {catItems.map((item) => {
                     const thisIndex = cumulativeIndex++;
@@ -364,30 +237,32 @@ export function CommandK({
                     return (
                       <div
                         key={item.id}
+                        role="option"
+                        aria-selected={isSelected}
                         onClick={() => handleExecute(item)}
                         onMouseEnter={() => setSelectedIndex(thisIndex)}
                         className={`flex items-center justify-between px-3 py-2 rounded text-xs cursor-pointer transition-all duration-100 ${
                           isSelected
-                            ? "bg-[#141414] text-white border border-[#282828] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-                            : "text-[#EFEFEF] hover:text-white hover:bg-[#111111] border border-transparent"
+                            ? "bg-panel text-text-primary border border-border-subtle shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                            : "text-text-primary hover:text-text-primary hover:bg-panel border border-transparent"
                         }`}
                       >
                         <div className="flex items-center gap-3 truncate">
                           <div
                             className={`w-7 h-7 rounded flex items-center justify-center shrink-0 border ${
                               isSelected
-                                ? "bg-[#181818] border-[#333333] text-white"
-                                : "bg-[#080808] border-[#222222] text-[#737373]"
+                                ? "bg-panel border-border-default text-text-primary"
+                                : "bg-canvas border-border-subtle text-text-muted"
                             }`}
                           >
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                           <div className="truncate">
-                            <div className="font-semibold truncate text-white">
+                            <div className="font-semibold truncate text-text-primary">
                               {item.title}
                             </div>
                             {item.description && (
-                              <div className="text-[11px] text-[#A0A0A0] truncate">
+                              <div className="text-xs text-text-secondary truncate">
                                 {item.description}
                               </div>
                             )}
@@ -396,11 +271,11 @@ export function CommandK({
 
                         <div className="flex items-center gap-1.5 shrink-0 ml-3">
                           {item.shortcut ? (
-                            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#080808] border border-[#222222] text-[#A0A0A0] font-mono">
+                            <kbd className="text-xs px-1.5 py-0.5 rounded bg-canvas border border-border-subtle text-text-secondary font-mono">
                               {item.shortcut}
                             </kbd>
                           ) : isSelected ? (
-                            <ArrowRight className="w-3.5 h-3.5 text-white" />
+                            <ArrowRight className="w-3.5 h-3.5 text-text-primary" />
                           ) : null}
                         </div>
                       </div>
@@ -413,19 +288,19 @@ export function CommandK({
         </div>
 
         {/* Tactile Keycap Footer */}
-        <div className="px-4 py-2 bg-[#080808] border-t border-[#222222] flex items-center justify-between text-[11px] text-[#737373]">
+        <div className="px-4 py-2 border-t border-border-subtle flex items-center justify-between text-xs text-text-muted">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-[#EFEFEF]">
+              <kbd className="text-xs px-1.5 py-0.5 rounded bg-panel border border-border-subtle text-text-primary">
                 ↑
               </kbd>
-              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-[#EFEFEF]">
+              <kbd className="text-xs px-1.5 py-0.5 rounded bg-panel border border-border-subtle text-text-primary">
                 ↓
               </kbd>
               <span>navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-[#EFEFEF]">
+              <kbd className="text-xs px-1.5 py-0.5 rounded bg-panel border border-border-subtle text-text-primary">
                 ↵
               </kbd>
               <span>select</span>
@@ -433,7 +308,7 @@ export function CommandK({
           </div>
 
           <span className="flex items-center gap-1">
-            <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#141414] border border-[#282828] text-[#EFEFEF]">
+            <kbd className="text-xs px-1.5 py-0.5 rounded bg-panel border border-border-subtle text-text-primary">
               ESC
             </kbd>
             <span>close</span>

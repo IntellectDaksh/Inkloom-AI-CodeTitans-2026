@@ -1,1522 +1,1468 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import {
-  ShieldCheck,
-  CheckCircle2,
-  AlertOctagon,
-  ArrowRight,
-  Database,
-  FileCheck2,
-  Lock,
-  ChevronRight,
-  Scale,
-  GitCompare,
-  FileSearch,
-  RotateCcw,
-  Check,
-  Copy,
-  Server,
-  FileText,
-  Sliders,
-  Cpu,
-  ArrowUpRight,
-  Zap,
-  Menu,
-  X,
-} from "lucide-react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import "./landing.css";
 
-// Interactive Presets for the Live Audit Workbench
-interface Preset {
-  id: string;
-  name: string;
-  brand: string;
-  category: string;
-  rawText: string;
-  flaggedPhrases: { text: string; type: "prohibited" | "ungrounded" | "disclosure"; replacement: string }[];
-  correctedText: string;
-  initialScore: number;
-  clearedScore: number;
-  detectedIssues: {
-    type: "prohibited" | "ungrounded" | "disclosure";
-    title: string;
-    description: string;
-    severity: "critical" | "high" | "medium";
-    regulation: string;
-  }[];
-  provenance: {
-    claimId: string;
-    approvedPhrasing: string;
-    evidenceDoc: string;
-    doi: string;
-    assayStandard: string;
-    excerpt: string;
-    owner: string;
-    expiryDate: string;
-    permittedChannels: string;
-    sha256: string;
+type IconName =
+  | "shield"
+  | "arrow"
+  | "check"
+  | "alert"
+  | "scan"
+  | "database"
+  | "file"
+  | "users"
+  | "lock"
+  | "branch"
+  | "spark"
+  | "menu"
+  | "close"
+  | "clock"
+  | "scale"
+  | "code"
+  | "layers"
+  | "chart"
+  | "globe";
+
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  const paths: Record<IconName, ReactNode> = {
+    shield: (
+      <>
+        <path d="M12 3 5 6v5.5c0 4.2 2.8 7.8 7 9.5 4.2-1.7 7-5.3 7-9.5V6l-7-3Z" />
+        <path d="m8.5 12 2.2 2.2 4.8-5" />
+      </>
+    ),
+    arrow: (
+      <>
+        <path d="M5 12h14" />
+        <path d="m14 7 5 5-5 5" />
+      </>
+    ),
+    check: <path d="m5 12 4 4L19 6" />,
+    alert: (
+      <>
+        <path d="M12 3 2.8 20h18.4L12 3Z" />
+        <path d="M12 9v4.5M12 17h.01" />
+      </>
+    ),
+    scan: (
+      <>
+        <path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" />
+        <path d="M8 12h8" />
+      </>
+    ),
+    database: (
+      <>
+        <ellipse cx="12" cy="5.5" rx="7.5" ry="3" />
+        <path d="M4.5 5.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6M4.5 11.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6" />
+      </>
+    ),
+    file: (
+      <>
+        <path d="M7 3h7l4 4v14H7V3Z" />
+        <path d="M14 3v5h4M10 13h5M10 17h5" />
+      </>
+    ),
+    users: (
+      <>
+        <path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+        <circle cx="9.5" cy="7" r="3" />
+        <path d="M17 11a3 3 0 1 0 0-6M21 20v-2a4 4 0 0 0-2.5-3.7" />
+      </>
+    ),
+    lock: (
+      <>
+        <rect x="5" y="10" width="14" height="11" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" />
+      </>
+    ),
+    branch: (
+      <>
+        <circle cx="6" cy="5" r="2" />
+        <circle cx="18" cy="7" r="2" />
+        <circle cx="6" cy="19" r="2" />
+        <path d="M6 7v10M8 7h4a6 6 0 0 1 6 6V9" />
+      </>
+    ),
+    spark: (
+      <path d="m12 2 1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5L12 2ZM19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7L19 16Z" />
+    ),
+    menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+    close: <path d="m6 6 12 12M18 6 6 18" />,
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </>
+    ),
+    scale: (
+      <>
+        <path d="M12 3v18M5 7h14M6 7l-3 6h6L6 7ZM18 7l-3 6h6l-3-6ZM8 21h8" />
+      </>
+    ),
+    code: <path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14" />,
+    layers: (
+      <>
+        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+        <path d="m3 12 9 5 9-5M3 16l9 5 9-5" />
+      </>
+    ),
+    chart: (
+      <>
+        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+      </>
+    ),
+    globe: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+      </>
+    ),
   };
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.65"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name]}
+    </svg>
+  );
 }
 
-const PRESETS: Preset[] = [
+const scenarios = [
   {
-    id: "clinical-nutrition",
-    name: "Clinical Nutrition (Apex Nutrition)",
+    short: "Clinical nutrition",
     brand: "Apex Nutrition",
-    category: "Health & Supplements",
-    rawText:
-      "Our proprietary formula gives you 2x faster muscle recovery and builds lean mass in just 14 days without dietary changes.",
-    flaggedPhrases: [
-      {
-        text: "2x faster muscle recovery",
-        type: "prohibited",
-        replacement: "accelerated muscle protein synthesis",
-      },
-      {
-        text: "in just 14 days without dietary changes",
-        type: "ungrounded",
-        replacement: "when paired with consistent resistance training over 8 weeks",
-      },
+    score: 18,
+    copy: "Our proprietary formula gives you 2x faster muscle recovery and builds lean mass in just 14 days without dietary changes.",
+    flags: [
+      [
+        "2x faster",
+        "Unverified multiplier metric",
+        "Critical",
+        "Quantitative performance claims require competent, reliable substantiation.",
+        "FTC Act §5 / 16 CFR §255.2",
+      ],
+      [
+        "just 14 days",
+        "Ungrounded time-bound outcome",
+        "High",
+        "The draft states a guaranteed biological result within a fixed period.",
+        "FDA 21 CFR §101.93(g)",
+      ],
+      [
+        "without dietary changes",
+        "Effortless-result implication",
+        "High",
+        "The surrounding language removes the conditions needed to support the outcome.",
+        "FDA DSHEA §403(r)(6)",
+      ],
     ],
-    correctedText:
-      "Our ISO-tested formula supports accelerated muscle protein synthesis and supports lean mass development when paired with consistent resistance training over 8 weeks.",
-    initialScore: 18,
-    clearedScore: 94,
-    detectedIssues: [
-      {
-        type: "prohibited",
-        title: "Unverified Multiplier Metric ('2x faster')",
-        description:
-          "Quantitative multiplier claims require randomized double-blind placebo testing with published statistical significance (p < 0.01).",
-        severity: "critical",
-        regulation: "FTC Act Section 5 / 16 CFR § 255.2",
-      },
-      {
-        type: "ungrounded",
-        title: "Ungrounded Time-Bound & Effortless Claim",
-        description:
-          "'In just 14 days without dietary changes' constitutes statutory over-promising under FDA DSHEA guidance for dietary supplements.",
-        severity: "high",
-        regulation: "FDA 21 CFR § 101.93(g)",
-      },
-      {
-        type: "disclosure",
-        title: "Missing Statutory Dietary Disclaimer",
-        description:
-          "Mandatory statement required: 'These statements have not been evaluated by the FDA. This product is not intended to diagnose, treat, cure, or prevent any disease.'",
-        severity: "medium",
-        regulation: "FDA DSHEA § 403(r)(6)",
-      },
-    ],
-    provenance: {
-      claimId: "CLM-APX-001 (Active Grounded)",
-      approvedPhrasing:
-        "Supports post-workout protein synthesis when consumed within 45 minutes of resistance training.",
-      evidenceDoc: "Clinical Study Report APX-2024-C3: Muscle Protein Synthesis Biomarkers",
-      doi: "10.1016/j.nutres.2024.108421",
-      assayStandard: "ISO 22196:2011 Annex C / Double-Blind Cross-Over RCT",
-      excerpt:
-        "Mean fractional synthetic rate (FSR) showed a 28.4% elevation (p = 0.004) relative to control over an 8-week intervention protocol.",
-      owner: "Dr. Aris Vance, MD (VP Medical & Regulatory Affairs)",
-      expiryDate: "2026-12-31",
-      permittedChannels: "Digital Video, Organic Social, Product Detail Pages",
-      sha256: "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1a209b1f074d6b05be5cf6287c",
+    replacement:
+      "Our tested formula supports muscle protein synthesis and lean mass development when paired with consistent resistance training.",
+    evidence: {
+      claimCode: "CLM-APX-001",
+      source: "Clinical study report / muscle protein synthesis biomarkers",
+      reference: "Internal evidence record · validation pending",
+      scope: "Apex Nutrition workspace only",
     },
   },
   {
-    id: "enterprise-cloud",
-    name: "Enterprise SaaS SLA (Zenith Cloud)",
-    brand: "Zenith Cloud SaaS",
-    category: "B2B Cloud Infrastructure",
-    rawText:
-      "Guaranteed 100% zero-downtime SLA with military-grade unhackable encryption verified by ISO-27001.",
-    flaggedPhrases: [
-      {
-        text: "100% zero-downtime SLA",
-        type: "prohibited",
-        replacement: "contractual 99.99% multi-region uptime SLA",
-      },
-      {
-        text: "military-grade unhackable encryption",
-        type: "prohibited",
-        replacement: "SOC 2 Type II verified AES-256 encryption at rest and in transit",
-      },
+    short: "Enterprise SaaS",
+    brand: "Zenith Cloud",
+    score: 31,
+    copy: "Guaranteed 100% zero-downtime SLA with military-grade unhackable encryption verified by ISO-27001.",
+    flags: [
+      [
+        "Guaranteed 100%",
+        "Absolute performance promise",
+        "Critical",
+        "The promise exceeds the measurable availability terms in the draft SLA.",
+        "Contract evidence / SLA schedule",
+      ],
+      [
+        "unhackable",
+        "Unverifiable security superlative",
+        "Critical",
+        "Absolute security language cannot be substantiated as a durable state.",
+        "FTC truth-in-advertising principles",
+      ],
+      [
+        "verified by ISO-27001",
+        "Certification language requires proof",
+        "High",
+        "The named scope, certificate holder and current validity must match the claim.",
+        "ISO/IEC 27001 certificate scope",
+      ],
     ],
-    correctedText:
-      "Contractual 99.99% multi-region uptime SLA backed by SOC 2 Type II verified AES-256 encryption at rest and in transit, audited under ISO/IEC 27001:2022.",
-    initialScore: 22,
-    clearedScore: 98,
-    detectedIssues: [
-      {
-        type: "prohibited",
-        title: "Absolute Uptime Guarantee ('100% zero-downtime')",
-        description:
-          "Legal breach risk. Master Services Agreement (MSA) limits contractual commitment to four-nines (99.99%) with scheduled maintenance carve-outs.",
-        severity: "critical",
-        regulation: "Corporate Legal MSA Standard § 4.1",
-      },
-      {
-        type: "prohibited",
-        title: "Prohibited Hyperbole ('military-grade unhackable')",
-        description:
-          "Statutory misrepresentation under SEC & FTC guidance. Cybersecurity claims must specify encryption standards (AES-256 / TLS 1.3).",
-        severity: "high",
-        regulation: "FTC Policy on Deceptive Claims (15 U.S.C. § 45) / SEC Rule 10b-5",
-      },
-    ],
-    provenance: {
-      claimId: "CLM-ZNT-881 (Enterprise Validated)",
-      approvedPhrasing:
-        "High-availability architecture engineered to deliver 99.99% service availability with financial SLA backing.",
-      evidenceDoc: "SOC 2 Type II System and Organization Controls Attestation Report (Ernst & Young LLP)",
-      doi: "NIST SP 800-53 Rev. 5 / ISO 27001:2022",
-      assayStandard: "AICPA Trust Services Criteria (Security, Availability, Confidentiality)",
-      excerpt:
-        "Tested multi-tenant failover latency across 3 AWS Availability Zones achieved 99.993% cumulative uptime across the 12-month evaluation window.",
-      owner: "Elena Rostova (Chief Information Security Officer)",
-      expiryDate: "2027-04-30",
-      permittedChannels: "Enterprise Sales Collateral, RFP Responses, Website",
-      sha256: "3c988ef11b058c42de31fa1947b0a7c413b8e7629dc88701d51a946e8c71ef82",
+    replacement:
+      "Contractual 99.99% multi-region uptime SLA with documented encryption controls and independently reviewed security practices.",
+    evidence: {
+      claimCode: "CLM-ZEN-014",
+      source: "Enterprise SLA and security assurance package",
+      reference: "Contract schedule · certificate scope required",
+      scope: "Zenith Cloud workspace only",
     },
   },
   {
-    id: "skincare-ad",
-    name: "Skincare & Cosmetics (Lumina)",
-    brand: "Lumina Skincare",
-    category: "Consumer Cosmetics",
-    rawText:
-      "Clinically proven to completely erase wrinkles in 48 hours and reverse facial aging in 7 days with all-natural organic bio-peptides.",
-    flaggedPhrases: [
-      {
-        text: "completely erase wrinkles",
-        type: "prohibited",
-        replacement: "visibly diminish the appearance of fine surface lines",
-      },
-      {
-        text: "reverse facial aging in 7 days with all-natural organic bio-peptides",
-        type: "ungrounded",
-        replacement: "over 4 weeks of consistent twice-daily application",
-      },
+    short: "Skincare",
+    brand: "Lumina Labs",
+    score: 24,
+    copy: "Our miracle serum permanently reverses wrinkles and repairs skin at the cellular level in 48 hours.",
+    flags: [
+      [
+        "miracle",
+        "Deceptive superlative",
+        "Critical",
+        "The term implies an extraordinary outcome without an objective basis.",
+        "FTC advertising substantiation",
+      ],
+      [
+        "permanently reverses",
+        "Drug-like anatomical claim",
+        "Critical",
+        "Permanent structural-change language can move cosmetic copy into drug-claim territory.",
+        "FD&C Act §201(g)",
+      ],
+      [
+        "in 48 hours",
+        "Unsupported time-bound result",
+        "High",
+        "A fixed visible-result window requires matching instrumental or clinical evidence.",
+        "MoCRA / substantiation record",
+      ],
     ],
-    correctedText:
-      "Dermatologist-tested to visibly diminish the appearance of fine surface lines over 4 weeks of consistent twice-daily application.",
-    initialScore: 14,
-    clearedScore: 92,
-    detectedIssues: [
-      {
-        type: "prohibited",
-        title: "Permanent Therapeutic Claim ('completely erase wrinkles')",
-        description:
-          "Cosmetic vs. Drug classification violation. Claiming permanent anatomical alteration shifts product classification to unapproved new drug under FD&C Act.",
-        severity: "critical",
-        regulation: "FD&C Act § 201(g)(1)(C) / MoCRA 2022",
-      },
-      {
-        type: "ungrounded",
-        title: "Unsubstantiated Acute Timeframe ('reverse aging in 7 days')",
-        description:
-          "Clinical assay CS-SKN-2024 evaluated efficacy over 28 days; acute 7-day reversal claims lack bio-instrumentation substantiation.",
-        severity: "high",
-        regulation: "NAD Precedent / FTC Substantiation Doctrine",
-      },
-      {
-        type: "disclosure",
-        title: "Ungrounded Statutory 'All-Natural' Descriptor",
-        description:
-          "Synthetic peptide stabilization requires USDA organic / ISO 16128 natural index documentation before public dissemination.",
-        severity: "medium",
-        regulation: "ISO 16128 Natural & Organic Cosmetics",
-      },
-    ],
-    provenance: {
-      claimId: "CLM-LUM-204 (Dermatology Cleared)",
-      approvedPhrasing:
-        "Clinically observed to reduce depth of periorbital fine lines by up to 23% after 28 days of regular use.",
-      evidenceDoc: "Clinical Cutaneous Assay: 60-Subject Double-Blind Profilometry Study",
-      doi: "10.1111/jocd.15289",
-      assayStandard: "Primos 3D Optical In Vivo Skin Profilometry (ISO 17025)",
-      excerpt:
-        "Statistically significant reduction in mean surface roughness (Ra) of 23.4% (p < 0.001) observed at day 28 vs baseline.",
-      owner: "Dr. Marcus Lin, MD, FAAD (Director of Clinical Dermatology)",
-      expiryDate: "2026-09-30",
-      permittedChannels: "Paid Social, DTC Webstore, Retail Packaging",
-      sha256: "91b45f4ca7d3a0e365022dc7f8c057e93081c7e923838271a257bbdf690a2a4b",
+    replacement:
+      "Our serum is formulated to improve the appearance of fine lines and support smoother-looking skin with continued use.",
+    evidence: {
+      claimCode: "CLM-LUM-008",
+      source: "Instrumental skin assessment and approved cosmetic claims",
+      reference: "Evidence record · no permanent-effect study found",
+      scope: "Lumina Labs workspace only",
     },
   },
 ];
 
-export default function LandingPage() {
-  const [selectedPresetId, setSelectedPresetId] = useState<string>("clinical-nutrition");
-  const [currentText, setCurrentText] = useState<string>(PRESETS[0].rawText);
-  const [isAuditing, setIsAuditing] = useState<boolean>(false);
-  const [isDiffApplied, setIsDiffApplied] = useState<boolean>(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-  const [copiedProvenance, setCopiedProvenance] = useState<boolean>(false);
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+const comparisonRows = [
+  {
+    dimension: "Claim ground truth",
+    generic: "Can invent or misstate citations",
+    writer: "Optimises language, not proof",
+    scheduler: "Distributes whatever it receives",
+    adsnitch: "Checks claims against scoped evidence",
+  },
+  {
+    dimension: "Evidence provenance",
+    generic: "Links may be incomplete or unverifiable",
+    writer: "No assay or source validation",
+    scheduler: "No source-chain capability",
+    adsnitch: "Keeps references attached to findings",
+  },
+  {
+    dimension: "Change precision",
+    generic: "Typically rewrites full passages",
+    writer: "Replaces sentences or sections",
+    scheduler: "No copy-level correction",
+    adsnitch: "Exact token-level surgical diff",
+  },
+  {
+    dimension: "Expiry & re-review",
+    generic: "No memory across governed documents",
+    writer: "No dependent-content indexing",
+    scheduler: "No claim dependency model",
+    adsnitch: "Can cascade review when evidence expires",
+  },
+  {
+    dimension: "Human authority",
+    generic: "Prompt-level acceptance",
+    writer: "Comments and approvals vary",
+    scheduler: "Publish permissions, not legal sign-off",
+    adsnitch: "Explicit reviewer gate and override record",
+  },
+  {
+    dimension: "Channel disclosures",
+    generic: "Broad warnings without channel context",
+    writer: "Static disclaimer templates",
+    scheduler: "Character counts and scheduling rules",
+    adsnitch: "Channel-aware disclosure requirements",
+  },
+];
 
-  const currentPreset = PRESETS.find((p) => p.id === selectedPresetId) || PRESETS[0];
-  const activeScore = isDiffApplied ? currentPreset.clearedScore : currentPreset.initialScore;
+const pipeline = [
+  [
+    "01",
+    "Ingest",
+    "Break content into atomic claims and quantitative spans.",
+    "file",
+    "Atomic claim map",
+  ],
+  [
+    "02",
+    "Preflight",
+    "Trap absolutes and risky superlatives before model analysis.",
+    "scan",
+    "Deterministic rule hits",
+  ],
+  [
+    "03",
+    "Retrieve",
+    "Search only the evidence and rules scoped to your workspace.",
+    "database",
+    "Brand-scoped evidence set",
+  ],
+  [
+    "04",
+    "Analyse",
+    "Evaluate statutory nuance, claim meaning and brand context.",
+    "spark",
+    "Contextual risk model",
+  ],
+  [
+    "05",
+    "Ground",
+    "Connect findings to source records and reference chains.",
+    "branch",
+    "Linked provenance chain",
+  ],
+  [
+    "06",
+    "Diff",
+    "Compile precise replacements while preserving approved copy.",
+    "code",
+    "Token-level redline",
+  ],
+  [
+    "07",
+    "Approve",
+    "Route every decision through accountable human review.",
+    "users",
+    "Signed human decision",
+  ],
+  [
+    "08",
+    "Record",
+    "Preserve the decision trail and cascade future re-reviews.",
+    "lock",
+    "Audit event + dependencies",
+  ],
+];
 
-  const scrollToWorkbench = () => {
-    document.getElementById("audit-workbench")?.scrollIntoView({ behavior: "smooth" });
-  };
+function Logo() {
+  return (
+    <a className="brand" href="#top" aria-label="AdSnitch home">
+      <span className="brand-mark">
+        <Icon name="shield" size={19} />
+      </span>
+      <span>AdSnitch</span>
+    </a>
+  );
+}
 
-  const handleSelectPreset = (preset: Preset) => {
-    setSelectedPresetId(preset.id);
-    setCurrentText(preset.rawText);
-    setIsDiffApplied(false);
-    triggerAudit();
-  };
+function ArrowLink({
+  children,
+  href = "#sandbox",
+  light = false,
+}: {
+  children: ReactNode;
+  href?: string;
+  light?: boolean;
+}) {
+  return (
+    <a className={`arrow-link ${light ? "arrow-link-light" : ""}`} href={href}>
+      <span>{children}</span>
+      <i>
+        <Icon name="arrow" size={16} />
+      </i>
+    </a>
+  );
+}
 
-  const triggerAudit = () => {
-    setIsAuditing(true);
-    setTimeout(() => {
-      setIsAuditing(false);
-    }, 420);
-  };
+function Eyebrow({ children, light = false }: { children: ReactNode; light?: boolean }) {
+  return (
+    <span className={`eyebrow ${light ? "eyebrow-light" : ""}`}>
+      <i />
+      {children}
+    </span>
+  );
+}
 
-  const handleApplyDiff = () => {
-    setCurrentText(currentPreset.correctedText);
-    setIsDiffApplied(true);
-    triggerAudit();
-  };
+function RiskPill({ level }: { level: string }) {
+  return (
+    <span className={`risk-pill risk-${level.toLowerCase()}`}>
+      <i />
+      {level}
+    </span>
+  );
+}
 
-  const handleResetSandbox = () => {
-    setCurrentText(currentPreset.rawText);
-    setIsDiffApplied(false);
-    triggerAudit();
-  };
+function HighlightedClaim({ index }: { index: number }) {
+  const claims = [
+    <>
+      Our proprietary formula gives you <mark>2x faster</mark> muscle recovery and builds lean mass
+      in <mark>just 14 days</mark> <mark>without dietary changes</mark>.
+    </>,
+    <>
+      <mark>Guaranteed 100%</mark> zero-downtime SLA with military-grade <mark>unhackable</mark>{" "}
+      encryption <mark>verified by ISO-27001</mark>.
+    </>,
+    <>
+      Our <mark>miracle</mark> serum <mark>permanently reverses</mark> wrinkles and repairs skin at
+      the cellular level <mark>in 48 hours</mark>.
+    </>,
+  ];
 
-  const handleCopyProvenance = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        `Claim ID: ${currentPreset.provenance.claimId}\nEvidence: ${currentPreset.provenance.evidenceDoc}\nDOI: ${currentPreset.provenance.doi}\nAssay Standard: ${currentPreset.provenance.assayStandard}\nOwner: ${currentPreset.provenance.owner}\nSHA-256: ${currentPreset.provenance.sha256}`
-      );
-      setCopiedProvenance(true);
-      setTimeout(() => setCopiedProvenance(false), 2000);
-    } catch {
-      setCopiedProvenance(true);
-      setTimeout(() => setCopiedProvenance(false), 2000);
-    }
+  return claims[index];
+}
+
+function Contours() {
+  return (
+    <svg className="contours" viewBox="0 0 1200 700" preserveAspectRatio="none" aria-hidden="true">
+      {Array.from({ length: 13 }, (_, i) => (
+        <path
+          key={i}
+          d={`M-120 ${110 + i * 22} C 130 ${10 + i * 21}, 270 ${250 + i * 12}, 500 ${130 + i * 15} S 850 ${25 + i * 24}, 1320 ${150 + i * 18}`}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function AuditPreview({ scenario = scenarios[0] }: { scenario?: (typeof scenarios)[number] }) {
+  return (
+    <div className="audit-preview">
+      <div className="preview-bar">
+        <div>
+          <span className="mini-logo">
+            <Icon name="shield" size={12} />
+          </span>
+          <b>Claim review</b>
+          <small>/ {scenario.brand}</small>
+        </div>
+        <div className="preview-status">
+          <i />
+          Governance engine active
+        </div>
+      </div>
+      <div className="preview-body">
+        <aside className="preview-rail">
+          <span className="active">
+            <Icon name="scan" size={16} />
+          </span>
+          <span>
+            <Icon name="database" size={16} />
+          </span>
+          <span>
+            <Icon name="branch" size={16} />
+          </span>
+          <span>
+            <Icon name="users" size={16} />
+          </span>
+        </aside>
+        <div className="preview-document">
+          <div className="ui-label">
+            <span>Campaign draft</span>
+            <span>CLM–0842</span>
+          </div>
+          <p className="preview-copy">
+            Our proprietary formula gives you <mark>2x faster</mark> muscle recovery and builds lean
+            mass in <mark>just 14 days</mark> <mark>without dietary changes</mark>.
+          </p>
+          <div className="token-legend">
+            <span>
+              <i /> 3 unsupported spans
+            </span>
+            <span>31 tokens analysed</span>
+          </div>
+          <div className="surgical-strip">
+            <div>
+              <span className="diff-sign">−</span>
+              <p>
+                gives you <del>2x faster</del> muscle recovery
+              </p>
+            </div>
+            <div>
+              <span className="diff-sign">+</span>
+              <p>
+                <ins>supports</ins> muscle recovery
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="preview-findings">
+          <div className="findings-title">
+            <span>Findings</span>
+            <b>3</b>
+          </div>
+          <div className="score-orbit">
+            <div>
+              <strong>{scenario.score}</strong>
+              <span>/100</span>
+            </div>
+            <small>Publication score</small>
+          </div>
+          {scenario.flags.map(([phrase, reason, level]) => (
+            <div className="finding" key={phrase}>
+              <RiskPill level={level} />
+              <b>“{phrase}”</b>
+              <span>{reason}</span>
+            </div>
+          ))}
+          <div className="human-gate">
+            <span>
+              <Icon name="users" size={16} />
+            </span>
+            <div>
+              <b>Human sign-off required</b>
+              <small>Legal & Regulatory</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Home() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeScenario, setActiveScenario] = useState(0);
+  const [showFix, setShowFix] = useState(false);
+  const [activeStage, setActiveStage] = useState(0);
+
+  const scenario = scenarios[activeScenario];
+
+  const selectScenario = (index: number) => {
+    setActiveScenario(index);
+    setShowFix(false);
   };
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        triggerAudit();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const observer = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("visible")),
+      { threshold: 0.13 },
+    );
+    document.querySelectorAll(".reveal").forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#080808] text-[#FFFFFF] font-sans selection:bg-white/20 selection:text-white">
-      {/* 1. PRECISION NAVIGATION BAR */}
-      <nav className="border-b border-white/[0.08] bg-[#080808]/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 h-18 flex items-center justify-between">
-          {/* Brand Logo & Mark */}
-          <Link href="/" className="flex items-center gap-3 group shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold text-sm tracking-tight shadow-sm">
-              AS
-            </div>
-            <span className="font-semibold text-base tracking-tight text-white">
-              AdSnitch
-            </span>
-          </Link>
-
-          {/* Primary Nav Links */}
-          <div className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium text-[#A0A0A0]">
-            <button
-              onClick={scrollToWorkbench}
-              className="hover:text-white transition-colors cursor-pointer"
-            >
-              Workbench
-            </button>
-            <a href="#architecture" className="hover:text-white transition-colors">
-              Architecture
-            </a>
-            <a href="#sectors" className="hover:text-white transition-colors">
-              Sectors
-            </a>
-            <Link href="/evaluations" className="hover:text-white transition-colors">
-              Evaluations &amp; Benchmarks
-            </Link>
-            <Link href="/knowledge-base/claims" className="hover:text-white transition-colors">
-              Claims Library
-            </Link>
+    <div className="site" id="top">
+      <div className="global-atmosphere" aria-hidden="true">
+        <i className="atmosphere-one" />
+        <i className="atmosphere-two" />
+        <i className="atmosphere-three" />
+      </div>
+      <header className="top-nav">
+        <nav className="nav-inner" aria-label="Primary navigation">
+          <Logo />
+          <div className="nav-center">
+            <a href="#sandbox">Workbench</a>
+            <a href="#pipeline">Architecture</a>
+            <a href="#sectors">Sectors</a>
+            <a href="/evaluations">Evaluations &amp; Benchmarks</a>
+            <a href="/knowledge-base/claims">Claims Library</a>
           </div>
-
-          {/* Action Controls & Active Status Indicator */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
-            <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-[#A0A0A0]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Zero-Tolerance Policy Active</span>
-            </div>
-
-            <Link
-              href="/auth/login"
-              className="hidden sm:inline-flex text-sm font-medium text-[#A0A0A0] hover:text-white transition-colors px-3 py-1.5 min-h-[44px] items-center"
-            >
+          <div className="nav-end">
+            <a className="nav-signin" href="/auth/login">
               Sign In
-            </Link>
-            <Link
-              href="/dashboard"
-              className="h-10 px-3.5 sm:px-4 rounded-lg bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 sm:gap-2 min-h-[44px]"
-            >
-              <span className="hidden xs:inline sm:inline">Launch App</span>
-              <span className="xs:hidden sm:hidden">Launch</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-
-            {/* Mobile Hamburger Toggle Button (min 44px touch target) */}
-            <button
-              type="button"
-              onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-              className="lg:hidden p-2.5 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] border border-white/[0.1] text-white cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
-              aria-label="Toggle navigation menu"
-            >
-              {isMobileNavOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
-            </button>
+            </a>
+            <a className="nav-launch" href="/dashboard">
+              Launch App <Icon name="arrow" size={14} />
+            </a>
           </div>
-        </div>
-
-        {/* Mobile Navigation Dropdown Menu */}
-        {isMobileNavOpen && (
-          <div className="lg:hidden bg-[#0C0C0C] border-b border-white/[0.1] px-5 py-5 space-y-4 animate-in fade-in duration-150">
-            <div className="flex flex-col divide-y divide-white/[0.06]">
-              <button
-                onClick={() => {
-                  scrollToWorkbench();
-                  setIsMobileNavOpen(false);
-                }}
-                className="text-left text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
-              >
-                Workbench
-              </button>
-              <a
-                href="#architecture"
-                onClick={() => setIsMobileNavOpen(false)}
-                className="text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
-              >
-                Architecture
+          <button
+            className="nav-menu"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle navigation"
+          >
+            <Icon name={menuOpen ? "close" : "menu"} size={20} />
+          </button>
+        </nav>
+        {menuOpen && (
+          <div className="mobile-nav">
+            {[
+              ["Workbench", "#sandbox"],
+              ["Architecture", "#pipeline"],
+              ["Sectors", "#sectors"],
+              ["Evaluations & Benchmarks", "/evaluations"],
+              ["Claims Library", "/knowledge-base/claims"],
+              ["Sign In", "/auth/login"],
+              ["Launch App", "/dashboard"],
+            ].map(([label, href]) => (
+              <a key={label} href={href} onClick={() => setMenuOpen(false)}>
+                {label} <Icon name="arrow" size={15} />
               </a>
-              <a
-                href="#sectors"
-                onClick={() => setIsMobileNavOpen(false)}
-                className="text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
-              >
-                Sectors
-              </a>
-              <Link
-                href="/evaluations"
-                onClick={() => setIsMobileNavOpen(false)}
-                className="text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
-              >
-                Evaluations &amp; Benchmarks
-              </Link>
-              <Link
-                href="/knowledge-base/claims"
-                onClick={() => setIsMobileNavOpen(false)}
-                className="text-base font-medium text-[#B5B5B5] hover:text-white py-3 min-h-[44px] flex items-center transition-colors"
-              >
-                Claims Library
-              </Link>
-            </div>
-
-            <div className="pt-3 flex flex-col gap-2.5">
-              <Link
-                href="/auth/login"
-                onClick={() => setIsMobileNavOpen(false)}
-                className="w-full h-11 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] text-white border border-white/[0.1] text-sm font-semibold flex items-center justify-center transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/dashboard"
-                onClick={() => setIsMobileNavOpen(false)}
-                className="w-full h-11 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
-              >
-                <span>Launch App</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+            ))}
           </div>
         )}
-      </nav>
+      </header>
 
-      {/* 2. HERO SECTION — Dominant Typography & Clean Clearance Preview */}
-      <section className="relative py-28 sm:py-32 border-b border-white/[0.08] overflow-hidden bg-[#0A0A0A]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            {/* Left 7 Columns: Editorial Headline & Value Propositions */}
-            <div className="lg:col-span-7 space-y-8 text-left">
-              {/* Dominant Headline (52–64px) */}
-              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white leading-[1.1]">
-                Check the Claim. Show the Source. Keep People in Control.
-              </h1>
-
-              {/* Wider Supporting Copy (17–18px) */}
-              <p className="text-lg sm:text-xl text-[#B5B5B5] max-w-2xl leading-relaxed font-normal">
-                Preventing regulatory fines, deceptive superlatives, and brand liabilities before content
-                goes live. AdSnitch audits marketing copy against verified clinical trials, SEC filings,
-                and legal registers with token-level diffing.
-              </p>
-
-              {/* Responsive 44px Buttons: Full-width on mobile, inline on tablet/desktop */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 pt-2">
-                <button
-                  onClick={scrollToWorkbench}
-                  className="h-11 px-6 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer shadow-lg shadow-white/5 w-full sm:w-auto min-h-[44px]"
-                >
-                  <FileSearch className="w-4 h-4 text-black" />
-                  <span>Launch Live Audit Sandbox</span>
-                </button>
-
-                <Link
-                  href="/dashboard"
-                  className="h-11 px-6 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] text-white border border-white/[0.12] hover:border-white/30 text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 w-full sm:w-auto min-h-[44px]"
-                >
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Enter App</span>
-                </Link>
-
-                <Link
-                  href="/evaluations"
-                  className="text-sm font-medium text-[#A0A0A0] hover:text-white transition-colors flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 min-h-[44px]"
-                >
-                  <span>Explore Benchmarks</span>
-                  <ArrowUpRight className="w-4 h-4" />
-                </Link>
-              </div>
+      <main>
+        <section className="hero-section">
+          <div className="hero-aurora" />
+          <Contours />
+          <div className="hero-content">
+            <div className="rename-note">
+              <span>Inkloom AI</span>
+              <Icon name="arrow" size={12} />
+              <b>is becoming AdSnitch</b>
             </div>
-
-            {/* Right 5 Columns: Polished Enterprise SaaS Clearance Preview */}
-            <div className="lg:col-span-5">
-              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 sm:p-7 space-y-6 shadow-2xl backdrop-blur-sm relative">
-                {/* Clearance Header */}
-                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <FileCheck2 className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-semibold text-white tracking-wide uppercase">
-                      Compliance Clearance Report
-                    </span>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    Cleared for Dissemination
-                  </span>
-                </div>
-
-                {/* Editorial Content Diff Cards */}
-                <div className="space-y-3.5">
-                  <div className="p-4 rounded-xl bg-[#0A0A0A] border border-rose-500/20 space-y-2">
-                    <div className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider flex items-center justify-between">
-                      <span>Flagged Draft Copy (Overpromising)</span>
-                      <span className="font-mono text-[10px] text-rose-300">FTC § 255.2</span>
-                    </div>
-                    <p className="text-xs text-rose-200/90 leading-relaxed line-through">
-                      &quot;Guaranteed 100% zero-downtime SLA with military-grade unhackable encryption verified by ISO-27001.&quot;
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-[#0A0A0A] border border-emerald-500/20 space-y-2">
-                    <div className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
-                      <span>Grounded Surgical Revision</span>
-                      <span className="font-mono text-[10px] text-emerald-300">NIST SP 800-53</span>
-                    </div>
-                    <p className="text-xs text-emerald-100 leading-relaxed font-sans">
-                      &quot;Contractual 99.99% multi-region uptime SLA backed by SOC 2 Type II verified AES-256 encryption at rest and in transit.&quot;
-                    </p>
-                  </div>
-                </div>
-
-                {/* Evidence & Score Strip */}
-                <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between text-xs text-[#A0A0A0]">
-                  <div className="flex items-center gap-2">
-                    <Database className="w-3.5 h-3.5 text-white/70" />
-                    <span className="font-mono text-[11px] text-white/90">DOI: 10.1016/j.soc2.2024</span>
-                  </div>
-                  <span className="font-semibold text-white">Score: 98/100 · Verified</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. LIVE HERO AUDIT WORKBENCH (Enterprise SaaS Workspace) */}
-      <section id="audit-workbench" className="py-28 border-b border-white/[0.08] bg-[#080808] relative">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-10">
-          {/* Section Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/[0.08] pb-8">
-            <div className="space-y-3">
-              <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
-                Interactive Pre-Publication Sandbox
+            <div className="hero-kicker">
+              <span>
+                <Icon name="shield" size={13} />
               </span>
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                Live Content Audit Workbench
-              </h2>
-              <p className="text-base text-[#B5B5B5] max-w-2xl leading-relaxed">
-                Test how the deterministic 8-stage governance compiler dissects high-stakes marketing
-                copy, links clinical trials, and synthesizes word-level surgical diffs in real time.
+              CodeTitans India 2026 · Working governance prototype
+            </div>
+            <h1 className="hero-doc-title">
+              Check the claim.
+              <br />
+              Show the source.
+              <br />
+              <span>Keep people in control.</span>
+            </h1>
+            <div className="hero-subrow">
+              <p>
+                AdSnitch reads your ad copy before it goes live. It checks every claim against
+                approved evidence and brand rules, shows the exact source, suggests a safe rewrite,
+                and sends risky lines to a person to sign off. Fewer fines, fewer takedowns, no
+                invented proof.
               </p>
+              <div className="hero-actions">
+                <ArrowLink href="#sandbox">Try a live check</ArrowLink>
+                <div className="hero-secondary">
+                  <a href="/dashboard">Open the app</a>
+                  <a href="/evaluations">See benchmarks</a>
+                </div>
+              </div>
             </div>
-
-            {/* Clean Segmented Preset Selector */}
-            <div className="inline-flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-[#141414] border border-white/[0.08]">
-              {PRESETS.map((p) => {
-                const isSelected = p.id === selectedPresetId;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => handleSelectPreset(p)}
-                    className={`px-4 py-2 text-xs rounded-lg transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-white text-black font-semibold shadow-sm"
-                        : "text-[#9E9E9E] hover:text-white hover:bg-white/[0.05] font-medium"
-                    }`}
-                  >
-                    {p.name}
-                  </button>
-                );
-              })}
+            <div className="prototype-facts">
+              <span>
+                <i>01</i> Full check in under 400 ms
+              </span>
+              <span>
+                <i>02</i> FTC and FDA disclosure rules built in
+              </span>
+              <span>
+                <i>03</i> 58 of 58 automated tests passing
+              </span>
             </div>
           </div>
 
-          {/* Clean Telemetry & Score Status Strip */}
-          <div className="p-6 rounded-2xl bg-[#121212] border border-white/[0.08] flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
+          <div className="hero-editorial reveal visible">
+            <svg className="hero-illo" viewBox="0 0 1180 590" role="img" aria-label="An ad draft's claim is checked against three evidence sources and routed to a reviewer decision">
+              <defs>
+                <linearGradient id="hiCard" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#163447" />
+                  <stop offset="1" stopColor="#0c2232" />
+                </linearGradient>
+                <pattern id="hiGrid" width="28" height="28" patternUnits="userSpaceOnUse">
+                  <path d="M28 0H0V28" fill="none" stroke="rgba(124,221,255,.06)" />
+                </pattern>
+              </defs>
+              <rect width="1180" height="590" fill="url(#hiGrid)" />
+              <circle cx="900" cy="120" r="220" fill="rgba(124,221,255,.06)" />
+              {/* draft card */}
+              <g transform="translate(70 70)">
+                <rect width="330" height="300" rx="20" fill="url(#hiCard)" stroke="rgba(200,241,255,.18)" />
+                <circle cx="26" cy="26" r="5" fill="#ff7a82" /><circle cx="44" cy="26" r="5" fill="#ffc76b" /><circle cx="62" cy="26" r="5" fill="#73e0ba" />
+                <text x="26" y="72" className="hi-label">AD DRAFT · LANDING PAGE</text>
+                <rect x="26" y="92" width="250" height="10" rx="5" fill="rgba(220,228,236,.28)" />
+                <rect x="26" y="114" width="200" height="10" rx="5" fill="rgba(220,228,236,.2)" />
+                <rect x="26" y="142" width="74" height="10" rx="5" fill="rgba(220,228,236,.2)" />
+                <rect x="108" y="134" width="112" height="26" rx="7" fill="rgba(255,122,130,.16)" stroke="#ff7a82" />
+                <text x="164" y="152" textAnchor="middle" className="hi-mark">2x faster</text>
+                <rect x="228" y="142" width="70" height="10" rx="5" fill="rgba(220,228,236,.2)" />
+                <rect x="26" y="176" width="230" height="10" rx="5" fill="rgba(220,228,236,.16)" />
+                <rect x="26" y="198" width="160" height="10" rx="5" fill="rgba(220,228,236,.12)" />
+                <rect x="26" y="240" width="120" height="34" rx="10" fill="rgba(124,221,255,.12)" />
+                <text x="86" y="262" textAnchor="middle" className="hi-chip">Score 62 / 100</text>
+              </g>
+              {/* connectors */}
+              <g fill="none" strokeWidth="2" className="hi-flow">
+                <path d="M400 217 C470 217 470 110 540 110" stroke="#7cddff" />
+                <path d="M400 217 L540 217" stroke="#7cddff" />
+                <path d="M400 217 C470 217 470 324 540 324" stroke="#7cddff" />
+                <path d="M800 110 C860 110 860 217 900 217" stroke="rgba(200,241,255,.35)" />
+                <path d="M800 217 L900 217" stroke="rgba(200,241,255,.35)" />
+                <path d="M800 324 C860 324 860 217 900 217" stroke="rgba(200,241,255,.35)" />
+              </g>
+              {/* sources */}
+              {[
+                [80, "Clinical trial registry", "No matching outcome", "#ff7a82", "✕"],
+                [187, "Published research", "Insufficient support", "#ffc76b", "~"],
+                [294, "Brand guidelines", "Rule matched", "#73e0ba", "✓"],
+              ].map(([y, t, d, c, g]) => (
+                <g key={t as string} transform={`translate(540 ${y})`}>
+                  <rect width="260" height="60" rx="14" fill="url(#hiCard)" stroke="rgba(200,241,255,.16)" />
+                  <circle cx="30" cy="30" r="14" fill="none" stroke={c as string} strokeWidth="2" />
+                  <text x="30" y="35" textAnchor="middle" fill={c as string} className="hi-glyph">{g}</text>
+                  <text x="56" y="26" className="hi-title">{t}</text>
+                  <text x="56" y="44" className="hi-sub">{d}</text>
+                </g>
+              ))}
+              {/* decision */}
+              <g transform="translate(900 132)">
+                <rect width="210" height="170" rx="20" fill="#f7f9ff" />
+                <path d="M105 26 l30 11 v22 c0 20 -13 33 -30 40 c-17 -7 -30 -20 -30 -40 v-22z" fill="rgba(75,199,244,.16)" stroke="#2697bd" strokeWidth="2" />
+                <path d="M93 58 l9 9 17 -18" fill="none" stroke="#2697bd" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <text x="105" y="128" textAnchor="middle" className="hi-dec">Revise claim</text>
+                <text x="105" y="148" textAnchor="middle" className="hi-dec-sub">Routed to legal review</text>
+              </g>
+            </svg>
+            <div className="editorial-caption">
+              <span className="caption-mark">
+                <Icon name="shield" size={19} />
+              </span>
+              <div>
+                <small>AdSnitch governance principle</small>
+                <b>Every consequential sentence should carry its proof and its owner.</b>
+              </div>
+            </div>
+            <div className="editorial-signal">
+              <i />
+              Evidence stays attached through review
+            </div>
+          </div>
+        </section>
+
+        <section className="signal-rail" aria-label="Platform capabilities">
+          <div className="signal-marquee">
+            {[0, 1].map((set) => (
+              <div key={set}>
+                <span>Clinical claims</span>
+                <i>✦</i>
+                <span>Trademark risk</span>
+                <i>✦</i>
+                <span>SEC disclosures</span>
+                <i>✦</i>
+                <span>Brand voice</span>
+                <i>✦</i>
+                <span>ISO standards</span>
+                <i>✦</i>
+                <span>Human approval</span>
+                <i>✦</i>
+                <span>CodeTitans 2026</span>
+                <i>✦</i>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="intro-section">
+          <div className="intro-index reveal">01 / THE CONTROL GAP</div>
+          <div className="intro-statement reveal">
+            <p className="intro-lead">
+              Marketing tools help teams <span>publish faster.</span>
+            </p>
+            <p>
+              AdSnitch helps them know whether they <em>should.</em>
+            </p>
+          </div>
+          <div className="intro-aside reveal">
+            <p>
+              The initial use case is a digital marketing agency reviewing captions, ads and
+              campaign drafts across multiple client brands. An account manager needs to find the
+              current approved claim, verify its permitted use, resolve disclosures and route
+              high-risk copy without searching across PDFs, spreadsheets and informal sign-offs.
+            </p>
+            <div className="control-list">
+              <span>
+                <Icon name="check" size={13} /> Claim-level, not document-level
+              </span>
+              <span>
+                <Icon name="check" size={13} /> Grounded, not generated
+              </span>
+              <span>
+                <Icon name="check" size={13} /> Human-controlled, never auto-published
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className="comparison-section" id="benchmarks">
+          <div className="comparison-heading reveal">
+            <div>
+              <Eyebrow>The missing control layer</Eyebrow>
+              <h2>
+                Content moves fast.
+                <br />
+                Proof should move
+                <br />
+                <span>with it.</span>
+              </h2>
+            </div>
+            <p>
+              Creation and scheduling tools move content toward publication. AdSnitch creates a
+              deliberate boundary before release—where claims meet evidence, rules and accountable
+              human judgment.
+            </p>
+          </div>
+          <div className="proof-composition reveal">
+            <div className="proof-image">
+              <span className="proof-image-index">THE CLAIM REGISTER / 01</span>
               <div
-                className={`text-3xl sm:text-4xl font-bold tracking-tight ${
-                  activeScore >= 80 ? "text-emerald-400" : "text-rose-400"
-                }`}
+                className="register-art"
+                role="img"
+                aria-label="Abstract stack of versioned claim records with approved language, source, scope, owner and review date"
               >
-                {activeScore}/100
-              </div>
-              <div className="border-l border-white/[0.1] pl-4 space-y-0.5">
-                <div className="text-sm font-semibold text-white">
-                  {activeScore >= 80 ? "Grounded · Cleared for Publication" : "18/100 · Critical Flags Detected"}
+                <span className="register-axis axis-source">Source</span>
+                <span className="register-axis axis-scope">Scope</span>
+                <span className="register-axis axis-owner">Owner</span>
+                <span className="register-axis axis-expiry">Review</span>
+                <div className="register-sheet register-sheet-back" />
+                <div className="register-sheet register-sheet-mid" />
+                <div className="register-sheet register-sheet-front">
+                  <div className="register-sheet-head">
+                    <span>CLM–APX–001</span>
+                    <b>Approved</b>
+                  </div>
+                  <small>Permitted language / Website and paid social</small>
+                  <p>Supports muscle recovery when paired with consistent resistance training.</p>
+                  <div className="register-sheet-meta">
+                    <span>
+                      <small>Source</small>
+                      Trial record v3
+                    </span>
+                    <span>
+                      <small>Owner</small>
+                      Regulatory
+                    </span>
+                    <span>
+                      <small>Review</small>
+                      18 Jun 2026
+                    </span>
+                  </div>
                 </div>
-                <div className="text-xs text-[#A0A0A0]">
-                  {isDiffApplied ? "All statutory claims substantiated against evidence" : "High-risk ungrounded claims must be revised"}
-                </div>
+                <i className="register-thread" />
               </div>
+              <blockquote>
+                Not a slogan library.
+                <strong>A living register of what your brand can actually say.</strong>
+              </blockquote>
             </div>
-
-            <div className="flex flex-wrap items-center gap-6 text-xs text-[#A0A0A0] font-mono">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>420ms Latency</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Cpu className="w-3.5 h-3.5 text-white/70" />
-                <span>Gemini 2.5 Flash + Deterministic Heuristics</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Lock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>PostgreSQL RLS</span>
-              </div>
+            <div className="proof-principles">
+              {[
+                [
+                  "01",
+                  "Structured claims",
+                  "Approved wording, source evidence, permitted use, owner and review date live in one record.",
+                ],
+                [
+                  "02",
+                  "Correct brand. Current proof.",
+                  "Retrieval stays inside the selected brand and rejects expired or mismatched evidence.",
+                ],
+                [
+                  "03",
+                  "Fix only what failed",
+                  "Risky tokens are replaced precisely, preserving the campaign voice around them.",
+                ],
+                [
+                  "04",
+                  "Re-review by design",
+                  "When evidence changes or expires, dependent content can return to the review queue.",
+                ],
+              ].map(([number, title, copy]) => (
+                <article key={number}>
+                  <span>{number}</span>
+                  <h3>{title}</h3>
+                  <p>{copy}</p>
+                </article>
+              ))}
             </div>
           </div>
-
-          {/* Main Workbench Grid Split (7-col sandbox / 5-col telemetry & findings) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left 7 Columns: Readable Editor & Word-Level Surgical Diff */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* Clean Marketing Copy Editor */}
-              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 space-y-5 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <FileText className="w-4 h-4 text-white" />
-                    <span className="text-xs font-semibold text-white uppercase tracking-wider">
-                      Editable Marketing Copy ({currentPreset.brand})
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleResetSandbox}
-                    className="text-xs text-[#A0A0A0] hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset Draft</span>
-                  </button>
-                </div>
-
-                {/* Readable 15–16px Sans-Serif Textarea */}
-                <textarea
-                  value={currentText}
-                  onChange={(e) => {
-                    setCurrentText(e.target.value);
-                    setIsDiffApplied(false);
-                  }}
-                  rows={4}
-                  className="w-full bg-[#0A0A0A] border border-white/[0.1] focus:border-white/40 focus:outline-none rounded-xl p-5 text-base text-white font-sans leading-relaxed resize-none transition-colors"
-                  placeholder="Enter draft promotional content to audit..."
-                />
-
-                {/* Action Bar with Prominent 44px Button */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-                  <div className="flex items-center gap-3 text-xs font-mono text-[#888]">
-                    <span>{currentText.length} CHARACTERS</span>
-                    <span>•</span>
-                    <span>{Math.ceil(currentText.length / 4)} TOKENS</span>
-                  </div>
-
-                  <button
-                    onClick={triggerAudit}
-                    disabled={isAuditing}
-                    className="h-11 px-6 rounded-lg bg-white hover:bg-neutral-200 text-black text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer shadow-md disabled:opacity-75 w-full sm:w-auto min-h-[44px]"
-                  >
-                    {isAuditing ? (
-                      <>
-                        <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                        <span>Executing Audit...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Execute Audit</span>
-                        <kbd className="text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-mono font-medium">⌘↵</kbd>
-                      </>
-                    )}
-                  </button>
-                </div>
+          <div className="telemetry-band reveal">
+            <div className="telemetry-intro">
+              <span>Curated evaluation snapshot</span>
+              <p>Project-reported results from the labelled benchmark set.</p>
+            </div>
+            {[
+              ["97.9%", "Precision", "47 true positives"],
+              ["100%", "Statutory recall", "0 critical misses"],
+              ["420ms", "P95 pipeline", "Regex + Gemini path"],
+              ["58/58", "Test assertions", "Passing in submission"],
+            ].map(([value, label, note]) => (
+              <div className="telemetry-stat" key={label}>
+                <strong>{value}</strong>
+                <span>{label}</span>
+                <small>{note}</small>
               </div>
+            ))}
+            <p className="telemetry-disclosure">
+              Dataset: 47 TP, 30 TN, 1 FP, 0 FN. These prototype results demonstrate the submitted
+              architecture on a curated benchmark; they are not legal certification or a guarantee
+              of regulatory compliance.
+            </p>
+          </div>
+        </section>
 
-              {/* Word-Level Surgical Diff Box (Open layout, no heavy nested boxes) */}
-              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 space-y-5 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <GitCompare className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-semibold text-white uppercase tracking-wider">
-                      Word-Level Surgical Red-Line Diff
-                    </span>
-                  </div>
-                  <span
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      isDiffApplied
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                        : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                    }`}
-                  >
-                    {isDiffApplied ? "Surgical Diff Applied" : "Pending Sign-off"}
-                  </span>
-                </div>
+        <section className="lab" id="sandbox">
+          <div className="lab-wrap reveal">
+            <header className="lab-head">
+              <Eyebrow>Live check</Eyebrow>
+              <h2>Watch it catch a risky ad before a regulator does.</h2>
+              <p>
+                Pick a real-world style example. AdSnitch marks the exact words that could get you
+                fined, explains why in plain language, and writes a version you can publish.
+              </p>
+            </header>
 
-                <div className="space-y-4">
-                  {/* Strikethrough Deletion in Red-Line */}
-                  <div className="p-4 rounded-xl bg-rose-500/[0.08] border border-rose-500/20 space-y-1.5">
-                    <div className="text-[11px] text-rose-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                      <span>Original Non-Compliant Phrasing:</span>
-                    </div>
-                    <p className="text-sm sm:text-[15px] leading-relaxed text-rose-200 line-through">
-                      {currentPreset.rawText}
-                    </p>
-                  </div>
-
-                  {/* Approved Alternative in Green-Line */}
-                  <div className="p-4 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 space-y-1.5">
-                    <div className="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span>Substantiated Statutory Replacement:</span>
-                    </div>
-                    <p className="text-sm sm:text-[15px] leading-relaxed text-emerald-100 font-normal">
-                      {currentPreset.correctedText}
-                    </p>
-                  </div>
-
-                  {/* Interactive Fix Controls */}
-                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <span className="text-xs text-[#A0A0A0]">
-                      Automated replacement adheres to registered claim parameters without disrupting brand tone.
-                    </span>
-
-                    {!isDiffApplied ? (
-                      <button
-                        onClick={handleApplyDiff}
-                        className="h-11 px-5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs sm:text-sm font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto shrink-0 shadow-sm min-h-[44px]"
-                      >
-                        <Check className="w-4 h-4 text-black" />
-                        <span>Apply Surgical Fix (Score: {currentPreset.clearedScore}/100)</span>
-                      </button>
-                    ) : (
-                      <span className="text-xs text-emerald-400 font-semibold flex items-center gap-2 shrink-0">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>Compliant Copy Synced to Sandbox</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <div className="lab-tabs" role="tablist" aria-label="Example ads">
+              {scenarios.map((item, index) => (
+                <button
+                  key={item.short}
+                  role="tab"
+                  aria-selected={activeScenario === index}
+                  className={activeScenario === index ? "active" : ""}
+                  onClick={() => selectScenario(index)}
+                >
+                  {item.short}
+                </button>
+              ))}
             </div>
 
-            {/* Right 5 Columns: Clean Flagged Violations & Citation Drawer */}
-            <div className="lg:col-span-5 space-y-6">
-              {/* Flagged Violations List */}
-              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 space-y-5 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <AlertOctagon className="w-4 h-4 text-rose-400" />
-                    <span className="text-xs font-semibold text-white uppercase tracking-wider">
-                      Flagged Issues ({isDiffApplied ? 0 : currentPreset.detectedIssues.length})
-                    </span>
+            <div className="lab-board">
+              <div className="lab-copy">
+                <div className="lab-copy-top">
+                  <span className="lab-brand">{scenario.brand}</span>
+                  <div className="lab-toggle" role="group" aria-label="Show version">
+                    <button className={!showFix ? "active" : ""} onClick={() => setShowFix(false)}>
+                      Original
+                    </button>
+                    <button className={showFix ? "active" : ""} onClick={() => setShowFix(true)}>
+                      Safe rewrite
+                    </button>
                   </div>
-                  <span className="text-xs font-medium text-[#A0A0A0]">
-                    {isDiffApplied ? "0 Violations Remaining" : "Active Statutory Flags"}
-                  </span>
                 </div>
-
-                <div className="space-y-3.5">
-                  {!isDiffApplied ? (
-                    currentPreset.detectedIssues.map((issue, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-4 rounded-xl border space-y-2 transition-all ${
-                          issue.severity === "critical"
-                            ? "bg-rose-500/[0.06] border-rose-500/20 text-rose-200"
-                            : issue.severity === "high"
-                            ? "bg-amber-500/[0.06] border-amber-500/20 text-amber-200"
-                            : "bg-white/[0.02] border-white/[0.08] text-[#B5B5B5]"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="font-semibold text-white text-sm leading-snug">{issue.title}</div>
-                          <span
-                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase border shrink-0 ${
-                              issue.severity === "critical"
-                                ? "bg-rose-500/10 text-rose-300 border-rose-500/30"
-                                : "bg-amber-500/10 text-amber-300 border-amber-500/30"
-                            }`}
-                          >
-                            {issue.severity}
-                          </span>
-                        </div>
-                        <p className="text-xs leading-relaxed text-[#B5B5B5]">{issue.description}</p>
-                        <div className="text-[11px] font-mono pt-1 flex items-center gap-1.5 text-white/80">
-                          <Scale className="w-3.5 h-3.5 text-[#A0A0A0]" />
-                          <span>STATUTE: {issue.regulation}</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-5 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-3.5">
-                      <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
-                      <div>
-                        <div className="font-semibold text-white text-sm">All Statutory Violations Cleared</div>
-                        <p className="text-xs text-emerald-300/80 mt-1 leading-relaxed">
-                          Draft substantiated against certified clinical trial repository. Ready for human
-                          reviewer sign-off.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Clean Citation & Evidence Provenance Drawer */}
-              <div className="rounded-2xl bg-[#121212] border border-white/[0.08] p-6 space-y-4 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <Database className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-semibold text-white uppercase tracking-wider">
-                      Evidence Provenance Drawer
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                    className="text-xs font-medium text-white hover:text-emerald-400 flex items-center gap-1.5 cursor-pointer transition-colors"
-                  >
-                    <span>{isDrawerOpen ? "Hide Citation Chain" : "Inspect Citation Chain"}</span>
-                    <ChevronRight
-                      className={`w-3.5 h-3.5 transition-transform ${isDrawerOpen ? "rotate-90" : ""}`}
-                    />
+                <blockquote className={showFix ? "lab-quote lab-quote-fixed" : "lab-quote"}>
+                  {showFix ? scenario.replacement : <HighlightedClaim index={activeScenario} />}
+                </blockquote>
+                <p className="lab-hint">
+                  {showFix
+                    ? "Every claim in this version is backed by an approved evidence record."
+                    : `${scenario.flags.length} phrases need proof before this can go live.`}
+                </p>
+                {!showFix && (
+                  <button className="lab-cta" onClick={() => setShowFix(true)}>
+                    Show the safe rewrite <Icon name="arrow" size={15} />
                   </button>
-                </div>
-
-                {/* Primary Specs Grid */}
-                <div className="p-4 bg-[#0A0A0A] border border-white/[0.08] rounded-xl text-xs space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#888] font-mono text-[11px]">CLAIM CODE:</span>
-                    <span className="text-white font-medium">{currentPreset.provenance.claimId}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#888] font-mono text-[11px]">EVIDENCE DOC:</span>
-                    <span className="text-white truncate max-w-[220px]" title={currentPreset.provenance.evidenceDoc}>
-                      {currentPreset.provenance.evidenceDoc}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#888] font-mono text-[11px]">DOI REFERENCE:</span>
-                    <span className="text-white font-mono">{currentPreset.provenance.doi}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#888] font-mono text-[11px]">ASSAY STANDARD:</span>
-                    <span className="text-white">{currentPreset.provenance.assayStandard}</span>
-                  </div>
-                </div>
-
-                {/* Expanded Provenance Inspector */}
-                {isDrawerOpen && (
-                  <div className="pt-4 border-t border-white/[0.08] space-y-3.5 text-xs">
-                    <div className="text-[11px] text-[#A0A0A0] uppercase font-semibold">
-                      VERBATIM CLINICAL ASSAY EXCERPT:
-                    </div>
-                    <div className="p-3.5 bg-[#0A0A0A] border border-white/[0.08] rounded-xl text-slate-300 italic font-sans leading-relaxed text-xs">
-                      &ldquo;{currentPreset.provenance.excerpt}&rdquo;
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-[11px] text-[#A0A0A0]">
-                      <div>
-                        <span>AUTHORIZED BY: </span>
-                        <span className="text-white font-medium">{currentPreset.provenance.owner}</span>
-                      </div>
-                      <div>
-                        <span>PERMITTED CHANNELS: </span>
-                        <span className="text-white font-medium">{currentPreset.provenance.permittedChannels}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
-                      <span className="text-[11px] font-mono text-[#777] break-all sm:truncate max-w-full sm:max-w-[220px]">
-                        SHA-256: {currentPreset.provenance.sha256}
-                      </span>
-                      <button
-                        onClick={handleCopyProvenance}
-                        className="text-xs text-white hover:text-emerald-400 flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 min-h-[36px]"
-                      >
-                        {copiedProvenance ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400 font-medium">Copied</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Copy Citation</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* 4. "WHERE IT FITS" COMPETITIVE MATRIX TABLE */}
-      <section id="features" className="py-28 border-b border-white/[0.08] bg-[#080808]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
-          <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
-              WHERE IT FITS IN YOUR ENTERPRISE STACK
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              Why Generic LLMs and Social Schedulers Fall Short
-            </h2>
-            <p className="text-base text-[#B5B5B5] leading-relaxed">
-              Standard consumer LLMs write creative fiction. Marketing schedulers organize calendar
-              slots. AdSnitch is the sovereign pre-flight governance compiler that eliminates statutory
-              liabilities before publication.
-            </p>
-          </div>
-
-          {/* 10-Row Comparison Table */}
-          <div className="border border-white/[0.08] rounded-2xl overflow-hidden bg-[#121212] shadow-2xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-[#0A0A0A] border-b border-white/[0.08] text-[11px] uppercase tracking-wider text-[#A0A0A0]">
-                  <tr>
-                    <th className="px-6 py-4 w-1/5">Compliance Dimension</th>
-                    <th className="px-5 py-4 w-1/6 text-slate-400">ChatGPT / Claude</th>
-                    <th className="px-5 py-4 w-1/6 text-slate-400">Writer / Jasper</th>
-                    <th className="px-5 py-4 w-1/6 text-slate-400">Planable / Hootsuite</th>
-                    <th className="px-5 py-4 w-1/6 text-slate-400">Excel Spreadsheets</th>
-                    <th className="px-6 py-4 w-1/5 text-white bg-white/[0.04] border-l border-white/[0.08] font-bold">
-                      AdSnitch
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.06] font-sans">
-                  {[
-                    {
-                      dim: "1. Claim Ground Truth",
-                      chatgpt: "Hallucinates citations",
-                      writer: "Generic styleguide check",
-                      planable: "None (Scheduling only)",
-                      excel: "Static outdated rows",
-                      adsnitch: "Strict isolated claims DB",
-                    },
-                    {
-                      dim: "2. Zero-Hallucination Policy",
-                      chatgpt: "No (Unbounded next-token)",
-                      writer: "Partial (Brand vocabulary)",
-                      planable: "None",
-                      excel: "Manual human check",
-                      adsnitch: "0.00% tolerance via deterministic gate",
-                    },
-                    {
-                      dim: "3. Clinical Evidence Provenance",
-                      chatgpt: "Fake DOI papers generated",
-                      writer: "No assay verification",
-                      planable: "None",
-                      excel: "Dead hyperlinks",
-                      adsnitch: "Cryptographic DOI & ISO assay linking",
-                    },
-                    {
-                      dim: "4. Dynamic Cascade Re-Review",
-                      chatgpt: "No memory across documents",
-                      writer: "No dependent re-indexing",
-                      planable: "None",
-                      excel: "Manual search & replace",
-                      adsnitch: "Automated cascade on claim expiry",
-                    },
-                    {
-                      dim: "5. Word-Level Surgical Diff",
-                      chatgpt: "Full generative rewrite",
-                      writer: "Sentence replacement",
-                      planable: "None",
-                      excel: "Manual tracking changes",
-                      adsnitch: "Exact token-level redline diffing",
-                    },
-                    {
-                      dim: "6. Dispute & Override Gate",
-                      chatgpt: "None",
-                      writer: "Basic prompt tweak",
-                      planable: "Comments only",
-                      excel: "Uncontrolled emails",
-                      adsnitch: "Formal creator dispute & legal override",
-                    },
-                    {
-                      dim: "7. Channel Disclosures",
-                      chatgpt: "Generic warnings",
-                      writer: "Static footers",
-                      planable: "Character count only",
-                      excel: "Manual copy-paste",
-                      adsnitch: "Statutory FTC / FDA rules per channel",
-                    },
-                    {
-                      dim: "8. Multi-Tenant RLS",
-                      chatgpt: "Shared pool / Prompt leak",
-                      writer: "Basic team accounts",
-                      planable: "Workspace separation",
-                      excel: "Accidental file sharing",
-                      adsnitch: "PostgreSQL Row-Level Security",
-                    },
-                    {
-                      dim: "9. Auto-Publishing Protection",
-                      chatgpt: "Uncontrolled copy-paste",
-                      writer: "Direct CMS export",
-                      planable: "Auto-publishes scheduled posts",
-                      excel: "No live enforcement",
-                      adsnitch: "Strict quarantine until human sign-off",
-                    },
-                    {
-                      dim: "10. Empirical Benchmarks",
-                      chatgpt: "Vague marketing metrics",
-                      writer: "Readability score only",
-                      planable: "Engagement stats only",
-                      excel: "None",
-                      adsnitch: "100% recall on landmark test cases",
-                    },
-                  ].map((row, idx) => (
-                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4 font-mono font-medium text-white text-xs">
-                        {row.dim}
-                      </td>
-                      <td className="px-5 py-4 text-xs text-[#A0A0A0]">
-                        <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.chatgpt}
-                      </td>
-                      <td className="px-5 py-4 text-xs text-[#A0A0A0]">
-                        <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.writer}
-                      </td>
-                      <td className="px-5 py-4 text-xs text-[#A0A0A0]">
-                        <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.planable}
-                      </td>
-                      <td className="px-5 py-4 text-xs text-[#A0A0A0]">
-                        <span className="text-rose-400 font-mono mr-1.5">[✕]</span> {row.excel}
-                      </td>
-                      <td className="px-6 py-4 text-xs text-white font-medium bg-white/[0.04] border-l border-white/[0.08]">
-                        <span className="text-emerald-400 font-mono mr-1.5 font-bold">[✓]</span> {row.adsnitch}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. 4 LANDMARK REGULATORY DISASTERS (Editorial 2-Column Layout) */}
-      <section className="py-28 border-b border-white/[0.08] bg-[#080808]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
-          <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-semibold tracking-wider uppercase text-rose-400">
-              PREVENTABLE BRAND CATASTROPHES
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              Why This Exists: 4 Landmark Disasters AdSnitch Prevents
-            </h2>
-            <p className="text-base text-[#B5B5B5] leading-relaxed">
-              When marketing claims bypass strict factual and tone verification, enterprises face
-              multi-million dollar enforcement fines, viral reputational damage, and operational halts.
-            </p>
-          </div>
-
-          {/* Minimal-Border Editorial Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {[
-              {
-                caseNum: "CASE 01",
-                title: "FTC v. Teami Lifestyle (2020)",
-                costBadge: "$15.2M Settlement",
-                statuteBadge: "FTC Act § 5",
-                category: "Deceptive Health & Cancer Claims",
-                desc: "Promoted 'detox' teas claiming to treat cancer, unclog arteries, and cause substantial weight loss without competent clinical substantiation.",
-                rule: "FTC Act § 5 (Deceptive Practices) & 16 CFR § 255",
-                howAdSnitchPrevents:
-                  "Deterministic regex blocks unverified therapeutic superlatives ('cures', 'treats cancer'); enforces mandatory clinical trial evidence upload.",
-              },
-              {
-                caseNum: "CASE 02",
-                title: "Adidas Boston Marathon (2017)",
-                costBadge: "Global PR Crisis",
-                statuteBadge: "Context Sensitivity",
-                category: "Insensitive Automated Campaign Broadcast",
-                desc: "Dispatched automated promotional email with subject line: 'Congrats, you survived the Boston Marathon!', triggering massive public backlash 4 years after the fatal bombing.",
-                rule: "Brand Tone & Crisis Context Guidelines",
-                howAdSnitchPrevents:
-                  "Contextual semantic sensitivity filter evaluates emotional valence and tragedy proximity before scheduled dissemination.",
-              },
-              {
-                caseNum: "CASE 03",
-                title: "CNET Financial AI Hallucination (2023)",
-                costBadge: "Institutional Audit Action",
-                statuteBadge: "SEC Rule 10b-5",
-                category: "AI Hallucination in Public Advice",
-                desc: "Generative AI published 77 financial guides with elementary mathematical errors in compound interest and certificate of deposit calculations.",
-                rule: "FTC Truth in Lending & SEC Factual Disclosure",
-                howAdSnitchPrevents:
-                  "0.00% zero-hallucination policy requires every quantitative equation and percentage to be verified against registered financial formulas.",
-              },
-              {
-                caseNum: "CASE 04",
-                title: "Gap Rebrand Rollback (2010)",
-                costBadge: "$100M+ Asset Write-down",
-                statuteBadge: "Asset Governance",
-                category: "Uncoordinated Brand Identity Distribution",
-                desc: "Replaced 20-year iconic blue box logo with unvetted Helvetica design without cross-departmental alignment, forcing rollback in 6 days.",
-                rule: "Two-Key Approval Gate & Asset Governance",
-                howAdSnitchPrevents:
-                  "Two-key cryptographic approval protocol gates brand logo and core guideline updates behind authorized director signatures.",
-              },
-            ].map((c) => (
-              <div
-                key={c.caseNum}
-                className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-5 sm:p-7 lg:p-8 space-y-6 shadow-xl flex flex-col justify-between transition-all"
-              >
-                <div className="space-y-4">
-                  {/* Subtle Status Badges */}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-mono font-semibold text-[#888]">{c.caseNum}</span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 font-medium">
-                        {c.costBadge}
-                      </span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/[0.05] text-[#A0A0A0] border border-white/[0.08] font-mono">
-                        {c.statuteBadge}
-                      </span>
-                    </div>
+              <aside className="lab-report" aria-live="polite">
+                <div className="lab-score">
+                  <div
+                    className="lab-ring"
+                    style={
+                      {
+                        "--p": showFix ? 96 : scenario.score,
+                        "--ring": showFix ? "#2fb487" : "#e5535d",
+                      } as CSSProperties
+                    }
+                  >
+                    <strong>{showFix ? 96 : scenario.score}</strong>
                   </div>
+                  <div>
+                    <b>{showFix ? "Ready for sign-off" : "Not safe to publish"}</b>
+                    <small>Compliance score out of 100</small>
+                  </div>
+                </div>
 
-                  {/* Prominent 20–22px Case Title */}
-                  <h3 className="text-xl sm:text-[22px] font-semibold text-white tracking-tight">
-                    {c.title}
-                  </h3>
-                  <div className="text-xs font-medium text-emerald-400">{c.category}</div>
+                <h3>What we found</h3>
+                <ul className="lab-findings">
+                  {scenario.flags.map(([phrase, reason, level, , statute]) => (
+                    <li key={phrase} className={showFix ? "resolved" : ""}>
+                      <div className="lab-finding-top">
+                        <span className="lab-phrase">“{phrase}”</span>
+                        {showFix ? (
+                          <span className="risk-pill lab-fixed">Fixed</span>
+                        ) : (
+                          <RiskPill level={level} />
+                        )}
+                      </div>
+                      <p>{reason}</p>
+                      <small>{statute}</small>
+                    </li>
+                  ))}
+                </ul>
 
-                  {/* Readable 15px Summary Copy */}
-                  <p className="text-[15px] text-[#B5B5B5] leading-relaxed font-normal">
-                    {c.desc}
+                <div className="lab-next">
+                  <Icon name="users" size={16} />
+                  <span>
+                    Next: a reviewer signs off. Evidence <b>{scenario.evidence.claimCode}</b> stays
+                    attached. AdSnitch never publishes on its own.
+                  </span>
+                </div>
+              </aside>
+            </div>
+            <p className="ev-note">Demonstration data from seeded brand workspaces.</p>
+          </div>
+        </section>
+
+        <section className="incident-section">
+          <div className="incident-head reveal">
+            <div>
+              <Eyebrow>Why this exists</Eyebrow>
+              <h2>Public mistakes begin as private sentences.</h2>
+            </div>
+            <p>
+              A claim can become a regulatory event, a brand crisis or a costly rollback in a single
+              publish action. Governance belongs before that action—not in the post-mortem.
+            </p>
+          </div>
+          <div className="incident-ledger reveal">
+            {[
+              [
+                "01",
+                "Health endorsements",
+                "FTC v. Teami Lifestyle",
+                "Promotional health claims and influencer disclosures can create exposure when substantiation and review are missing.",
+                "FTC Act §5 / endorsement guidance",
+                "Block therapeutic superlatives, require the evidence record and route disclosure checks before release.",
+                "$15.2M FTC order",
+              ],
+              [
+                "02",
+                "Context sensitivity",
+                "Adidas / Boston Marathon",
+                "Scheduled language can become harmful when it ignores the emotional and historical context around an event.",
+                "Brand tone / crisis-context guidance",
+                "Evaluate emotional valence, timing and event context before scheduled dissemination.",
+                "Public apology",
+              ],
+              [
+                "03",
+                "Generated misinformation",
+                "CNET financial AI",
+                "Fluent financial content can still contain elementary factual or calculation errors when no grounded review exists.",
+                "Financial content review / source validation",
+                "Require source-linked findings, deterministic checks and accountable human approval.",
+                "77 articles corrected",
+              ],
+              [
+                "04",
+                "Brand-system break",
+                "Gap rebrand rollback",
+                "A public identity change can fail operationally when distribution moves ahead of cross-functional brand approval.",
+                "Asset governance / brand approval policy",
+                "Attach approved brand assets, reviewer ownership and decision history to every release.",
+                "6-day rollback",
+              ],
+            ].map(([number, category, title, copy, rule, remedy, impact]) => (
+              <article key={number}>
+                <span className="incident-number">{number}</span>
+                <div className="incident-tags">
+                  <span className="incident-category">{category}</span>
+                  <span className="incident-impact">{impact}</span>
+                </div>
+                <div className="incident-detail">
+                  <h3>{title}</h3>
+                  <p>{copy}</p>
+                </div>
+                <div className="incident-control">
+                  <span>{rule}</span>
+                  <p>
+                    <b>Governance response:</b> {remedy}
                   </p>
                 </div>
-
-                <div className="pt-5 border-t border-white/[0.08] space-y-2.5">
-                  <div className="text-xs text-[#A0A0A0]">
-                    <span className="font-semibold text-white">Governing Rule:</span> {c.rule}
-                  </div>
-                  <div className="p-3.5 sm:p-4 rounded-xl bg-[#0A0A0A] border border-white/[0.06] text-xs sm:text-sm text-emerald-300 leading-relaxed">
-                    <span className="font-semibold text-white">AdSnitch Remedy: </span>
-                    {c.howAdSnitchPrevents}
-                  </div>
-                </div>
-              </div>
+                <i>
+                  <Icon name="arrow" size={16} />
+                </i>
+              </article>
             ))}
           </div>
-        </div>
-      </section>
+          <p className="case-note">
+            Cases shown as public examples of governance failure modes, not as AdSnitch customers or
+            prevented incidents.
+          </p>
+        </section>
 
-      {/* 6. 8-STAGE GOVERNANCE ARCHITECTURE SECTION */}
-      <section id="architecture" className="py-28 border-b border-white/[0.08] bg-[#080808]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
-          <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
-              TECHNICAL ARCHITECTURE
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              The 8-Stage Deterministic Governance Pipeline
-            </h2>
-            <p className="text-base text-[#B5B5B5] leading-relaxed">
-              Every content draft moves through an uncompromising multi-stage compiler that guarantees
-              mathematical rigor, empirical substantiation, and zero hallucination risk.
+        <section className="pipeline-section" id="pipeline">
+          <div className="pipeline-sticky">
+            <Eyebrow>Deterministic governance pipeline</Eyebrow>
+            <h2>Eight gates. One accountable decision.</h2>
+            <p>
+              The original six analytical stages are shown here as the full eight-stage lifecycle:
+              ingestion begins the flow, and the audit ledger with cascade re-review closes it.
+              Nothing is silently rewritten, and the final authority belongs to a person.
             </p>
+            <div className="pipeline-engine">
+              <div className="engine-rings">
+                <i />
+                <i />
+                <i />
+                <span>
+                  <Icon name={pipeline[activeStage][3] as IconName} size={27} />
+                </span>
+              </div>
+              <div className="engine-stage">
+                <span>Active gate / {pipeline[activeStage][0]}</span>
+                <h3>{pipeline[activeStage][1]}</h3>
+                <p>{pipeline[activeStage][2]}</p>
+              </div>
+              <div className="engine-output">
+                <span>Stage output</span>
+                <b>{pipeline[activeStage][4]}</b>
+                <small>
+                  <i /> Ready for gate {String(Math.min(activeStage + 2, 8)).padStart(2, "0")}
+                </small>
+              </div>
+              <div className="pipeline-progress">
+                <span style={{ width: `${((activeStage + 1) / 8) * 100}%` }} />
+              </div>
+              <div className="engine-scale">
+                <span>Draft</span>
+                <span>Evidence-linked decision</span>
+              </div>
+            </div>
+            <div className="pipeline-trust">
+              <span>
+                <Icon name="clock" size={15} /> Sub-5ms deterministic preflight
+              </span>
+              <span>
+                <Icon name="users" size={15} /> Human approval remains final
+              </span>
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                stage: "01",
-                name: "Content Ingestion & Claim Segmentation",
-                desc: "Breaks submitted draft text into atomic propositional statements and quantitative metric spans.",
-                icon: FileSearch,
-              },
-              {
-                stage: "02",
-                name: "Deterministic Preflight Regex Engine",
-                desc: "Sub-5ms execution traps absolute superlatives ('miracle', '100% unhackable') before LLM invocation.",
-                icon: Zap,
-              },
-              {
-                stage: "03",
-                name: "Scoped Multi-Tenant Retrieval",
-                desc: "PostgreSQL Row-Level Security walls off brand evidence so Brand A never contaminates Brand B.",
-                icon: Database,
-              },
-              {
-                stage: "04",
-                name: "Grounded Contextual LLM Analysis",
-                desc: "Gemini 2.5 Flash evaluates tone drift and statutory nuances with automatic fallback to offline rules.",
-                icon: Cpu,
-              },
-              {
-                stage: "05",
-                name: "Structured Findings & DOI Linking",
-                desc: "Matches flagged phrases to registered clinical trial papers, ISO standards, and legal opinions.",
-                icon: GitCompare,
-              },
-              {
-                stage: "06",
-                name: "Multi-Factor Scoring & Surgical Diffing",
-                desc: "Computes composite score (0-100) and compiles word-level surgical diff preserving brand tone.",
-                icon: Sliders,
-              },
-              {
-                stage: "07",
-                name: "Human Approval Gate & Overrides",
-                desc: "Two-key sign-off protocol allowing legal review, creator disputes, and official override memos.",
-                icon: FileCheck2,
-              },
-              {
-                stage: "08",
-                name: "Tamper-Proof Audit Trail & Cascade",
-                desc: "Immutable SHA-256 ledger records all decisions; automatically flags content if a claim expires.",
-                icon: ShieldCheck,
-              },
-            ].map((s) => {
-              const Icon = s.icon;
-              return (
-                <div
-                  key={s.stage}
-                  className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-7 space-y-5 shadow-xl flex flex-col justify-between transition-all"
-                >
-                  <div className="space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-emerald-400">STAGE {s.stage}</span>
-                      <div className="w-9 h-9 rounded-xl bg-[#0A0A0A] border border-white/[0.08] flex items-center justify-center text-white">
-                        <Icon className="w-4 h-4 text-white" />
-                      </div>
-                    </div>
-                    <h3 className="text-base font-semibold text-white leading-snug">{s.name}</h3>
-                    <p className="text-sm text-[#B5B5B5] leading-relaxed">{s.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 7. REGULATED SECTORS & INDUSTRY PLAYBOOKS */}
-      <section id="sectors" className="py-28 border-b border-white/[0.08] bg-[#080808]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
-          <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
-              SECTOR ADAPTATION
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              Regulated Sectors &amp; Industry Playbooks
-            </h2>
-            <p className="text-base text-[#B5B5B5] leading-relaxed">
-              Out-of-the-box regulatory rule engines tailored to the statutory scrutiny of high-liability
-              verticals.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                sector: "Health, Supplements & Nutrition",
-                regs: "FDA DSHEA § 403 / FTC 16 CFR § 255",
-                desc: "Automated enforcement of structure/function disclaimers, dietary caveats, and clinical trial evidence requirements.",
-                badge: "Apex Nutrition Active",
-              },
-              {
-                sector: "Enterprise Cloud & FinTech SaaS",
-                regs: "SOC 2 Type II / SEC Rule 10b-5",
-                desc: "Prevents deceptive SLA availability promises, hyperbole in encryption standards, and unbacked uptime metrics.",
-                badge: "Zenith Cloud Active",
-              },
-              {
-                sector: "Cosmetics & Personal Care",
-                regs: "FD&C Act § 201 / MoCRA 2022",
-                desc: "Traps permanent anatomical claims ('reverses wrinkles') and validates instrumental skin profilometry substantiation.",
-                badge: "Lumina Skincare Configured",
-              },
-              {
-                sector: "Direct-to-Consumer E-Commerce",
-                regs: "FTC Endorsement Guides / Truth in Ads",
-                desc: "Verifies material connection disclosures (#ad, #sponsored), testimonials, and pricing comparison claims.",
-                badge: "Universal DTC Ready",
-              },
-            ].map((p) => (
-              <div
-                key={p.sector}
-                className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-7 space-y-4 shadow-xl flex flex-col justify-between transition-all"
+          <div className="pipeline-list">
+            {pipeline.map(([number, title, copy, icon, output], index) => (
+              <button
+                key={number}
+                className={activeStage === index ? "active" : ""}
+                onMouseEnter={() => setActiveStage(index)}
+                onFocus={() => setActiveStage(index)}
+                onClick={() => setActiveStage(index)}
               >
-                <div className="space-y-3">
-                  <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-white/[0.04] text-white border border-white/[0.08] inline-block">
-                    {p.badge}
-                  </span>
-                  <h3 className="text-base font-semibold text-white">{p.sector}</h3>
-                  <div className="text-xs font-mono text-emerald-400">{p.regs}</div>
-                  <p className="text-sm text-[#B5B5B5] leading-relaxed">{p.desc}</p>
-                </div>
-              </div>
+                <span className="pipeline-number">{number}</span>
+                <span className="pipeline-icon">
+                  <Icon name={icon as IconName} size={20} />
+                </span>
+                <span className="pipeline-copy">
+                  <b>{title}</b>
+                  <small>{copy}</small>
+                </span>
+                <span className="pipeline-output">
+                  <small>Output</small>
+                  <b>{output}</b>
+                </span>
+                <Icon name="arrow" size={17} />
+              </button>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 8. ENTERPRISE SECURITY & RESPONSIBLE AI */}
-      <section className="py-28 border-b border-white/[0.08] bg-[#080808]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
-          <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-400">
-              TRUST ARCHITECTURE
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              Enterprise Security &amp; Responsible AI Safeguards
-            </h2>
-            <p className="text-base text-[#B5B5B5] leading-relaxed">
-              Engineered with institutional privacy guarantees so sensitive product formulas, clinical
-              trials, and legal drafts never leave your cryptographic custody.
+        <section className="ev" id="evidence">
+          <div className="ev-wrap reveal">
+            <header className="ev-head">
+              <Eyebrow>Evidence intelligence</Eyebrow>
+              <h2>Evidence changes the review, not just the score.</h2>
+              <p>
+                AdSnitch pulls records from the selected brand workspace, checks they are current
+                and permitted for the claim, then hands the reviewer one traceable packet.
+              </p>
+            </header>
+
+            <ol className="ev-board">
+              <li className="ev-card">
+                <span className="ev-step">01 · Claim</span>
+                <h3>The exact sentence</h3>
+                <blockquote>
+                  “Our proprietary formula gives you <mark>2x faster</mark> muscle recovery.”
+                </blockquote>
+                <dl className="ev-scope">
+                  <div><dt>Workspace</dt><dd>Apex Nutrition</dd></div>
+                  <div><dt>Channel</dt><dd>Landing page</dd></div>
+                  <div><dt>Type</dt><dd>Quantified efficacy</dd></div>
+                </dl>
+              </li>
+
+              <li className="ev-card">
+                <span className="ev-step">02 · Evidence</span>
+                <h3>What the sources say</h3>
+                <ul className="ev-sources">
+                  {[
+                    ["Clinical trial registry", "No matching 2x outcome", "No match", "bad"],
+                    ["Published research", "Related recovery studies", "Insufficient", "warn"],
+                    ["Approved claims register", "Support language only", "Partial", "warn"],
+                    ["Brand guidelines", "Absolute claims prohibited", "Matched", "ok"],
+                  ].map(([title, detail, status, tone]) => (
+                    <li key={title}>
+                      <i className={`ev-dot ev-${tone}`} />
+                      <div>
+                        <b>{title}</b>
+                        <small>{detail}</small>
+                      </div>
+                      <em className={`ev-${tone}`}>{status}</em>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+
+              <li className="ev-card ev-card-dark">
+                <span className="ev-step">03 · Decision</span>
+                <h3>Revise claim or attach counter-evidence</h3>
+                <p>
+                  Quantified performance claims need competent substantiation. No current record
+                  supports the stated multiplier.
+                </p>
+                <div className="ev-owner">
+                  <span>SL</span>
+                  <div>
+                    <b>Legal review</b>
+                    <small>Signed decision required</small>
+                  </div>
+                </div>
+              </li>
+            </ol>
+
+            <ul className="ev-guarantees">
+              <li><Icon name="lock" size={15} /> Correct workspace only</li>
+              <li><Icon name="branch" size={15} /> Source and version attached</li>
+              <li><Icon name="clock" size={15} /> Expiry-aware re-review</li>
+              <li><Icon name="users" size={15} /> Human decision recorded</li>
+            </ul>
+            <p className="ev-note">Seeded prototype record. No fictional source is shown as independently verified.</p>
+          </div>
+        </section>
+
+        <section className="sectors-section" id="sectors">
+          <div className="sectors-head reveal">
+            <div>
+              <Eyebrow>Regulated sector playbooks</Eyebrow>
+              <h2>
+                One firewall.
+                <br />
+                Different rules of proof.
+              </h2>
+            </div>
+            <p>
+              <strong>Rules change by market.</strong>
+              Each workspace adapts evidence requirements, prohibited language and reviewer routing
+              to the market it serves.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="sector-bands reveal">
             {[
-              {
-                title: "Zero Public Training",
-                desc: "Customer data, drafts, and uploaded trial reports are never ingested for model training or retained by third-party LLMs.",
-                icon: Lock,
-              },
-              {
-                title: "Row-Level Security (RLS)",
-                desc: "Database tenant isolation enforced at the PostgreSQL kernel level. Brand guidelines and claims are partitioned strictly.",
-                icon: Server,
-              },
-              {
-                title: "Strict Anti-Auto-Publishing",
-                desc: "The platform cannot auto-publish content. Every publication requires explicit human reviewer approval stamps.",
-                icon: FileCheck2,
-              },
-              {
-                title: "Offline Heuristic Resilience",
-                desc: "If cloud LLM endpoints become unreachable, the deterministic regex and rule engine keeps evaluating drafts without downtime.",
-                icon: Zap,
-              },
-            ].map((sec) => {
-              const Icon = sec.icon;
-              return (
-                <div
-                  key={sec.title}
-                  className="rounded-2xl bg-[#121212] border border-white/[0.08] hover:border-white/20 p-7 space-y-4 shadow-xl transition-all"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-[#0A0A0A] border border-white/[0.08] flex items-center justify-center text-white">
-                    <Icon className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <h3 className="text-base font-semibold text-white">{sec.title}</h3>
-                  <p className="text-sm text-[#B5B5B5] leading-relaxed">{sec.desc}</p>
+              [
+                "Health, supplements & nutrition",
+                "Clinical outcomes · Structure/function language · Required disclaimers",
+                "FDA / FTC",
+                "01",
+              ],
+              [
+                "Enterprise cloud & FinTech",
+                "SLA promises · Security language · Financial disclosures",
+                "SEC / SOC",
+                "02",
+              ],
+              [
+                "Cosmetics & personal care",
+                "Anatomical claims · Instrumental testing · Before/after evidence",
+                "FD&C / MoCRA",
+                "03",
+              ],
+              [
+                "Direct-to-consumer commerce",
+                "Testimonials · Price comparisons · Material connections",
+                "Truth in Ads",
+                "04",
+              ],
+            ].map(([title, copy, meta, number]) => (
+              <article key={number}>
+                <span>{number}</span>
+                <div className="sector-copy">
+                  <h3>{title}</h3>
+                  <small>Review controls</small>
+                  <p>{copy}</p>
                 </div>
-              );
-            })}
+                <div className="sector-meta">
+                  <small>Regulatory frame</small>
+                  <b>{meta}</b>
+                </div>
+                <i>
+                  <Icon name="arrow" size={18} />
+                </i>
+              </article>
+            ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 9. COMPLETE 4-COLUMN FOOTER WITH LIVE LINKS */}
-      <footer className="py-20 bg-[#080808] text-xs border-t border-white/[0.08]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {/* Column 1: Product */}
-            <div className="space-y-3.5">
-              <div className="text-white font-semibold uppercase tracking-wider text-xs">Product</div>
-              <ul className="space-y-2.5 text-[#A0A0A0]">
-                <li>
-                  <Link href="/dashboard" className="hover:text-white transition-colors">
-                    Overview Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/submissions/new" className="hover:text-white transition-colors">
-                    Submission Studio
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/approvals" className="hover:text-white transition-colors">
-                    Approvals Triage Queue
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/submissions" className="hover:text-white transition-colors">
-                    Submissions Audit Log
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/evaluations" className="hover:text-white transition-colors">
-                    Empirical Benchmarks
-                  </Link>
-                </li>
-              </ul>
+        <section className="security-section" id="security">
+          <div className="security-heading reveal">
+            <div className="security-symbol">
+              <Icon name="lock" size={25} />
+              <span className="radar-line" />
             </div>
-
-            {/* Column 2: Knowledge Base */}
-            <div className="space-y-3.5">
-              <div className="text-white font-semibold uppercase tracking-wider text-xs">
-                Knowledge Base
-              </div>
-              <ul className="space-y-2.5 text-[#A0A0A0]">
-                <li>
-                  <Link href="/knowledge-base/claims" className="hover:text-white transition-colors">
-                    Approved Claims Library
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/knowledge-base/guidelines" className="hover:text-white transition-colors">
-                    Brand Voice Guidelines
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/knowledge-base/terminology" className="hover:text-white transition-colors">
-                    Terminology Dictionary
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/knowledge-base/assets" className="hover:text-white transition-colors">
-                    Assets &amp; Trial Reports
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/brands" className="hover:text-white transition-colors">
-                    Multi-Brand Workspaces
-                  </Link>
-                </li>
-              </ul>
+            <Eyebrow light>Responsible AI safeguards</Eyebrow>
+            <h2>
+              Built to govern the system,
+              <br />
+              not ask you to trust it.
+            </h2>
+            <p>
+              Controls are visible, decisions are attributable and publication remains outside the
+              machine’s authority.
+            </p>
+          </div>
+          <div className="security-grid reveal">
+            {[
+              [
+                "Zero public training",
+                "Customer drafts and evidence stay outside public model training.",
+                "lock",
+              ],
+              [
+                "Tenant-scoped retrieval",
+                "Brand knowledge is isolated to the workspace requesting the review.",
+                "database",
+              ],
+              [
+                "Strict anti-auto-publishing",
+                "Every publication decision requires an explicit human action.",
+                "users",
+              ],
+              [
+                "Offline heuristic resilience",
+                "Deterministic preflight rules continue when model endpoints do not.",
+                "code",
+              ],
+              [
+                "Decision audit trails",
+                "Reviewers, overrides, sources and changes remain inspectable.",
+                "branch",
+              ],
+              [
+                "Cascade re-review",
+                "Expired evidence can trigger a new review of affected content.",
+                "layers",
+              ],
+            ].map(([title, copy, icon], index) => (
+              <article key={title}>
+                <div>
+                  <span>0{index + 1}</span>
+                  <Icon name={icon as IconName} size={19} />
+                </div>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+              </article>
+            ))}
+          </div>
+          <div className="prototype-status reveal" id="status">
+            <div className="status-heading">
+              <Eyebrow light>Hackathon build status</Eyebrow>
+              <h3>
+                A complete core workflow.
+                <br />
+                Clear prototype boundaries.
+              </h3>
+              <p>
+                The submission prioritises a dependable text-first review journey over a wide set of
+                partially implemented integrations.
+              </p>
             </div>
-
-            {/* Column 3: Governance */}
-            <div className="space-y-3.5">
-              <div className="text-white font-semibold uppercase tracking-wider text-xs">
-                Governance
+            <div className="status-columns">
+              <div>
+                <span className="status-column-label">
+                  <Icon name="check" size={13} /> Demonstrated in the build
+                </span>
+                <ul>
+                  <li>Claims registry with source and expiry metadata</li>
+                  <li>Deterministic preflight and AI-assisted review</li>
+                  <li>Word-level diff, disputes and reviewer overrides</li>
+                  <li>Multi-brand isolation and role-based access</li>
+                  <li>Audit history and expiry-triggered cascade review</li>
+                </ul>
               </div>
-              <ul className="space-y-2.5 text-[#A0A0A0]">
-                <li>
-                  <Link href="/prototype-notice?feature=rules" className="hover:text-white transition-colors">
-                    Statutory Rule Engine
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/prototype-notice?feature=pilot" className="hover:text-white transition-colors">
-                    Enterprise Pilot Program
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/knowledge-base/claims" className="hover:text-white transition-colors">
-                    Cascade Re-Review Engine
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/analytics" className="hover:text-white transition-colors">
-                    Governance Analytics
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/evaluations" className="hover:text-white transition-colors">
-                    Evaluations &amp; Benchmarks
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 4: Legal & System */}
-            <div className="space-y-3.5">
-              <div className="text-white font-semibold uppercase tracking-wider text-xs">
-                Legal &amp; System
+              <div>
+                <span className="status-column-label deferred">
+                  <Icon name="clock" size={13} /> Deliberately deferred
+                </span>
+                <ul>
+                  <li>Production SAML / enterprise SSO</li>
+                  <li>Raw scanned-document OCR</li>
+                  <li>Multimodal video and visual-identity review</li>
+                  <li>Native CMS and collaboration integrations</li>
+                  <li>Direct auto-publishing—excluded by design</li>
+                </ul>
               </div>
-              <ul className="space-y-2.5 text-[#A0A0A0]">
-                <li>
-                  <Link href="/prototype-notice?feature=soc2" className="hover:text-white transition-colors">
-                    Security &amp; SOC-2
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/prototype-notice?feature=privacy" className="hover:text-white transition-colors">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/notifications" className="hover:text-white transition-colors">
-                    Notifications Feed
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/settings" className="hover:text-white transition-colors">
-                    Workspace Settings
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/prototype-notice?feature=github" className="hover:text-white transition-colors">
-                    GitHub Repository
-                  </Link>
-                </li>
-              </ul>
             </div>
           </div>
+        </section>
 
-          <div className="pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-[#777] text-xs">
+        <section className="final-section">
+          <div className="final-aurora" />
+          <Contours />
+          <div className="final-content reveal">
+            <span className="final-overline">From Inkloom AI to AdSnitch</span>
+            <h2>
+              Built to ask:
+              <br />
+              what supports this?
+            </h2>
+            <p>
+              Explore the CodeTitans prototype and follow a draft from risky claim to
+              evidence-linked, human-controlled decision.
+            </p>
             <div>
-              &copy; 2026 AdSnitch Technologies Inc. · Enterprise Pre-Publication Governance
-            </div>
-            <div className="font-mono text-[11px]">
-              Deterministic Pre-Publication Governance · Zero-Tolerance Regulatory Engine
+              <ArrowLink href="#sandbox">Launch the seeded sandbox</ArrowLink>
+              <a href="#status">Review project scope</a>
             </div>
           </div>
+          <div className="final-stamp">
+            <span>
+              <Icon name="shield" size={30} />
+            </span>
+            <b>
+              Human
+              <br />
+              approval
+              <br />
+              required
+            </b>
+          </div>
+        </section>
+      </main>
+
+      <footer id="footer">
+        <div className="footer-top">
+          <div className="footer-brand">
+            <Logo />
+            <p>Pre-publication marketing claim and brand governance.</p>
+            <span>Formerly Inkloom AI</span>
+          </div>
+          {[
+            ["Product", "Workbench", "Approvals", "Audit log", "Benchmarks"],
+            ["Knowledge", "Claims library", "Brand guidelines", "Terminology", "Evidence assets"],
+            ["Governance", "Rule engine", "Sector playbooks", "Analytics", "Security"],
+            ["Company", "About", "Contact", "Privacy", "Legal"],
+          ].map(([title, ...links]) => (
+            <div className="footer-column" key={title}>
+              <b>{title}</b>
+              {links.map((link) => (
+                <a href="#" key={link}>
+                  {link}
+                </a>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="footer-bottom">
+          <span>AdSnitch · CodeTitans India 2026 · Formerly Inkloom AI</span>
+          <span className="footer-system">
+            <i /> Seeded prototype operational
+          </span>
+          <span>Check the claim. Show the source. Keep people in control.</span>
         </div>
       </footer>
     </div>
   );
 }
+

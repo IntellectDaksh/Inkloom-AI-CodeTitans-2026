@@ -71,57 +71,57 @@ export function Badge({
   const variantStyles: Record<BadgeVariant, string> = {
     // Compliant / Approvals / Emerald (#10B981) — Functional Success Only
     verified:
-      "bg-[#0C1A14] text-[#10B981] border border-[#10B981]/30",
+      "bg-status-success/10 text-status-success border border-status-success/30",
     approved:
-      "bg-[#0C1A14] text-[#10B981] border border-[#10B981]/30",
+      "bg-status-success/10 text-status-success border border-status-success/30",
     success:
-      "bg-[#0C1A14] text-[#10B981] border border-[#10B981]/30",
+      "bg-status-success/10 text-status-success border border-status-success/30",
     emerald:
-      "bg-[#0C1A14] text-[#10B981] border border-[#10B981]/30",
+      "bg-status-success/10 text-status-success border border-status-success/30",
 
     // Critical Violations / Red (#EF4444) — Functional Critical Only
     critical:
-      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+      "bg-status-critical/10 text-status-critical border border-status-critical/30",
     high:
-      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+      "bg-status-critical/10 text-status-critical border border-status-critical/30",
     violation:
-      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+      "bg-status-critical/10 text-status-critical border border-status-critical/30",
     rejected:
-      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+      "bg-status-critical/10 text-status-critical border border-status-critical/30",
     rose:
-      "bg-[#1A0E10] text-[#EF4444] border border-[#EF4444]/30",
+      "bg-status-critical/10 text-status-critical border border-status-critical/30",
 
     // Warnings / Review / Amber (#F59E0B) — Functional Warnings Only
     medium:
-      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
+      "bg-status-warning/10 text-status-warning border border-status-warning/30",
     warning:
-      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
+      "bg-status-warning/10 text-status-warning border border-status-warning/30",
     changes_requested:
-      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
+      "bg-status-warning/10 text-status-warning border border-status-warning/30",
     amber:
-      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
+      "bg-status-warning/10 text-status-warning border border-status-warning/30",
     pending:
-      "bg-[#1C1608] text-[#F59E0B] border border-[#F59E0B]/30",
+      "bg-status-warning/10 text-status-warning border border-status-warning/30",
 
     // Technical Metadata: 12-13px Monospace for IDs, DOIs, hashes
     metadata:
-      "bg-[#141414] text-[#858585] border border-[#303030] font-mono",
+      "bg-panel text-text-muted border border-border-default font-mono",
 
     // Monochromatic High-Contrast Swiss Neutral Tags (#FFFFFF / #B5B5B5)
     gold:
-      "bg-[#191919] text-white border border-[#303030]",
-    low: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
-    info: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
-    draft: "bg-[#141414] text-[#858585] border border-[#303030]",
-    tag: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
-    neutral: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
-    slate: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+      "bg-panel-hover text-text-primary border border-border-default",
+    low: "bg-panel text-text-secondary border border-border-default",
+    info: "bg-panel text-text-secondary border border-border-default",
+    draft: "bg-panel text-text-muted border border-border-default",
+    tag: "bg-panel text-text-secondary border border-border-default",
+    neutral: "bg-panel text-text-secondary border border-border-default",
+    slate: "bg-panel text-text-secondary border border-border-default",
 
     // Neutralized legacy color aliases (No blue/cyan/violet status accents)
-    cyan: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
-    turquoise: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
-    blue: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
-    violet: "bg-[#141414] text-[#B5B5B5] border border-[#303030]",
+    cyan: "bg-panel text-text-secondary border border-border-default",
+    turquoise: "bg-panel text-text-secondary border border-border-default",
+    blue: "bg-panel text-text-secondary border border-border-default",
+    violet: "bg-panel text-text-secondary border border-border-default",
   };
 
   const defaultDotColorMap: Record<BadgeVariant, DotColor> = {
@@ -170,13 +170,13 @@ export function Badge({
     emerald: "bg-emerald-500",
     amber: "bg-amber-500",
     rose: "bg-red-500",
-    cyan: "bg-white",
-    white: "bg-white",
-    violet: "bg-white",
-    slate: "bg-white",
-    blue: "bg-white",
-    gold: "bg-white",
-    turquoise: "bg-white",
+    cyan: "bg-ink",
+    white: "bg-ink",
+    violet: "bg-ink",
+    slate: "bg-ink",
+    blue: "bg-ink",
+    gold: "bg-ink",
+    turquoise: "bg-ink",
   };
 
   const activeDotColor = dotColor || defaultDotColorMap[variant] || "white";

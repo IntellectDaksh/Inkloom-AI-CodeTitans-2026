@@ -20,6 +20,7 @@ export async function GET(
     const findings = db.listFindings(id);
     const revisions = db.listSuggestedRevisions(id);
     const brand = db.getBrand(submission.brandId);
+    const auditEvents = db.listAuditForEntity(id);
 
     return NextResponse.json({
       success: true,
@@ -27,6 +28,7 @@ export async function GET(
       findings,
       revisions,
       brand,
+      auditEvents,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

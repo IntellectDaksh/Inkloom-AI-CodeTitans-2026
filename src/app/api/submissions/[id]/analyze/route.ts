@@ -28,6 +28,9 @@ export async function POST(
       (submission.channel as any) || "social_media"
     );
 
+    // Re-check replaces open findings instead of stacking duplicates.
+    db.clearOpenFindings(id);
+
     // Save findings
     for (const finding of report.findings) {
       const citedClaimId = (finding as any).citedEvidenceIds?.[0] || finding.evidenceRecords?.[0]?.claimId || undefined;

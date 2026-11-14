@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { SEED_IDS } from "@/lib/db/seed";
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const brandId = searchParams.get("brandId") || undefined;
-    const orgId = searchParams.get("orgId") || "org_uideas_digital";
+    const orgId = searchParams.get("orgId") || SEED_IDS.ORGANISATION_UIDEAS;
     const status = searchParams.get("status") || undefined;
 
     const claims = db.listClaims(brandId, orgId, status as any);
@@ -27,8 +28,8 @@ export async function POST(req: NextRequest) {
       restrictedContext,
       expiresAt,
       owner = "Daksh Agrawal",
-      brandId = "brand_apex",
-      organizationId = "org_uideas_digital",
+      brandId = SEED_IDS.BRAND_APEX,
+      organizationId = SEED_IDS.ORGANISATION_UIDEAS,
       userId = "usr_daksh",
     } = body;
 

@@ -168,7 +168,7 @@ export default function TeamPage() {
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="led-indicator led-turquoise" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-text-primary">
                 Team Governance &amp; Permissions Matrix
               </h1>
               <Badge variant="verified" size="xs">
@@ -178,7 +178,7 @@ export default function TeamPage() {
                 21 CFR PART 11 GATED
               </span>
             </div>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+            <p className="text-xs text-text-muted max-w-2xl leading-relaxed">
               Separation of duties guarantees that creators cannot self-approve content, while authorized regulatory reviewers sign off with tamper-proof electronic audit trails.
             </p>
           </div>
@@ -187,7 +187,7 @@ export default function TeamPage() {
             <Button
               size="sm"
               variant="gold"
-              icon={<UserPlus className="w-3.5 h-3.5 text-[#080C16]" />}
+              icon={<UserPlus className="w-3.5 h-3.5 text-ghost" />}
               onClick={() => setIsInviteModalOpen(true)}
             >
               Invite Member
@@ -197,14 +197,14 @@ export default function TeamPage() {
 
         {/* Feedback Alert Toast */}
         {toastMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="p-3.5 rounded-xl bg-status-success/15 border border-status-success/40 text-emerald-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
             <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-status-success shrink-0" />
               <span className="font-sans font-medium">{toastMessage}</span>
             </div>
             <button
               onClick={() => setToastMessage(null)}
-              className="text-emerald-400 hover:text-white cursor-pointer"
+              className="text-status-success hover:text-text-primary cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -212,16 +212,16 @@ export default function TeamPage() {
         )}
 
         {/* Interactive 1-Click Role Switcher Bar */}
-        <div className="tactile-card rounded-xl p-4 sm:p-5 space-y-3 bg-[#141414] border border-[#303030]">
+        <div className="glass rounded-xl p-4 sm:p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-white" />
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+              <UserCheck className="w-4 h-4 text-text-primary" />
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary">
                 Active Session Persona Switcher
               </span>
             </div>
-            <span className="text-[10px] font-mono text-[#858585]">
-              CURRENT SESSION: <span className="text-white font-bold">{activeUser}</span> ({activeRole.toUpperCase()})
+            <span className="text-[10px] font-mono text-text-muted">
+              CURRENT SESSION: <span className="text-text-primary font-bold">{activeUser}</span> ({activeRole.toUpperCase()})
             </span>
           </div>
 
@@ -259,16 +259,16 @@ export default function TeamPage() {
                   onClick={() => handleSwitchRole(p.id as any, p.name, p.email)}
                   className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between ${
                     isSelected
-                      ? "bg-[#191919] border-white shadow-xs"
-                      : "bg-[#141414] hover:bg-[#191919] border-[#303030] hover:border-[#404040]"
+                      ? "bg-panel-hover border-blue shadow-xs"
+                      : "bg-panel hover:bg-panel-hover border-border-default hover:border-border-strong"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span
                       className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
                         p.accent === "gold"
-                          ? "bg-[#1C1608] text-[#F59E0B] border-[#F59E0B]/30"
-                          : "bg-[#191919] text-[#B5B5B5] border-[#303030]"
+                          ? "bg-status-warning/10 text-status-warning border-status-warning/30"
+                          : "bg-panel-hover text-text-secondary border-border-default"
                       }`}
                     >
                       {p.role.toUpperCase()}
@@ -276,8 +276,8 @@ export default function TeamPage() {
                     {isSelected && <span className="led-indicator led-emerald" title="Active Persona" />}
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white">{p.name}</div>
-                    <div className="text-[10px] text-[#858585] mt-0.5">{p.desc}</div>
+                    <div className="text-xs font-semibold text-text-primary">{p.name}</div>
+                    <div className="text-[10px] text-text-muted mt-0.5">{p.desc}</div>
                   </div>
                 </button>
               );
@@ -286,41 +286,41 @@ export default function TeamPage() {
         </div>
 
         {/* Members Directory Card */}
-        <div className="tactile-card rounded-xl overflow-hidden bg-[#141414] border border-[#303030]">
-          <div className="p-4 border-b border-[#303030] bg-[#191919] flex items-center justify-between">
+        <div className="glass rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-border-default bg-panel-hover flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-white" />
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+              <Users className="w-4 h-4 text-text-primary" />
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary">
                 Organization Member Registry ({members.length} Authorized Users)
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-[#858585]">TENANT: UIDEAS DIGITAL</span>
+            <span className="text-[10px] font-mono text-text-muted">TENANT: UIDEAS DIGITAL</span>
           </div>
 
-          <div className="divide-y divide-[#303030]">
+          <div className="divide-y divide-border-subtle">
             {members.map((m) => (
               <div
                 key={m.email}
-                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#191919] transition-colors"
+                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-panel-hover transition-colors"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-lg bg-[#191919] border border-[#303030] text-white font-bold text-xs flex items-center justify-center shrink-0 font-mono shadow-inner">
+                  <div className="w-9 h-9 rounded-lg bg-panel-hover border border-border-default text-text-primary font-bold text-xs flex items-center justify-center shrink-0 font-mono shadow-inner">
                     {m.avatar}
                   </div>
                   <div>
-                    <div className="font-semibold text-slate-100 text-xs flex items-center gap-2">
+                    <div className="font-semibold text-text-primary text-xs flex items-center gap-2">
                       <span>{m.name}</span>
                       {m.status === "invited" && (
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/25">
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-status-warning/10 text-status-warning border border-status-warning/25">
                           INVITE PENDING
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
-                      <Mail className="w-3 h-3 text-slate-500" />
+                    <div className="text-[11px] text-text-muted font-mono flex items-center gap-1.5 mt-0.5">
+                      <Mail className="w-3 h-3 text-text-primary0" />
                       <span>{m.email}</span>
                       <span>·</span>
-                      <span className="text-slate-500">{m.scope}</span>
+                      <span className="text-text-primary0">{m.scope}</span>
                     </div>
                   </div>
                 </div>
@@ -340,7 +340,7 @@ export default function TeamPage() {
                   >
                     {m.roleTitle}
                   </Badge>
-                  <span className="text-[10px] font-mono text-slate-500">Joined {m.joined}</span>
+                  <span className="text-[10px] font-mono text-text-primary0">Joined {m.joined}</span>
                 </div>
               </div>
             ))}
@@ -348,91 +348,91 @@ export default function TeamPage() {
         </div>
 
         {/* Role Permissions Matrix */}
-        <div className="tactile-card rounded-xl overflow-hidden bg-[#141414] border border-[#303030]">
-          <div className="p-4 border-b border-[#303030] bg-[#191919] flex items-center justify-between">
+        <div className="glass rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-border-default bg-panel-hover flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-[#F59E0B]" />
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+              <Lock className="w-4 h-4 text-status-warning" />
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary">
                 Statutory RBAC Capability Matrix
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-[#858585]">SOVEREIGN GOVERNANCE SPECIFICATION</span>
+            <span className="text-[10px] font-mono text-text-muted">SOVEREIGN GOVERNANCE SPECIFICATION</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#191919] border-b border-[#303030] text-[11px] uppercase tracking-wider text-[#858585]">
+              <thead className="bg-panel-hover border-b border-border-default text-[11px] uppercase tracking-wider text-text-muted">
                 <tr>
                   <th className="px-5 py-3">Governance Capability</th>
-                  <th className="px-4 py-3 text-center text-[#F59E0B]">Admin</th>
-                  <th className="px-4 py-3 text-center text-white">Reviewer</th>
-                  <th className="px-4 py-3 text-center text-[#B5B5B5]">Brand Manager</th>
-                  <th className="px-4 py-3 text-center text-[#858585]">Creator</th>
+                  <th className="px-4 py-3 text-center text-status-warning">Admin</th>
+                  <th className="px-4 py-3 text-center text-text-primary">Reviewer</th>
+                  <th className="px-4 py-3 text-center text-text-secondary">Brand Manager</th>
+                  <th className="px-4 py-3 text-center text-text-muted">Creator</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#303030] text-[#B5B5B5]">
+              <tbody className="divide-y divide-border-subtle text-text-secondary">
                 <tr>
-                  <td className="px-5 py-3 font-sans font-medium text-slate-200">
+                  <td className="px-5 py-3 font-sans font-medium text-text-primary">
                     Draft Ingestion &amp; Pre-Flight Scans
                   </td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3 font-sans font-medium text-slate-200">
+                  <td className="px-5 py-3 font-sans font-medium text-text-primary">
                     Surgical Word-Level Diff Application
                   </td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3 font-sans font-medium text-slate-200">
+                  <td className="px-5 py-3 font-sans font-medium text-text-primary">
                     Challenge &amp; Dispute Findings
                   </td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3 font-sans font-medium text-slate-200">
+                  <td className="px-5 py-3 font-sans font-medium text-text-primary">
                     Formal Human Approval &amp; Release Gate
                   </td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3 font-sans font-medium text-slate-200">
+                  <td className="px-5 py-3 font-sans font-medium text-text-primary">
                     Legal Override Authorization (Page 4/5)
                   </td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3 font-sans font-medium text-slate-200">
+                  <td className="px-5 py-3 font-sans font-medium text-text-primary">
                     Trigger Dynamic Cascade Re-Review
                   </td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3 font-sans font-medium text-slate-200">
+                  <td className="px-5 py-3 font-sans font-medium text-text-primary">
                     Claims Library &amp; Assays Repository Management
                   </td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
-                  <td className="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
-                  <td className="px-4 py-3 text-center text-slate-600">—</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
+                  <td className="px-4 py-3 text-center text-status-success font-bold">✓</td>
+                  <td className="px-4 py-3 text-center text-text-muted">—</td>
                 </tr>
               </tbody>
             </table>
@@ -441,18 +441,18 @@ export default function TeamPage() {
 
         {/* Invite Member Modal */}
         {isInviteModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-[#303030] bg-[#141414]">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3">
+          <div className="fixed inset-0 z-50 bg-ink/25 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="glass-strong rounded-2xl max-w-md w-full p-6 space-y-4  animate-in zoom-in-95 duration-150 border-border-default bg-panel">
+              <div className="flex items-center justify-between border-b border-border-default pb-3">
                 <div className="flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-white" />
-                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                  <UserPlus className="w-4 h-4 text-text-primary" />
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary">
                     Invite Member to Workspace
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsInviteModalOpen(false)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
+                  className="text-text-muted hover:text-text-primary cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -460,35 +460,35 @@ export default function TeamPage() {
 
               <form onSubmit={handleInviteSubmit} className="space-y-3.5 text-xs font-mono">
                 <div>
-                  <label className="block text-[#858585] mb-1">FULL NAME *</label>
+                  <label className="block text-text-muted mb-1">FULL NAME *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Dr. Aris Vance"
                     value={inviteName}
                     onChange={(e) => setInviteName(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-sans"
+                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-primary font-sans"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[#858585] mb-1">WORK EMAIL *</label>
+                  <label className="block text-text-muted mb-1">WORK EMAIL *</label>
                   <input
                     type="email"
                     required
                     placeholder="e.g. aris@uideas.digital"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-mono"
+                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-primary font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[#858585] mb-1">GOVERNANCE ROLE *</label>
+                  <label className="block text-text-muted mb-1">GOVERNANCE ROLE *</label>
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as any)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] cursor-pointer"
+                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-secondary cursor-pointer"
                   >
                     <option value="reviewer">Reviewer (Legal &amp; Regulatory Sign-off)</option>
                     <option value="creator">Creator (Copywriter / Content Producer)</option>
@@ -497,7 +497,7 @@ export default function TeamPage() {
                   </select>
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
+                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-border-default">
                   <Button
                     type="button"
                     size="sm"

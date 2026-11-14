@@ -1,1550 +1,748 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  AlertTriangle,
-  AlertOctagon,
-  RefreshCw,
-  Check,
-  X,
-  FileText,
-  Clock,
-  History,
-  Info,
-  ShieldCheck,
-  GitCompare,
-  ExternalLink,
-  ChevronRight,
-  Database,
-  Scale,
-  Copy,
-  Hash,
-  Eye,
-  Edit3,
-  Lock,
-  Layers,
-  BookOpen,
-  ArrowRight,
-  Sparkles,
-  MessageSquare,
-  ShieldAlert,
-  FileCheck,
-} from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Copy, Download, Edit3, Eye, FileText, GitCompare, RefreshCw, Send, Sparkles, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { VerdictBanner } from "@/components/submission/VerdictBanner";
+import { HighlightedCopy, DiffView } from "@/components/submission/HighlightedCopy";
+import { FindingCard } from "@/components/submission/FindingCard";
+import { EvidenceModal, Modal, ReasonKind, ReasonModal } from "@/components/submission/FindingModals";
+import {
+  FindingItem,
+  RevisionItem,
+  SEVERITY,
+  dedupeFindings,
+  effectiveStatus,
+  estimateScore,
+  evidenceOf,
+  humanize,
+  replaceOnce,
+  sevOf,
+  verdictFor,
+  VERDICT,
+} from "@/components/submission/shared";
+import { PERSONAS, personaOf, setPrefs, usePrefs, Role } from "@/components/guide/workspace";
 
-interface FindingItem {
-  id: string;
-  category: string;
-  severity: "critical" | "high" | "medium" | "low" | "info";
-  flaggedText: string;
-  suggestedCorrection: string;
-  explanation: string;
-  claimId?: string;
-  citedExcerpt?: string;
-  doi?: string;
-  assayStandard?: string;
-  confidence?: string;
-  status?: "open" | "resolved" | "disputed" | "ignored" | "dismissed" | "overridden";
-  override_memo?: string;
-  overridden_by?: string;
-  dismissal_reason?: string;
-  dismissed_by?: string;
-  dispute_reason?: string;
-  confidenceDecomposition?: {
-    lexicalMatch: number;
-    regulatoryZeroHazard: number;
-    semanticAlignment: number;
-  };
+type Actor = { id: string; name: string; role: Role };
+type AuditItem = { action: string; actor: string; role: Role | string; time: string; reason?: string };
+
+
+const STATUS_TEXT: Record<string, string> = {
+  submitted: "Draft",
+  under_review: "Waiting for reviewer",
+  approved: "Approved",
+  changes_requested: "Changes requested",
+  rejected: "Rejected",
+  needs_re_review: "Needs re-review",
+};
+
+const fmtTime = (iso: string) => {
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+};
+
+async function call(url: string, method: string, body: unknown) {
+  const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success === false) throw new Error(data.error || `Request failed (error ${res.status}).`);
+  return data;
 }
 
-interface RevisionItem {
-  id: string;
-  revisedText: string;
-  reasoning: string;
-  isApplied: boolean;
-  timestamp?: string;
-}
-
-function SubmissionReviewInner({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const resolvedParams = use(params);
-  const id = resolvedParams.id;
+function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
 
   const [submission, setSubmission] = useState<any>(null);
-  const [findings, setFindings] = useState<FindingItem[]>([]);
+  const [rawFindings, setRawFindings] = useState<FindingItem[]>([]);
   const [revisions, setRevisions] = useState<RevisionItem[]>([]);
-  const [activeTab, setActiveTab] = useState<"review" | "details" | "history">("review");
   const [loading, setLoading] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [expandedFindingId, setExpandedFindingId] = useState<string | null>(null);
-  const [activeProvenanceFinding, setActiveProvenanceFinding] = useState<FindingItem | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editableContent, setEditableContent] = useState("");
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [copiedProvenance, setCopiedProvenance] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [content, setContent] = useState("");
+  const [original, setOriginal] = useState("");
+  const [serverScore, setServerScore] = useState<number | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [view, setView] = useState<"annotated" | "diff">("annotated");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [reasonModal, setReasonModal] = useState<{ kind: ReasonKind; finding: FindingItem } | null>(null);
+  const [evidenceFinding, setEvidenceFinding] = useState<FindingItem | null>(null);
+  const [approveOpen, setApproveOpen] = useState<null | "approved" | "changes_requested">(null);
+  const [toast, setToast] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  const [audit, setAudit] = useState<AuditItem[]>([]);
+  const prefs = usePrefs();
+  const persona = personaOf(prefs);
 
-  // Proposal Workflow States: Dispute, Dismissal, Recorded Override
-  const [activeDisputeFinding, setActiveDisputeFinding] = useState<FindingItem | null>(null);
-  const [disputeReason, setDisputeReason] = useState(
-    "Statutory safe harbor exception under 21 CFR § 101.93 applies; substantiated in attached clinical cohort study."
+  const creator: Actor = useMemo(
+    () => ({ id: submission?.authorId || submission?.creator_id || "", name: submission?.authorName || "Author", role: "creator" }),
+    [submission]
   );
-  const [disputeEvidence, setDisputeEvidence] = useState("");
+  // Current person comes from shared workspace prefs (header / onboarding).
+  const actor: Actor = { id: persona.userId, name: persona.name, role: persona.role };
 
-  const [activeDismissFinding, setActiveDismissFinding] = useState<FindingItem | null>(null);
-  const [dismissReason, setDismissReason] = useState(
-    "Brand guideline tolerance exception (Policy BE-2026-1) approved for digital channel."
-  );
+  const flash = (text: string, tone: "ok" | "err" = "ok") => {
+    setToast({ tone, text });
+    if (tone === "ok") setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 5000);
+  };
+  const log = (action: string, reason?: string, who: Actor = actor) =>
+    setAudit((a) => [{ action, actor: who.name, role: who.role, time: new Date().toISOString(), reason }, ...a]);
 
-  const [activeOverrideFinding, setActiveOverrideFinding] = useState<FindingItem | null>(null);
-  const [overrideMemo, setOverrideMemo] = useState("Override authorized under Legal Memo LM-2026-44");
-  const [overrideReviewer, setOverrideReviewer] = useState("Daksh Agrawal (Team Lead & Brand Director)");
-
-  const [auditLog, setAuditLog] = useState<any[]>([
-    {
-      action: "PREFLIGHT_AUDIT_EXECUTION",
-      by: "Gemini-3.5-Flash-Lite (Deterministic Pre-Flight)",
-      time: "10m ago",
-      hash: "sha256:881f...9b12",
-      notes: "Detected 3 statutory claims requiring clinical substantiation.",
-    },
-    {
-      action: "SUBMISSION_INGESTED",
-      by: "Riddhi S. (usr_riddhi)",
-      time: "14m ago",
-      hash: "sha256:4d2a...117a",
-      notes: "Draft copy submitted under brand_apex context with Instagram channel tag.",
-    },
-  ]);
-
-  useEffect(() => {
-    fetchSubmission();
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/submissions/${id}`);
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 404) return setSubmission(null);
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not load this review.");
+      const s = data.submission;
+      setSubmission(s);
+      setRawFindings(data.findings || []);
+      setRevisions(data.revisions || []);
+      setContent(s.currentContent || "");
+      setOriginal(s.versions?.find((v: any) => v.version_number === 1)?.content || s.currentContent || "");
+      setServerScore(s.complianceScore ?? s.latest_analysis?.overall_score ?? null);
+      const serverAudit: any[] = data.audit || data.auditEvents || [];
+      setAudit(
+        serverAudit.length
+          ? serverAudit.map((e) => ({
+              action: humanize(e.action),
+              actor: e.actorName || e.metadata?.actorName || e.user_id || "System",
+              role: e.role || e.metadata?.role || "",
+              time: e.created_at,
+              reason: e.reason || e.metadata?.reason,
+            }))
+          : [{ action: "Submitted and checked", actor: s.authorName || "Author", role: "creator", time: s.created_at }]
+      );
+    } catch (e) {
+      setLoadError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  const fetchSubmission = () => {
-    setLoading(true);
-    fetch(`/api/submissions/${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setSubmission(data.submission);
-          setFindings(data.findings || []);
-          setRevisions(data.revisions || []);
-          setEditableContent(data.submission.currentContent);
-          if (data.findings && data.findings.length > 0) {
-            setExpandedFindingId(data.findings[0].id);
-          }
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // ---- derived ----
+  const liveText = editing ? draft : content;
+  const findings = useMemo(() => {
+    const rank = (f: FindingItem) => (effectiveStatus(f, liveText) === "open" ? 0 : 1) * 10 + Object.keys(SEVERITY).indexOf(sevOf(f.severity));
+    return dedupeFindings(rawFindings).sort((a, b) => rank(a) - rank(b));
+  }, [rawFindings, liveText]);
+  const openFindings = findings.filter((f) => effectiveStatus(f, liveText) === "open");
+  const estimate = estimateScore(findings, liveText);
+  const useServer = serverScore !== null && !editing && content === submission?.currentContent;
+  const score = useServer ? serverScore! : estimate;
+  const verdict = verdictFor(score, findings, liveText);
+  const highRisk = openFindings.filter((f) => f.severity === "critical" || f.severity === "high");
+  const safeFixes = openFindings.filter((f) => f.suggestedCorrection && replaceOnce(content, f.flaggedText, f.suggestedCorrection) !== null);
+  const pendingRevision = revisions.find((r) => !r.isApplied && r.revisedText && r.revisedText !== content);
+  const isOwn = actor.id === creator.id || actor.name === creator.name;
+  const canDecide = actor.role !== "creator" && !isOwn;
+
+  // ---- selection sync ----
+  const select = (fid: string, from: "copy" | "card") => {
+    setSelectedId(fid);
+    setExpandedId(fid);
+    requestAnimationFrame(() =>
+      document
+        .getElementById(from === "copy" ? `fc-${fid}` : `hl-${fid}`)
+        ?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" })
+    );
   };
 
-  const handleApplyRevision = async (revisedText: string, revId?: string) => {
-    setActionLoading(true);
+  // ---- actions (same endpoints as before) ----
+  const reRun = async (text: string) => {
+    setChecking(true);
     try {
-      const res = await fetch(`/api/submissions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentContent: revisedText,
-          revisionId: revId,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSubmission(data.submission);
-        setEditableContent(revisedText);
-        setFeedbackMessage("Surgical fix applied to content. Triggering deterministic re-audit...");
-
-        // Automatically trigger live re-analysis
-        handleReRunAnalysis(revisedText);
-      }
+      const data = await call(`/api/submissions/${id}/analyze`, "POST", { content: text, userId: actor.id, role: actor.role });
+      setRawFindings(data.findings || []);
+      setRevisions(data.revisions || []);
+      if (typeof data.report?.complianceScore === "number") setServerScore(data.report.complianceScore);
+      log("Re-checked", `Score ${data.report?.complianceScore ?? "updated"}`, { id: "system", name: "AdSnitch", role: "admin" });
+    } catch (e) {
+      flash(`Re-check failed: ${(e as Error).message}`, "err");
     } finally {
-      setActionLoading(false);
+      setChecking(false);
     }
   };
 
-  const handleReRunAnalysis = async (contentOverride?: string) => {
-    setAnalyzing(true);
+  const saveContent = async (text: string, action: string, revisionId?: string) => {
+    setBusy(action);
     try {
-      const textToAnalyze = contentOverride || editableContent;
-      const res = await fetch(`/api/submissions/${id}/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: textToAnalyze }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setFindings(data.findings || []);
-        setRevisions(data.revisions || []);
-        if (data.report && data.report.complianceScore) {
-          setSubmission((prev: any) => ({
-            ...prev,
-            complianceScore: data.report.complianceScore,
-          }));
-        }
-        setFeedbackMessage("Deterministic compliance audit updated with ISO 22196 telemetry.");
-        setTimeout(() => setFeedbackMessage(null), 4000);
-      }
+      const data = await call(`/api/submissions/${id}`, "PATCH", { currentContent: text, revisionId, appliedBy: actor.id, role: actor.role });
+      setSubmission(data.submission);
+      setContent(text);
+      setServerScore(null);
+      log(action);
+      flash(`${action}. Re-checking your ad…`);
+      await reRun(text);
+    } catch (e) {
+      flash((e as Error).message, "err");
     } finally {
-      setAnalyzing(false);
+      setBusy(null);
     }
   };
 
-  const handleApprovalDecision = async (decision: "approved" | "changes_requested" | "rejected") => {
-    setActionLoading(true);
+  const applyFix = (f: FindingItem) => {
+    const next = replaceOnce(content, f.flaggedText, f.suggestedCorrection || "");
+    if (next === null) return flash("That phrase is no longer in the copy.", "err");
+    saveContent(next, `Applied fix for “${f.flaggedText}”`);
+  };
+
+  const applyAllSafe = () => {
+    let next = content;
+    for (const f of safeFixes) next = replaceOnce(next, f.flaggedText, f.suggestedCorrection!) ?? next;
+    saveContent(next, `Applied ${safeFixes.length} suggested fix${safeFixes.length === 1 ? "" : "es"}`);
+  };
+
+  const findingAction = async (kind: ReasonKind, f: FindingItem, reason: string, evidence: string) => {
+    setBusy(kind);
     try {
-      const res = await fetch("/api/approvals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          submissionId: id,
-          decision,
-          reviewerName: "Daksh Agrawal (Brand Director)",
-          notes: `Formal human sign-off: ${decision.toUpperCase()} recorded with ISO-21CFR electronic signature.`,
-        }),
+      await call(`/api/submissions/${id}/findings`, "POST", {
+        findingId: f.id,
+        action: kind,
+        reason,
+        memo: reason,
+        evidence,
+        userId: actor.id,
+        reviewerId: actor.id,
+        role: actor.role,
       });
-      const data = await res.json();
-      if (data.success) {
-        setSubmission(data.submission);
-        setFeedbackMessage(
-          decision === "approved"
-            ? "Submission formally APPROVED & cleared for distribution!"
-            : `Submission updated: ${decision.replace("_", " ").toUpperCase()}.`
-        );
-        setTimeout(() => setFeedbackMessage(null), 4000);
-      }
+      const patch: Partial<FindingItem> =
+        kind === "dispute"
+          ? { status: "disputed", dispute_reason: reason }
+          : kind === "dismiss"
+          ? { status: "dismissed", dismissal_reason: reason }
+          : { status: "overridden", override_memo: reason, overridden_by: actor.name };
+      setRawFindings((all) => all.map((x) => (x.id === f.id ? { ...x, ...patch } : x)));
+      setServerScore(null);
+      log(kind === "dispute" ? "Disputed an issue" : kind === "dismiss" ? "Dismissed an issue" : "Overrode an issue", reason);
+      if (kind === "dispute") {
+        // Disputes always go to a reviewer.
+        const data = await call(`/api/submissions/${id}`, "PATCH", { status: "under_review", appliedBy: actor.id, role: actor.role }).catch(() => null);
+        if (data?.submission) setSubmission(data.submission);
+        log("Sent to reviewer queue", "Dispute needs a reviewer decision");
+        flash("Dispute sent to the reviewer queue.");
+      } else flash(kind === "dismiss" ? "Issue dismissed. Your reason is on record." : "Override recorded.");
+      setReasonModal(null);
+    } catch (e) {
+      flash((e as Error).message, "err");
     } finally {
-      setActionLoading(false);
+      setBusy(null);
     }
   };
 
-  const handleCopyCitation = async (text: string) => {
+  const sendForApproval = async () => {
+    setBusy("send");
+    try {
+      const data = await call(`/api/submissions/${id}`, "PATCH", { status: "under_review", appliedBy: actor.id, role: actor.role });
+      setSubmission(data.submission);
+      log("Sent for approval", highRisk.length ? `${highRisk.length} high-risk issue(s) still open; reviewer sign-off required` : undefined);
+      flash("Sent for approval. A reviewer will sign off.");
+    } catch (e) {
+      flash((e as Error).message, "err");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const decide = async (decision: "approved" | "changes_requested", notes: string) => {
+    if (!canDecide) return flash("You can't approve your own ad. A reviewer has to sign off.", "err");
+    setBusy("decide");
+    try {
+      const data = await call("/api/approvals", "POST", {
+        submissionId: id,
+        decision,
+        reviewerId: actor.id,
+        reviewerName: actor.name,
+        role: actor.role,
+        notes,
+      });
+      setSubmission(data.submission ?? { ...submission, status: decision });
+      log(decision === "approved" ? (highRisk.length ? "Approved with high-risk sign-off" : "Approved") : "Requested changes", notes);
+      flash(decision === "approved" ? "Approved. The team can now publish it themselves." : "Changes requested. The author has been told.");
+      setApproveOpen(null);
+    } catch (e) {
+      flash((e as Error).message, "err");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // ---- export ----
+  const markdown = () =>
+    [
+      `# ${submission.title}`,
+      ``,
+      `**Result:** ${VERDICT[verdict].title} (score ${score}/100)  `,
+      `**Brand:** ${submission.brand?.name || submission.brandId} · **Channel:** ${submission.channel}`,
+      ``,
+      `## Copy`,
+      ``,
+      content,
+      ``,
+      `## Issues (${findings.length})`,
+      ...findings.map((f) => {
+        const ev = evidenceOf(f);
+        return [
+          ``,
+          `### ${SEVERITY[sevOf(f.severity)].label}: ${humanize(f.category)} (${effectiveStatus(f, content)})`,
+          `- Flagged: "${f.flaggedText}"`,
+          `- Why: ${f.explanation}`,
+          `- Evidence: ${ev ? `"${ev.excerpt}"${ev.citation ? ` (${ev.citation})` : ""}` : "Not found in the approved library. Requires substantiation."}`,
+          f.suggestedCorrection ? `- Suggested fix: ${f.suggestedCorrection}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+      }),
+      ``,
+      `## Audit trail`,
+      ...audit.map((a) => `- ${fmtTime(a.time)}: ${a.action} by ${a.actor}${a.role ? ` (${a.role})` : ""}${a.reason ? `. Reason: ${a.reason}` : ""}`),
+    ].join("\n");
+
+  const copy = async (text: string, what: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedProvenance(true);
-      setTimeout(() => setCopiedProvenance(false), 2000);
-    } catch {}
-  };
-
-  const handleDisputeFinding = async (findingId: string) => {
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/submissions/${id}/findings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          findingId,
-          action: "dispute",
-          reason: disputeReason,
-          evidence: disputeEvidence,
-          userId: "usr_riddhi",
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setFindings((prev) =>
-          prev.map((f) =>
-            f.id === findingId
-              ? { ...f, status: "disputed", dispute_reason: disputeReason }
-              : f
-          )
-        );
-        const newEvent = {
-          action: "FINDING_DISPUTED_BY_CREATOR",
-          by: "Riddhi S. (Content Specialist)",
-          time: "Just now",
-          hash: `sha256:${Math.random().toString(16).slice(2, 10)}...f9a`,
-          notes: `Creator challenged finding: "${disputeReason}"`,
-        };
-        setAuditLog((prev) => [newEvent, ...prev]);
-        setFeedbackMessage("Finding successfully DISPUTED and escalated to reviewer queue.");
-        setTimeout(() => setFeedbackMessage(null), 4000);
-        setActiveDisputeFinding(null);
-      }
-    } finally {
-      setActionLoading(false);
+      flash(`${what} copied.`);
+    } catch {
+      flash("Your browser blocked the clipboard. Use Download instead.", "err");
     }
   };
-
-  const handleDismissFinding = async (findingId: string) => {
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/submissions/${id}/findings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          findingId,
-          action: "dismiss",
-          reason: dismissReason,
-          userId: "usr_daksh",
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setFindings((prev) =>
-          prev.map((f) =>
-            f.id === findingId
-              ? { ...f, status: "dismissed", dismissal_reason: dismissReason }
-              : f
-          )
-        );
-        const newEvent = {
-          action: "FINDING_DISMISSED_WITH_JUSTIFICATION",
-          by: "Daksh Agrawal (Brand Director)",
-          time: "Just now",
-          hash: `sha256:${Math.random().toString(16).slice(2, 10)}...e82`,
-          notes: `Dismissal justification: "${dismissReason}"`,
-        };
-        setAuditLog((prev) => [newEvent, ...prev]);
-        setFeedbackMessage("Finding dismissed with recorded justification.");
-        setTimeout(() => setFeedbackMessage(null), 4000);
-        setActiveDismissFinding(null);
-      }
-    } finally {
-      setActionLoading(false);
-    }
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([markdown()], { type: "text/markdown" }));
+    const a = Object.assign(document.createElement("a"), { href: url, download: `${submission.title.replace(/[^\w-]+/g, "-")}-review.md` });
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleOverrideFinding = async (findingId: string) => {
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/submissions/${id}/findings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          findingId,
-          action: "override",
-          memo: overrideMemo,
-          reviewerId: "usr_daksh",
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setFindings((prev) =>
-          prev.map((f) =>
-            f.id === findingId
-              ? { ...f, status: "overridden", override_memo: overrideMemo, overridden_by: overrideReviewer }
-              : f
-          )
-        );
-        // Neutralize violation penalty in compliance score
-        setSubmission((prev: any) => ({
-          ...prev,
-          complianceScore: Math.max(prev?.complianceScore || 0, 94),
-        }));
-        const newEvent = {
-          action: "LEGAL_OVERRIDE_AUTHORIZED",
-          by: `${overrideReviewer}`,
-          time: "Just now",
-          hash: `sha256:${Math.random().toString(16).slice(2, 10)}...3c4`,
-          notes: `Authorized override: "${overrideMemo}"`,
-        };
-        setAuditLog((prev) => [newEvent, ...prev]);
-        setFeedbackMessage(`Official Legal Override RECORDED: "${overrideMemo}"`);
-        setTimeout(() => setFeedbackMessage(null), 4000);
-        setActiveOverrideFinding(null);
-      }
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  if (loading) {
+  // ---- states ----
+  if (loading)
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
-          <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full" />
-          <div className="text-xs text-[#858585]">Loading review workspace...</div>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3" role="status">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-ink border-t-transparent motion-reduce:animate-none" />
+          <p className="text-sm text-text-muted">Loading your review…</p>
         </div>
       </AppLayout>
     );
-  }
 
-  if (!submission) {
+  if (loadError || !submission)
     return (
       <AppLayout>
-        <div className="text-center py-20 space-y-4">
-          <p className="text-[#858585] text-sm">Submission record not found</p>
-          <Link href="/submissions">
-            <Button size="sm" variant="secondary">
-              Back to Submissions
-            </Button>
-          </Link>
+        <div className="mx-auto max-w-md space-y-4 py-20 text-center">
+          <h1 className="text-2xl font-semibold text-text-primary">{loadError ? "Couldn't load this review" : "Review not found"}</h1>
+          <p className="text-sm text-text-secondary">{loadError || "It may have been deleted, or the link is wrong."}</p>
+          <div className="flex justify-center gap-2">
+            {loadError && <Button onClick={load}>Try again</Button>}
+            <Link href="/submissions">
+              <Button variant="secondary">All reviews</Button>
+            </Link>
+          </div>
         </div>
       </AppLayout>
     );
-  }
 
-  // Active revision suggestion
-  const activeRevision = revisions.find((r) => !r.isApplied) || revisions[0];
-
-  // Decompose text into line numbers
-  const currentDisplayedText = isEditMode ? editableContent : submission.currentContent;
-  const contentLines = currentDisplayedText
-    .split("\n")
-    .map((line: string, idx: number) => ({
-      num: idx + 1,
-      text: line,
-    }));
-
-  const hasCritical = findings.some((f) => f.severity === "critical" || f.severity === "high");
-  const complianceScore = submission.complianceScore || (hasCritical ? 24 : 94);
+  const sourceFile = submission.metadata?.sourceFile;
+  const status = submission.status as string;
 
   return (
-    <AppLayout
-      title="Compliance Review Workspace"
-      subtitle={`Auditing submission ${submission.id} against active brand claims.`}
-    >
+    <AppLayout title="Review result" subtitle="What we found in your ad and how to fix it.">
       <div className="space-y-6">
-        {/* Top Breadcrumb & Human Approval Gate Bar */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Link
-              href="/submissions"
-              className="inline-flex items-center gap-2 text-xs text-[#858585] hover:text-white transition-colors"
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/submissions" className="inline-flex items-center gap-2 rounded text-sm text-text-muted hover:text-text-primary focus-visible:outline-2 focus-visible:outline-blue">
+            <ArrowLeft className="h-4 w-4" aria-hidden /> All reviews
+          </Link>
+          <label className="flex items-center gap-2 text-[13px] text-text-muted">
+            Acting as
+            <select
+              value={persona.id}
+              onChange={(e) => setPrefs({ persona: e.target.value })}
+              className="h-9 rounded-lg border border-border-default bg-panel px-2 text-[13px] text-text-primary focus-visible:outline-2 focus-visible:outline-blue"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Submissions / {submission.id}</span>
-            </Link>
+              {PERSONAS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.label})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
-            <div className="flex items-center gap-2 text-xs text-[#858585]">
-              <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-              <span>Pre-Flight Engine Active</span>
-            </div>
-          </div>
-
-          {/* Top Gate Bar */}
-          <div className="bg-[#141414] border border-[#303030] rounded-xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                  {submission.title}
-                </h1>
-                <span className="text-xs font-medium px-2.5 py-0.5 rounded bg-[#191919] text-[#B5B5B5] border border-[#303030]">
-                  {submission.channel || "Social Reel"}
+        <header className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">{submission.title}</h1>
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-text-muted">
+            <span>{submission.brand?.name || submission.brandId}</span>
+            <span aria-hidden>·</span>
+            <span>{humanize(submission.channel)}</span>
+            <span aria-hidden>·</span>
+            <span>{STATUS_TEXT[status] || humanize(status)}</span>
+            {sourceFile?.fileName && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" aria-hidden /> {sourceFile.fileName}
+                  {sourceFile.method === "gemini-ocr" && " (read with OCR, check the text)"}
                 </span>
-                <Badge
-                  variant={
-                    submission.status === "approved"
-                      ? "verified"
-                      : submission.status === "changes_requested"
-                      ? "warning"
-                      : "pending"
-                  }
-                  size="sm"
-                >
-                  {submission.status === "approved"
-                    ? "Approved"
-                    : submission.status === "changes_requested"
-                    ? "Changes Requested"
-                    : "Pending Audit"}
-                </Badge>
-              </div>
+              </>
+            )}
+          </p>
+        </header>
 
-              {/* Provenance Telemetry */}
-              <div className="flex flex-wrap items-center gap-3 text-xs text-[#858585]">
-                <span>Author: Riddhi S.</span>
-                <span>•</span>
-                <span>Scope: Apex Nutrition</span>
-                <span>•</span>
-                <span>Latency: 384ms</span>
-                <span>•</span>
-                <span>Engine: Gemini 2.5 Flash</span>
-                <span>•</span>
-                <span className="text-[#B5B5B5]">
-                  SHA-256: {submission.id ? `${submission.id.slice(0, 10)}...` : "7f83b165..."}
-                </span>
-              </div>
-            </div>
+        <VerdictBanner verdict={verdict} score={score} openCount={openFindings.length} estimated={!useServer} checking={checking} />
 
-            {/* Human Approval Gate Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto shrink-0">
-              <Button
-                size="md"
-                variant="secondary"
-                onClick={() => handleApprovalDecision("changes_requested")}
-                loading={actionLoading}
-                className="w-full sm:w-auto justify-center"
-              >
-                Request Changes
+        {/* Primary action bar */}
+        <div className="glass flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-text-secondary">
+            {status === "approved"
+              ? "Approved. AdSnitch never publishes; your team posts it."
+              : actor.role === "creator"
+              ? highRisk.length
+                ? `${highRisk.length} high-risk issue${highRisk.length === 1 ? "" : "s"} open. A reviewer must sign off on these.`
+                : "Fix or dismiss issues, then send for approval."
+              : isOwn
+              ? "You wrote this ad, so someone else has to approve it."
+              : highRisk.length
+              ? `Approving signs off on ${highRisk.length} high-risk issue${highRisk.length === 1 ? "" : "s"}.`
+              : "Review the issues, then approve or ask for changes."}
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {actor.role === "creator" ? (
+              <Button onClick={sendForApproval} loading={busy === "send"} disabled={status === "approved" || status === "under_review"} icon={<Send className="h-4 w-4" />}>
+                {status === "under_review" ? "Waiting for reviewer" : "Send for approval"}
               </Button>
-              <Button
-                size="md"
-                variant="primary"
-                onClick={() => handleApprovalDecision("approved")}
-                loading={actionLoading}
-                icon={<Check className="w-4 h-4 text-black" />}
-                className="w-full sm:w-auto justify-center"
-              >
-                Approve Submission
-              </Button>
-            </div>
+            ) : (
+              <>
+                <Button variant="secondary" onClick={() => setApproveOpen("changes_requested")} disabled={!canDecide}>
+                  Request changes
+                </Button>
+                <Button onClick={() => setApproveOpen("approved")} disabled={!canDecide || status === "approved"} icon={<Check className="h-4 w-4" />}>
+                  Approve
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Feedback Alert Banner */}
-        {feedbackMessage && (
-          <div className="p-3.5 rounded-lg bg-[#141414] border border-[#303030] text-[#10B981] text-xs flex items-center justify-between animate-in fade-in">
-            <span className="flex items-center gap-2.5 font-medium">
-              <CheckCircle2 className="w-4 h-4 text-[#10B981] shrink-0" />
-              <span>{feedbackMessage}</span>
+        {toast && (
+          <div
+            role={toast.tone === "err" ? "alert" : "status"}
+            className={`flex items-start justify-between gap-3 rounded-xl border p-4 text-sm ${
+              toast.tone === "err" ? "border-status-critical/30 bg-status-critical/10 text-status-critical" : "border-border-default bg-panel text-text-primary"
+            }`}
+          >
+            <span className="flex items-start gap-2">
+              {toast.tone === "ok" && <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-status-success" aria-hidden />}
+              {toast.text}
             </span>
-            <button
-              onClick={() => setFeedbackMessage(null)}
-              className="text-[#858585] hover:text-white text-xs cursor-pointer"
-            >
-              Dismiss
+            <button type="button" onClick={() => setToast(null)} aria-label="Dismiss message" className="shrink-0 cursor-pointer text-text-muted hover:text-text-primary">
+              <X className="h-4 w-4" />
             </button>
           </div>
         )}
 
-        {/* Workspace Tab Navigation */}
-        <div className="border-b border-[#303030] flex items-center gap-6 text-sm font-medium overflow-x-auto whitespace-nowrap scrollbar-none max-w-full">
-          <button
-            onClick={() => setActiveTab("review")}
-            className={`pb-3 relative transition-colors cursor-pointer flex items-center gap-2 ${
-              activeTab === "review"
-                ? "text-white font-semibold"
-                : "text-[#858585] hover:text-white"
-            }`}
-          >
-            <span>Surgical Review</span>
-            <span className="px-2 py-0.5 rounded-full bg-[#191919] text-[#B5B5B5] border border-[#303030] text-xs">
-              {findings.length} findings
-            </span>
-            {activeTab === "review" && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("details")}
-            className={`pb-3 relative transition-colors cursor-pointer ${
-              activeTab === "details"
-                ? "text-white font-semibold"
-                : "text-[#858585] hover:text-white"
-            }`}
-          >
-            Regulatory Specification
-            {activeTab === "details" && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`pb-3 relative transition-colors cursor-pointer ${
-              activeTab === "history"
-                ? "text-white font-semibold"
-                : "text-[#858585] hover:text-white"
-            }`}
-          >
-            Audit Trail Ledger
-            {activeTab === "history" && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />
-            )}
-          </button>
-        </div>
-
-        {/* TAB 1: DUAL-PANE SURGICAL REVIEW WORKSPACE */}
-        {activeTab === "review" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Pane (7 cols): Text Well & Integrated Surgical Diff Box */}
-            <div className="lg:col-span-7 space-y-4">
-              {/* Draft Copy Inspector Container */}
-              <div className="bg-[#141414] border border-[#303030] rounded-xl overflow-hidden">
-                {/* Header */}
-                <div className="px-5 py-3.5 border-b border-[#303030] bg-[#191919] flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <FileText className="w-4 h-4 text-white" />
-                    <span className="text-sm font-semibold text-white">
-                      Draft Copy Inspector
-                    </span>
-                    <span className="text-xs text-[#858585]">
-                      {isEditMode ? "(Live Edit Mode)" : "(Annotated View)"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* Live edit toggle */}
-                    <button
-                      onClick={() => setIsEditMode(!isEditMode)}
-                      className="px-3 py-1.5 rounded-lg bg-[#141414] hover:bg-[#222222] border border-[#303030] text-xs text-white flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      {isEditMode ? (
-                        <>
-                          <Eye className="w-3.5 h-3.5 text-white" />
-                          <span>Annotated View</span>
-                        </>
-                      ) : (
-                        <>
-                          <Edit3 className="w-3.5 h-3.5 text-white" />
-                          <span>Live Edit Text</span>
-                        </>
-                      )}
-                    </button>
-
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => handleReRunAnalysis()}
-                      loading={analyzing}
-                      icon={<RefreshCw className="w-3.5 h-3.5 text-white" />}
-                    >
-                      Re-Audit
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Body */}
-                <div className="p-0">
-                  {isEditMode ? (
-                    <div className="p-5 space-y-3">
-                      <textarea
-                        value={editableContent}
-                        onChange={(e) => setEditableContent(e.target.value)}
-                        rows={7}
-                        className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-4 text-[15px] text-white font-sans leading-relaxed resize-none"
-                      />
-                      <div className="flex items-center justify-end gap-2.5">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            setEditableContent(submission.currentContent);
-                            setIsEditMode(false);
-                          }}
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+          {/* Copy */}
+          <section className="space-y-4 lg:col-span-7" aria-label="Your ad copy">
+            <div className="glass overflow-hidden rounded-2xl">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-default px-5 py-3">
+                <h2 className="text-base font-semibold text-text-primary">Your ad</h2>
+                <div className="flex flex-wrap items-center gap-1">
+                  {!editing && (
+                    <div className="inline-flex rounded-lg border border-border-default bg-panel p-0.5" role="group" aria-label="View">
+                      {(
+                        [
+                          ["annotated", "Issues", Eye],
+                          ["diff", "Before / after", GitCompare],
+                        ] as const
+                      ).map(([v, label, Icon]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          aria-pressed={view === v}
+                          onClick={() => setView(v)}
+                          className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] cursor-pointer ${view === v ? "bg-ink text-ghost" : "text-text-secondary hover:text-text-primary"}`}
                         >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => {
-                            handleApplyRevision(editableContent);
-                            setIsEditMode(false);
-                          }}
-                        >
-                          Save &amp; Re-Audit
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex text-sm leading-relaxed select-text overflow-x-auto">
-                      {/* Gutter Line Numbers */}
-                      <div className="bg-[#111111] border-r border-[#262626] py-5 px-3 text-xs text-[#525252] select-none text-right w-12 shrink-0 font-mono tabular-nums">
-                        {contentLines.map((line: any) => (
-                          <div key={line.num} className="leading-7">
-                            {String(line.num).padStart(2, "0")}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Content with Token Highlights */}
-                      <div className="p-5 text-[#EDEDED] flex-1 space-y-1.5">
-                        {contentLines.map((line: any) => {
-                          let renderedText = <>{line.text}</>;
-
-                          if (line.text.includes("2x faster results")) {
-                            renderedText = (
-                              <>
-                                Our new protein blend gives you{" "}
-                                <span
-                                  onClick={() => setExpandedFindingId("fnd_001")}
-                                  className="bg-red-500/15 text-red-300 px-1.5 py-0.5 rounded border border-red-500/30 font-medium cursor-pointer hover:bg-red-500/25 transition-colors inline-block"
-                                  title="Unverified Multiplier Metric (Click to inspect in findings)"
-                                >
-                                  2x faster results
-                                </span>{" "}
-                                and helps build muscle{" "}
-                                <span
-                                  onClick={() => setExpandedFindingId("fnd_002")}
-                                  className="bg-amber-500/15 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 font-medium cursor-pointer hover:bg-amber-500/25 transition-colors inline-block"
-                                  title="Ungrounded Timeframe Claim (Click to inspect in findings)"
-                                >
-                                  in just 14 days
-                                </span>
-                                . It&apos;s the most advanced formula for serious results.
-                              </>
-                            );
-                          }
-
-                          return (
-                            <div key={line.num} className="leading-7 font-sans text-[15px] sm:text-base text-[#EDEDED]">
-                              {renderedText}
-                            </div>
-                          );
-                        })}
-                      </div>
+                          <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
+                        </button>
+                      ))}
                     </div>
                   )}
-                </div>
-
-                {/* Footer */}
-                <div className="px-5 py-2.5 bg-[#191919] border-t border-[#303030] flex items-center justify-between text-xs text-[#858585]">
-                  <div className="flex items-center gap-3">
-                    <span>Status: {submission.status.toUpperCase()}</span>
-                    <span>•</span>
-                    <span>Length: {submission.currentContent?.length || 0} characters</span>
-                  </div>
-                  <span>
-                    SHA-256: {submission.id ? submission.id.slice(0, 10) : "7f83b1"}...
-                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={editing ? <X className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
+                    onClick={() => {
+                      setDraft(content);
+                      setEditing(!editing);
+                    }}
+                  >
+                    {editing ? "Cancel" : "Edit"}
+                  </Button>
+                  <Button size="sm" variant="ghost" loading={checking} onClick={() => reRun(content)} icon={<RefreshCw className="h-4 w-4" />}>
+                    Re-check
+                  </Button>
                 </div>
               </div>
 
-              {/* Bottom: Integrated Surgical Diff Box */}
-              {activeRevision && (
-                <div className="bg-[#141414] border border-[#303030] rounded-xl overflow-hidden p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <GitCompare className="w-4 h-4 text-white" />
-                      <span className="text-sm font-semibold text-white">
-                        Surgical Diff Correction
-                      </span>
-                    </div>
-
-                    {activeRevision.isApplied && (
-                      <Badge variant="verified" size="xs">
-                        Surgical Fix Applied
-                      </Badge>
-                    )}
-                  </div>
-
+              <div className="p-5">
+                {editing ? (
                   <div className="space-y-3">
-                    <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
-                      Inline Redline Comparison:
-                    </div>
-
-                    {/* Diff Preview: Deletion vs Addition */}
-                    <div className="space-y-2">
-                      {/* Red Deletion Row */}
-                      <div className="flex items-start gap-2.5 p-3.5 rounded-lg bg-[#1C1214] border border-[#7F1D1D]">
-                        <span className="font-mono text-[#EF4444] font-bold select-none text-sm">-</span>
-                        <div className="text-[#EF4444] line-through text-[15px] font-sans leading-relaxed">
-                          {findings[0]?.flaggedText || "2x faster results / in just 14 days"}
-                        </div>
-                      </div>
-
-                      {/* Green Addition Row */}
-                      <div className="flex items-start gap-2.5 p-3.5 rounded-lg bg-[#0C1A14] border border-[#065F46]">
-                        <span className="font-mono text-[#10B981] font-bold select-none text-sm">+</span>
-                        <div className="text-[#10B981] font-medium text-[15px] font-sans leading-relaxed">
-                          {activeRevision.revisedText}
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-[#B5B5B5] font-sans leading-relaxed">
-                      {activeRevision.reasoning ||
-                        "Replaces unverified multiplier metrics with substantiated 8-week protein synthesis benchmarks grounded in Clinical Report APX-2024-C3."}
-                    </p>
-
-                    <div className="pt-3 border-t border-[#303030] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <span className="text-xs text-[#858585]">
-                        Citation: Clinical Study Report CS-2025-4A (ISO 22196)
+                    <label htmlFor="edit-copy" className="sr-only">
+                      Edit ad copy
+                    </label>
+                    <textarea
+                      id="edit-copy"
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      rows={9}
+                      className="w-full resize-y rounded-lg glass-inset p-4 font-sans text-[15px] leading-relaxed text-text-primary focus:outline-none focus:ring-2 focus:ring-blue/50"
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[13px] text-text-muted" aria-live="polite">
+                        Estimated score while you type: <span className="font-medium tabular-nums text-text-primary">{estimate}</span>
                       </span>
-
-                      {/* Tactile "Apply Surgical Fix" Button */}
                       <Button
                         size="sm"
-                        variant="primary"
-                        onClick={() =>
-                          handleApplyRevision(activeRevision.revisedText, activeRevision.id)
-                        }
-                        loading={actionLoading}
-                        disabled={activeRevision.isApplied}
-                        icon={<Check className="w-4 h-4 text-black" />}
-                        shortcut="⌘A"
+                        loading={busy === "Edited the copy"}
+                        disabled={draft === content || !draft.trim()}
+                        onClick={async () => {
+                          await saveContent(draft, "Edited the copy");
+                          setEditing(false);
+                        }}
                       >
-                        {activeRevision.isApplied ? "Surgical Fix Active" : "Apply Surgical Fix"}
+                        Save and re-check
                       </Button>
                     </div>
                   </div>
+                ) : view === "diff" ? (
+                  <DiffView before={original} after={content} />
+                ) : (
+                  <HighlightedCopy content={content} findings={openFindings} selectedId={selectedId} onSelect={(fid) => select(fid, "copy")} />
+                )}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-default px-5 py-3 text-[13px] text-text-muted">
+                <span className="tabular-nums">{content.length.toLocaleString()} characters</span>
+                <div className="flex flex-wrap gap-1">
+                  <Button size="sm" variant="ghost" icon={<Copy className="h-4 w-4" />} onClick={() => copy(content, "Ad copy")}>
+                    Copy text
+                  </Button>
+                  <Button size="sm" variant="ghost" icon={<Copy className="h-4 w-4" />} onClick={() => copy(markdown(), "Report")}>
+                    Copy report
+                  </Button>
+                  <Button size="sm" variant="ghost" icon={<Download className="h-4 w-4" />} onClick={download}>
+                    Download .md
+                  </Button>
                 </div>
+              </div>
+            </div>
+
+            {pendingRevision && (
+              <div className="glass space-y-3 rounded-2xl p-5">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-text-primary">
+                  <Sparkles className="h-4 w-4" aria-hidden /> Suggested rewrite
+                </h3>
+                <DiffView before={content} after={pendingRevision.revisedText} />
+                {pendingRevision.reasoning && <p className="text-[13px] leading-relaxed text-text-muted">{pendingRevision.reasoning}</p>}
+                <Button
+                  size="sm"
+                  loading={busy === "Used the suggested rewrite"}
+                  onClick={() => saveContent(pendingRevision.revisedText, "Used the suggested rewrite", pendingRevision.id)}
+                  icon={<Check className="h-4 w-4" />}
+                >
+                  Use this rewrite
+                </Button>
+              </div>
+            )}
+          </section>
+
+          {/* Findings */}
+          <section className="space-y-3 lg:col-span-5" aria-label="Issues">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-semibold text-text-primary">
+                Issues <span className="font-normal text-text-muted">({openFindings.length} open of {findings.length})</span>
+              </h2>
+              {safeFixes.length > 0 && (
+                <Button size="sm" variant="secondary" onClick={applyAllSafe} loading={!!busy?.startsWith("Applied ")} icon={<Check className="h-4 w-4" />}>
+                  Apply all {safeFixes.length} suggested fixes
+                </Button>
               )}
             </div>
-
-            {/* Right Pane (5 cols): Interactive Review Findings Cards & Citation Drawer Links */}
-            <div className="lg:col-span-5 space-y-4">
-              {/* Compliance Verification Score Decomposition Card */}
-              <div className="bg-[#141414] border border-[#303030] rounded-xl p-5 space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#858585]">
-                    Compliance Score
-                  </span>
-                  <div className="flex items-baseline gap-1">
-                    <span
-                      className={`text-3xl font-bold tracking-tight tabular-nums ${
-                        complianceScore >= 80 ? "text-[#10B981]" : "text-[#EF4444]"
-                      }`}
-                    >
-                      {complianceScore}
-                    </span>
-                    <span className="text-xs text-[#858585]">/100</span>
-                  </div>
-                </div>
-
-                <div className="w-full h-2 bg-[#222222] rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-500 rounded-full ${
-                      complianceScore >= 80 ? "bg-[#10B981] w-[94%]" : "bg-[#EF4444] w-[24%]"
-                    }`}
-                  />
-                </div>
-
-                {/* Multi-factor Score Breakdown */}
-                <div className="space-y-2 text-xs pt-1">
-                  <div className="flex items-center justify-between text-[#858585]">
-                    <span>Lexical Grounding Index</span>
-                    <span className="text-white font-medium">{complianceScore >= 80 ? "96%" : "28%"}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[#858585]">
-                    <span>Statutory Zero-Hazard</span>
-                    <span className={`font-medium ${complianceScore >= 80 ? "text-[#10B981]" : "text-[#EF4444]"}`}>
-                      {complianceScore >= 80 ? "Pass (0 Breach)" : "Fail (FTC §255)"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[#858585]">
-                    <span>Semantic Corpus Distance</span>
-                    <span className="text-white font-medium">0.08 (Cosine Match)</span>
-                  </div>
-                </div>
+            {findings.length === 0 ? (
+              <div className="glass rounded-2xl p-6 text-center">
+                <CheckCircle2 className="mx-auto h-6 w-6 text-status-success" aria-hidden />
+                <p className="mt-2 text-sm font-medium text-text-primary">No issues found</p>
+                <p className="mt-1 text-[13px] text-text-muted">Every claim matched the approved library for this brand.</p>
               </div>
+            ) : (
+              findings.map((f) => (
+                <FindingCard
+                  key={f.id}
+                  finding={f}
+                  status={effectiveStatus(f, liveText)}
+                  expanded={expandedId === f.id}
+                  selected={selectedId === f.id}
+                  busy={!!busy?.includes(`“${f.flaggedText}”`)}
+                  onToggle={() => {
+                    if (expandedId === f.id) setExpandedId(null);
+                    else select(f.id, "card");
+                  }}
+                  onApply={() => applyFix(f)}
+                  onDismiss={() => setReasonModal({ kind: "dismiss", finding: f })}
+                  onDispute={() => setReasonModal({ kind: "dispute", finding: f })}
+                  onOverride={() =>
+                    actor.role === "creator" ? flash("Only a reviewer or admin can override an issue. Use Dispute instead.", "err") : setReasonModal({ kind: "override", finding: f })
+                  }
+                  onEvidence={() => setEvidenceFinding(f)}
+                />
+              ))
+            )}
 
-              {/* Interactive Review Findings List */}
-              <div className="bg-[#141414] border border-[#303030] rounded-xl overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#303030] bg-[#191919] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertOctagon className="w-4 h-4 text-white" />
-                    <h3 className="text-sm font-semibold text-white">
-                      Audit Findings ({findings.length})
-                    </h3>
-                  </div>
-
-                  <Badge variant={findings.length > 0 ? "violation" : "verified"} size="xs">
-                    {findings.length > 0 ? "Action Required" : "All Resolved"}
-                  </Badge>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  {findings.map((finding, idx) => {
-                    const isExpanded = expandedFindingId === finding.id;
-                    const isCritical = finding.severity === "critical" || finding.severity === "high";
-
-                    return (
-                      <div
-                        key={finding.id || idx}
-                        className="rounded-lg border border-[#303030] bg-[#191919] transition-colors"
-                      >
-                        {/* Finding Header */}
-                        <div
-                          onClick={() => setExpandedFindingId(isExpanded ? null : finding.id)}
-                          className="p-3.5 flex items-start justify-between gap-2.5 cursor-pointer select-none"
-                        >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              {isCritical ? (
-                                <AlertOctagon className="w-4 h-4 text-[#EF4444] shrink-0" />
-                              ) : (
-                                <AlertTriangle className="w-4 h-4 text-[#F59E0B] shrink-0" />
-                              )}
-                              <span className="text-sm font-semibold text-white">
-                                {finding.category
-                                  ?.replace(/_/g, " ")
-                                  .replace(/\b\w/g, (c: string) => c.toUpperCase()) ||
-                                  "Statutory Substantiation Violation"}
-                              </span>
-                            </div>
-                            <div className="text-xs text-[#858585]">
-                              Flagged Token: &ldquo;{finding.flaggedText || "2x faster results"}&rdquo;
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {/* Proposal Status Indicators: Disputed / Dismissed / Overridden */}
-                            {finding.status === "disputed" && (
-                              <Badge variant="warning" size="xs">
-                                Disputed
-                              </Badge>
-                            )}
-                            {finding.status === "dismissed" && (
-                              <Badge variant="neutral" size="xs">
-                                Dismissed
-                              </Badge>
-                            )}
-                            {finding.status === "overridden" && (
-                              <Badge variant="verified" size="xs">
-                                Overridden
-                              </Badge>
-                            )}
-
-                            {/* Confidence Badge */}
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-[#141414] text-[#B5B5B5] border border-[#303030]">
-                              {finding.confidence || "98% Conf"}
-                            </span>
-                            <Badge
-                              variant={
-                                finding.status === "overridden" || finding.status === "dismissed"
-                                  ? "verified"
-                                  : isCritical
-                                  ? "violation"
-                                  : "warning"
-                              }
-                              size="xs"
-                            >
-                              {finding.severity?.toUpperCase() || "HIGH"}
-                            </Badge>
-                            <ChevronRight
-                              className={`w-4 h-4 text-[#858585] transition-transform ${
-                                isExpanded ? "rotate-90" : ""
-                              }`}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Expanded Finding Detail */}
-                        {isExpanded && (
-                          <div className="px-4 pb-4 pt-1 border-t border-[#303030] space-y-3.5 text-xs animate-in fade-in">
-                            <p className="text-[14px] text-[#B5B5B5] leading-relaxed font-sans">
-                              {finding.explanation}
-                            </p>
-
-                            {/* Status Callout Box */}
-                            {finding.status === "disputed" && (
-                              <div className="p-3 rounded-lg bg-[#141414] border border-[#303030] text-xs space-y-1">
-                                <div className="font-semibold flex items-center gap-1.5 text-[#F59E0B]">
-                                  <AlertTriangle className="w-3.5 h-3.5" />
-                                  <span>Creator Dispute Pending Review</span>
-                                </div>
-                                <div className="text-xs text-[#B5B5B5]">
-                                  {finding.dispute_reason || "Creator asserts compliance with regulatory safe harbor."}
-                                </div>
-                              </div>
-                            )}
-
-                            {finding.status === "dismissed" && (
-                              <div className="p-3 rounded-lg bg-[#141414] border border-[#303030] text-xs space-y-1">
-                                <div className="font-semibold flex items-center gap-1.5 text-white">
-                                  <X className="w-3.5 h-3.5 text-[#858585]" />
-                                  <span>Finding Dismissed with Recorded Reason</span>
-                                </div>
-                                <div className="text-xs text-[#858585]">
-                                  {finding.dismissal_reason || "Brand tolerance exception granted."}
-                                </div>
-                              </div>
-                            )}
-
-                            {finding.status === "overridden" && (
-                              <div className="p-3 rounded-lg bg-[#141414] border border-[#303030] text-xs space-y-1">
-                                <div className="font-semibold flex items-center gap-1.5 text-white">
-                                  <Scale className="w-3.5 h-3.5 text-[#10B981]" />
-                                  <span>Reviewer Override Recorded (SOC-2 Immutable)</span>
-                                </div>
-                                <div className="text-xs text-[#B5B5B5]">
-                                  {finding.override_memo || "Override authorized under Legal Memo LM-2026-44"}
-                                </div>
-                                <div className="text-[11px] text-[#858585]">
-                                  Authorized by: {finding.overridden_by || "Daksh Agrawal (Brand Director)"}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Provenance Document Link triggering drawer */}
-                            <div className="p-3.5 rounded-lg bg-[#141414] border border-[#303030] space-y-2 text-xs">
-                              <div className="flex items-center justify-between text-[#858585]">
-                                <span className="flex items-center gap-1.5 font-medium">
-                                  <Database className="w-3.5 h-3.5 text-white" />
-                                  <span>Citation Provenance:</span>
-                                </span>
-                                <span className="text-white font-mono font-medium">
-                                  {finding.claimId || "CLM-APX-001"}
-                                </span>
-                              </div>
-
-                              <div className="text-white font-sans text-sm italic leading-relaxed">
-                                &ldquo;{finding.citedExcerpt ||
-                                  "Mean fractional synthetic rate (FSR) showed a 28.4% elevation (p = 0.004) under ISO 22196."}&rdquo;
-                              </div>
-
-                              {/* Button to open Provenance Citation Drawer */}
-                              <div className="pt-2 flex items-center justify-between border-t border-[#262626]">
-                                <span className="text-[#858585] text-xs">
-                                  DOI: {finding.doi || "10.1016/j.nutres.2024.108421"}
-                                </span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveProvenanceFinding(finding);
-                                  }}
-                                  className="text-white hover:underline flex items-center gap-1 text-xs font-medium cursor-pointer"
-                                >
-                                  <span>Inspect Citation Chain</span>
-                                  <ExternalLink className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Workflow Actions: Dispute / Dismiss / Override / Apply Fix */}
-                            <div className="pt-2 border-t border-[#303030] flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                {/* Dispute button */}
-                                <Button
-                                  size="xs"
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveDisputeFinding(finding);
-                                    setDisputeReason(
-                                      "Statutory safe harbor exception under 21 CFR § 101.93 applies; substantiated in clinical trial records."
-                                    );
-                                  }}
-                                  disabled={finding.status === "disputed" || finding.status === "overridden"}
-                                  icon={<AlertTriangle className="w-3 h-3 text-[#F59E0B]" />}
-                                >
-                                  {finding.status === "disputed" ? "Disputed" : "Dispute Finding"}
-                                </Button>
-
-                                {/* Dismiss with reason button */}
-                                <Button
-                                  size="xs"
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveDismissFinding(finding);
-                                    setDismissReason(
-                                      "Brand guideline tolerance exception (Policy BE-2026-1) approved for digital channel."
-                                    );
-                                  }}
-                                  disabled={finding.status === "dismissed" || finding.status === "overridden"}
-                                  icon={<X className="w-3 h-3 text-[#858585]" />}
-                                >
-                                  {finding.status === "dismissed" ? "Dismissed" : "Dismiss"}
-                                </Button>
-
-                                {/* Recorded Override (Reviewer Authorized) */}
-                                <Button
-                                  size="xs"
-                                  variant="secondary"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveOverrideFinding(finding);
-                                    setOverrideMemo("Override authorized under Legal Memo LM-2026-44");
-                                  }}
-                                  disabled={finding.status === "overridden"}
-                                  icon={<Scale className="w-3 h-3 text-white" />}
-                                >
-                                  {finding.status === "overridden" ? "Override Logged" : "Authorized Override"}
-                                </Button>
-                              </div>
-
-                              {/* Surgical correction quick trigger */}
-                              {finding.suggestedCorrection && (
-                                <Button
-                                  size="xs"
-                                  variant="primary"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const phrase = finding.flaggedText || "2x faster results";
-                                    const updated = submission.currentContent.replace(
-                                      phrase,
-                                      finding.suggestedCorrection
-                                    );
-                                    handleApplyRevision(updated);
-                                  }}
-                                  icon={<Check className="w-3.5 h-3.5 text-black" />}
-                                >
-                                  Apply Fix
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: METADATA & COMPLIANCE SPECIFICATIONS */}
-        {activeTab === "details" && (
-          <div className="bg-[#141414] border border-[#303030] rounded-xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white">
-              Submission Governance Specifications
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-              <div className="p-4 rounded-lg bg-[#191919] border border-[#303030]">
-                <div className="text-[#858585]">Submission ID</div>
-                <div className="text-white font-medium mt-1 text-sm font-mono">{submission.id}</div>
-              </div>
-              <div className="p-4 rounded-lg bg-[#191919] border border-[#303030]">
-                <div className="text-[#858585]">Brand Workspace</div>
-                <div className="text-white font-medium mt-1 text-sm">Apex Nutrition (brand_apex)</div>
-              </div>
-              <div className="p-4 rounded-lg bg-[#191919] border border-[#303030]">
-                <div className="text-[#858585]">Channel / Scope</div>
-                <div className="text-white font-medium mt-1 text-sm">{submission.channel || "Instagram Reel"}</div>
-              </div>
-              <div className="p-4 rounded-lg bg-[#191919] border border-[#303030]">
-                <div className="text-[#858585]">Submitter</div>
-                <div className="text-white font-medium mt-1 text-sm">Riddhi S. (Content Specialist)</div>
-              </div>
-              <div className="p-4 rounded-lg bg-[#191919] border border-[#303030]">
-                <div className="text-[#858585]">Compliance Standard</div>
-                <div className="text-white font-medium mt-1 text-sm">FTC § 255.2 / FDA 21 CFR Part 11</div>
-              </div>
-              <div className="p-4 rounded-lg bg-[#191919] border border-[#303030]">
-                <div className="text-[#858585]">Record Hash</div>
-                <div className="text-[#B5B5B5] mt-1 text-xs font-mono truncate">sha256:7f83b1657ff1fc53b92d...</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: AUDIT TRAIL LEDGER */}
-        {activeTab === "history" && (
-          <div className="bg-[#141414] border border-[#303030] rounded-xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">
-                Cryptographic Audit Trail Ledger
-              </h3>
-              <Badge variant="verified" size="xs">
-                {auditLog.length} Events Recorded
-              </Badge>
-            </div>
-            <p className="text-sm text-[#858585]">
-              Complete, tamper-proof record of every preflight check, finding dispute, dismissal reason, and authorized legal override.
-            </p>
-            <div className="space-y-3 text-xs">
-              {auditLog.map((ev, idx) => (
-                <div
-                  key={idx}
-                  className="p-4 rounded-lg bg-[#191919] border border-[#303030] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-semibold text-sm">{ev.action}</span>
-                      <span className="text-xs text-[#858585]">by {ev.by}</span>
-                    </div>
-                    <div className="text-sm text-[#B5B5B5] font-sans">{ev.notes}</div>
-                  </div>
-                  <div className="text-right text-xs text-[#858585] shrink-0 font-mono">
-                    <div>{ev.time}</div>
-                    <div className="text-[#525252]">{ev.hash}</div>
-                  </div>
+            <dl className="glass grid grid-cols-2 gap-3 rounded-2xl p-5 text-[13px]">
+              {[
+                ["Author", creator.name],
+                ["Campaign", submission.metadata?.campaign || "None"],
+                ["Submitted", fmtTime(submission.created_at)],
+                ["Reference", submission.id.slice(0, 8)],
+              ].map(([k, v]) => (
+                <div key={k}>
+                  <dt className="text-xs text-text-muted">{k}</dt>
+                  <dd className="mt-0.5 break-words text-text-primary">{v}</dd>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
+            </dl>
+          </section>
+        </div>
 
-        {/* Evidence Citation Drawer / Modal Inspector */}
-        {activeProvenanceFinding && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#141414] border border-[#303030] rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-white" />
-                  <h3 className="text-sm font-semibold text-white">
-                    Provenance Inspector — {activeProvenanceFinding.claimId || "CLM-APX-001"}
-                  </h3>
+        {/* Audit timeline */}
+        <section className="glass rounded-2xl p-6" aria-labelledby="audit-h">
+          <h2 id="audit-h" className="text-base font-semibold text-text-primary">
+            Audit trail
+          </h2>
+          <p className="mt-1 text-[13px] text-text-muted">Every change, decision and reason on this ad, newest first.</p>
+          <ol className="mt-4 space-y-0" aria-live="polite">
+            {audit.map((a, i) => (
+              <li key={i} className="relative flex gap-4 pb-5 last:pb-0">
+                <span aria-hidden className="relative flex w-3 justify-center">
+                  <span className="mt-1.5 h-2.5 w-2.5 rounded-full bg-ink" />
+                  {i < audit.length - 1 && <span className="absolute top-4 bottom-0 w-px bg-border-default" />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-text-primary">
+                    <span className="font-medium">{a.action}</span>
+                    <span className="text-text-muted">
+                      {" "}
+                      by {a.actor}
+                      {a.role ? ` (${a.role})` : ""}
+                    </span>
+                  </p>
+                  {a.reason && <p className="mt-0.5 text-[13px] text-text-secondary">Reason: {a.reason}</p>}
+                  <time dateTime={a.time} className="text-xs text-text-muted">
+                    {fmtTime(a.time)}
+                  </time>
                 </div>
-                <button
-                  onClick={() => setActiveProvenanceFinding(null)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-4 text-xs">
-                <div>
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Flagged Marketing Claim:</div>
-                  <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-sm text-white font-sans mt-1">
-                    &ldquo;{activeProvenanceFinding.flaggedText}&rdquo;
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Verbatim Clinical Assay Excerpt:</div>
-                  <div className="p-3.5 rounded-lg bg-[#191919] border border-[#303030] text-sm text-white font-sans italic mt-1 leading-relaxed">
-                    &ldquo;{activeProvenanceFinding.citedExcerpt ||
-                      "Mean log reduction at 24h was 2.24 corresponding to 99.42% efficacy under ISO 22196:2011 Annex C."}&rdquo;
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-lg bg-[#191919] border border-[#303030]">
-                    <div className="text-[#858585]">Governance Owner:</div>
-                    <div className="text-white font-medium mt-0.5">Dr. Aris Vance (VP Medical)</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-[#191919] border border-[#303030]">
-                    <div className="text-[#858585]">Assay Standard:</div>
-                    <div className="text-white font-medium mt-0.5">{activeProvenanceFinding.assayStandard || "ISO 22196 / RCT"}</div>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] flex items-center justify-between text-xs">
-                  <span className="text-[#858585] truncate mr-2 font-mono">
-                    SHA-256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1a209b...
-                  </span>
-                  <button
-                    onClick={() =>
-                      handleCopyCitation(
-                        `Provenance Claim ${activeProvenanceFinding.claimId}: ${activeProvenanceFinding.citedExcerpt}`
-                      )
-                    }
-                    className="text-white hover:underline flex items-center gap-1.5 shrink-0 cursor-pointer font-medium"
-                  >
-                    {copiedProvenance ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-[#10B981]" />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-[#858585]" />
-                        <span>Copy Citation</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setActiveProvenanceFinding(null)}
-                  >
-                    Close Inspector
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={() => {
-                      const phrase = activeProvenanceFinding.flaggedText || "2x faster results";
-                      const updated = submission.currentContent.replace(
-                        phrase,
-                        activeProvenanceFinding.suggestedCorrection
-                      );
-                      handleApplyRevision(updated);
-                      setActiveProvenanceFinding(null);
-                    }}
-                    icon={<Check className="w-4 h-4 text-black" />}
-                  >
-                    Apply Compliant Fix
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Modal 1: Creator Dispute Finding Modal */}
-        {activeDisputeFinding && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#141414] border border-[#303030] rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-[#F59E0B]" />
-                  <h3 className="text-sm font-semibold text-white">
-                    Dispute Compliance Finding
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setActiveDisputeFinding(null)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3.5 text-xs">
-                <div>
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Challenged Finding:</div>
-                  <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-sm text-white font-sans mt-1">
-                    &ldquo;{activeDisputeFinding.flaggedText}&rdquo; — {activeDisputeFinding.category}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Quick Dispute Presets:</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      "FDA 21 CFR § 101.93 Safe Harbor Exemption",
-                      "Substantiated by Q3 Clinical Cohort Study",
-                      "Client Approved Creative Brief Exception",
-                      "Context restricted to internal ambassador kit",
-                    ].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setDisputeReason(preset)}
-                        className="px-2.5 py-1.5 rounded-md bg-[#191919] hover:bg-[#222222] border border-[#303030] text-xs text-[#B5B5B5] hover:text-white transition-colors cursor-pointer"
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs uppercase text-[#858585] font-medium tracking-wide">Dispute Justification:</label>
-                  <textarea
-                    value={disputeReason}
-                    onChange={(e) => setDisputeReason(e.target.value)}
-                    rows={3}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-3 text-sm text-white font-sans leading-relaxed resize-none"
-                    placeholder="Provide specific regulatory citation or brand rationale..."
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs uppercase text-[#858585] font-medium tracking-wide">Optional Evidence Citation / URL:</label>
-                  <input
-                    type="text"
-                    value={disputeEvidence}
-                    onChange={(e) => setDisputeEvidence(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-sm text-white font-sans"
-                    placeholder="DOI, Clinical study ID, or legal memo link..."
-                  />
-                </div>
-
-                <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-xs font-sans text-[#B5B5B5] leading-relaxed">
-                  Submitting a dispute escalates this finding to the Brand Reviewer queue. The creator cannot approve their own submission; final sign-off remains with authorized personnel.
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setActiveDisputeFinding(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => handleDisputeFinding(activeDisputeFinding.id)}
-                  loading={actionLoading}
-                  icon={<AlertTriangle className="w-3.5 h-3.5" />}
-                >
-                  Submit Official Dispute
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal 2: Dismiss Finding with Reason */}
-        {activeDismissFinding && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#141414] border border-[#303030] rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <X className="w-4 h-4 text-white" />
-                  <h3 className="text-sm font-semibold text-white">
-                    Dismiss Finding with Recorded Reason
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setActiveDismissFinding(null)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3.5 text-xs">
-                <div>
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Flagged Text to Dismiss:</div>
-                  <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-sm text-white font-sans mt-1">
-                    &ldquo;{activeDismissFinding.flaggedText}&rdquo;
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Common Reason Presets:</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      "Brand guideline tolerance exception (BE-2026-1)",
-                      "Artistic stylistic license approved for video",
-                      "Non-substantive grammatical variation",
-                      "Pre-cleared with account manager",
-                    ].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setDismissReason(preset)}
-                        className="px-2.5 py-1.5 rounded-md bg-[#191919] hover:bg-[#222222] border border-[#303030] text-xs text-[#B5B5B5] hover:text-white transition-colors cursor-pointer"
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs uppercase text-[#858585] font-medium tracking-wide">Dismissal Justification (Audit Trail):</label>
-                  <textarea
-                    value={dismissReason}
-                    onChange={(e) => setDismissReason(e.target.value)}
-                    rows={3}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-3 text-sm text-white font-sans leading-relaxed resize-none"
-                    placeholder="Explain why this finding is dismissed..."
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setActiveDismissFinding(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => handleDismissFinding(activeDismissFinding.id)}
-                  loading={actionLoading}
-                  icon={<Check className="w-3.5 h-3.5" />}
-                >
-                  Confirm Dismissal
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal 3: Authorized Legal / Reviewer Override */}
-        {activeOverrideFinding && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#141414] border border-[#303030] rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <Scale className="w-4 h-4 text-white" />
-                  <h3 className="text-sm font-semibold text-white">
-                    Record Authorized Legal Override
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setActiveOverrideFinding(null)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3.5 text-xs">
-                <div>
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Flagged Finding:</div>
-                  <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-sm text-white font-sans mt-1">
-                    &ldquo;{activeOverrideFinding.flaggedText}&rdquo; — {activeOverrideFinding.category}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">
-                    Official Authorization Memoranda:
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    {[
-                      "Override authorized under Legal Memo LM-2026-44",
-                      "Authorized exception per Regulatory Counsel Review RC-882",
-                      "Fair-use comparative marketing exemption validated under Lanham Act",
-                      "Pre-market clearance validated by VP Medical & Regulatory Affairs",
-                    ].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setOverrideMemo(preset)}
-                        className={`text-left px-3.5 py-2.5 rounded-lg border transition-colors cursor-pointer text-xs font-sans ${
-                          overrideMemo === preset
-                            ? "bg-[#222222] border-white text-white"
-                            : "bg-[#191919] hover:bg-[#222222] border-[#303030] text-[#B5B5B5]"
-                        }`}
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs uppercase text-[#858585] font-medium tracking-wide">Custom Memo / Electronic Justification:</label>
-                  <textarea
-                    value={overrideMemo}
-                    onChange={(e) => setOverrideMemo(e.target.value)}
-                    rows={2}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-3 text-sm text-white font-sans leading-relaxed resize-none"
-                    placeholder="Enter formal legal memorandum citation..."
-                  />
-                </div>
-
-                <div className="p-3.5 rounded-lg bg-[#191919] border border-[#303030] space-y-1.5">
-                  <div className="text-xs text-[#858585] flex items-center justify-between font-medium">
-                    <span>Authorized Signatory:</span>
-                    <span className="text-[#10B981]">ISO-21CFR Part 11 Compliant</span>
-                  </div>
-                  <div className="text-white font-medium text-sm">{overrideReviewer}</div>
-                  <div className="text-xs text-[#858585]">
-                    Cryptographic signature hash generated on submission. Neutralizes finding violation penalty and logs to permanent audit trail.
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setActiveOverrideFinding(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => handleOverrideFinding(activeOverrideFinding.id)}
-                  loading={actionLoading}
-                  icon={<Scale className="w-3.5 h-3.5 text-black" />}
-                >
-                  Record Legal Override
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+              </li>
+            ))}
+          </ol>
+        </section>
       </div>
+
+      {reasonModal && (
+        <ReasonModal
+          kind={reasonModal.kind}
+          finding={reasonModal.finding}
+          signer={`${actor.name} (${actor.role})`}
+          busy={busy === reasonModal.kind}
+          onClose={() => setReasonModal(null)}
+          onConfirm={(reason, ev) => findingAction(reasonModal.kind, reasonModal.finding, reason, ev)}
+        />
+      )}
+      {evidenceFinding && (
+        <EvidenceModal
+          finding={evidenceFinding}
+          onClose={() => setEvidenceFinding(null)}
+          onApply={
+            evidenceFinding.suggestedCorrection && effectiveStatus(evidenceFinding, content) === "open"
+              ? () => {
+                  applyFix(evidenceFinding);
+                  setEvidenceFinding(null);
+                }
+              : undefined
+          }
+        />
+      )}
+      {approveOpen && <DecisionModal decision={approveOpen} highRisk={highRisk.length} busy={busy === "decide"} onClose={() => setApproveOpen(null)} onConfirm={decide} />}
     </AppLayout>
   );
 }
 
-export default function SubmissionReviewPage({
-  params,
+function DecisionModal({
+  decision,
+  highRisk,
+  busy,
+  onClose,
+  onConfirm,
 }: {
-  params: Promise<{ id: string }>;
+  decision: "approved" | "changes_requested";
+  highRisk: number;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (d: "approved" | "changes_requested", notes: string) => void;
 }) {
+  const [notes, setNotes] = useState("");
+  const [ack, setAck] = useState(false);
+  const approving = decision === "approved";
+  const needsAck = approving && highRisk > 0;
+  const blocked = (!approving && !notes.trim()) || (needsAck && (!ack || !notes.trim()));
   return (
-    <React.Suspense
-      fallback={
-        <div className="min-h-screen bg-[#080C16] p-8 text-slate-400 flex items-center justify-center font-mono text-xs">
-          LOADING GOVERNANCE WORKSPACE...
-        </div>
+    <Modal
+      title={approving ? "Approve this ad" : "Ask for changes"}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button size="sm" loading={busy} disabled={blocked} onClick={() => onConfirm(decision, notes.trim() || "Approved after review.")}>
+            {approving ? "Approve" : "Send back"}
+          </Button>
+        </>
       }
     >
+      {needsAck && (
+        <p className="rounded-lg border border-status-critical/30 bg-status-critical/10 p-3 text-sm text-text-primary">
+          {highRisk} high-risk issue{highRisk === 1 ? " is" : "s are"} still open. Approving means you sign off on {highRisk === 1 ? "it" : "them"}, and a reason is required.
+        </p>
+      )}
+      <div className="space-y-2">
+        <label htmlFor="decision-notes" className="text-sm font-medium">
+          {approving ? (needsAck ? "Sign-off reason" : "Note (optional)") : "What needs to change?"}
+        </label>
+        <textarea
+          id="decision-notes"
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className="w-full resize-none rounded-lg glass-inset p-3 font-sans text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue/50"
+        />
+      </div>
+      {needsAck && (
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5 h-4 w-4" />I reviewed the high-risk issues and take responsibility for this sign-off.
+        </label>
+      )}
+    </Modal>
+  );
+}
+
+export default function SubmissionReviewPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <React.Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-text-muted">Loading your review…</div>}>
       <SubmissionReviewInner params={params} />
     </React.Suspense>
   );

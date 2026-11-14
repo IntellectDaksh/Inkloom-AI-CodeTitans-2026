@@ -95,28 +95,29 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080808] text-white flex flex-col justify-between font-sans selection:bg-white/20 selection:text-white">
+    <div className="relative isolate min-h-screen bg-canvas text-text-primary flex flex-col justify-between font-sans selection:bg-ice selection:text-text-primary">
+      <div className="atmosphere -z-10" aria-hidden><i /><i /><i /></div>
       {/* Top Swiss Architectural Header */}
-      <nav className="border-b border-white/10 bg-[#080808]/90 px-6 sm:px-8 h-16 flex items-center justify-between">
+      <nav className="glass rounded-none border-x-0 border-t-0 px-6 sm:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-white text-black flex items-center justify-center font-bold text-sm tracking-tighter">
-            AS
+          <div className="app-brand-mark" aria-hidden>
+            <ShieldCheck className="w-4 h-4" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-base tracking-tight text-white">
+            <span className="font-semibold text-base tracking-tight text-text-primary">
               AdSnitch
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-[#A0A0A0] border border-white/10">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink/5 text-text-secondary border border-border-default">
               AUTHENTICATION
             </span>
           </div>
         </Link>
 
         <div className="flex items-center gap-4 text-xs font-mono">
-          <span className="text-[#737373] hidden sm:inline">SECURITY: SOC 2 TYPE II</span>
+          <span className="text-text-muted hidden sm:inline">SECURITY: SOC 2 TYPE II</span>
           <Link
             href="/auth/register"
-            className="text-[#A0A0A0] hover:text-white transition-colors"
+            className="text-text-secondary hover:text-text-primary transition-colors"
           >
             Create Organization &rarr;
           </Link>
@@ -128,28 +129,36 @@ export default function LoginPage() {
         <div className="w-full max-w-lg space-y-6 relative z-10">
           {/* Header Typography */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141414] border border-white/10 text-[10px] font-mono text-[#A0A0A0]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-panel border border-border-default text-[10px] font-mono text-text-secondary">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-success" />
               <span>DETERMINISTIC COMPLIANCE WORKSPACE</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
               Sign In to Sovereign Workspace
             </h1>
-            <p className="text-xs text-[#A0A0A0] max-w-sm mx-auto">
+            <p className="text-xs text-text-secondary max-w-sm mx-auto">
               Access real-time claims audit queues and clinical trial evidence registers.
             </p>
           </div>
 
           {/* Milled Monochromatic Card */}
-          <div className="rounded-xl bg-[#141414] border border-white/10 shadow-2xl p-6 sm:p-7 space-y-6">
+          <div className="glass-strong rounded-2xl p-6 sm:p-7 space-y-6">
+            <svg viewBox="0 0 240 64" className="w-full h-14 text-blue" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M0 48 C40 40 70 54 110 44 S190 30 240 38" className="text-border-strong" stroke="currentColor" />
+              <path d="M0 56 C50 50 80 60 120 52 S200 42 240 48" className="text-border-default" stroke="currentColor" />
+              <path d="M120 8 l18 6 v12 c0 11 -8 19 -18 23 c-10 -4 -18 -12 -18 -23 v-12 z" className="text-ink" stroke="currentColor" />
+              <path d="M112 28 l6 6 l11 -12" />
+              <circle cx="56" cy="22" r="3" /><circle cx="186" cy="18" r="2.5" />
+              <path d="M59 22 H96 M140 20 H183" strokeDasharray="2 4" className="text-text-dim" stroke="currentColor" />
+            </svg>
             {/* 1-CLICK RAPID DEMO LOGINS */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-status-success" />
                   <span>1-Click Hackathon Persona Logins</span>
                 </span>
-                <span className="text-[10px] font-mono text-[#A0A0A0]">NO PASSWORD</span>
+                <span className="text-[10px] font-mono text-text-secondary">NO PASSWORD</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -159,19 +168,19 @@ export default function LoginPage() {
                       key={user.id}
                       type="button"
                       onClick={() => handle1ClickLogin(user)}
-                      className="p-3 rounded-lg border border-white/10 bg-[#080808] hover:bg-neutral-800 hover:border-white text-left transition-all cursor-pointer group flex flex-col justify-between"
+                      className="p-3 rounded-lg bg-panel border border-border-default hover:bg-panel-hover hover:border-border-strong text-left transition-all cursor-pointer group flex flex-col justify-between"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/10 text-white border border-white/10">
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-ink/10 text-text-primary border border-border-default">
                           {user.badge}
                         </span>
-                        <ArrowRight className="w-3 h-3 text-[#A0A0A0] group-hover:text-white transition-transform group-hover:translate-x-0.5" />
+                        <ArrowRight className="w-3 h-3 text-text-secondary group-hover:text-text-primary transition-transform group-hover:translate-x-0.5" />
                       </div>
                       <div>
-                        <div className="text-xs font-semibold text-white leading-tight">
+                        <div className="text-xs font-semibold text-text-primary leading-tight">
                           {user.name}
                         </div>
-                        <div className="text-[10px] font-mono text-[#A0A0A0] truncate mt-0.5">
+                        <div className="text-[10px] font-mono text-text-secondary truncate mt-0.5">
                           {user.role}
                         </div>
                       </div>
@@ -183,8 +192,8 @@ export default function LoginPage() {
 
             {/* Separator */}
             <div className="relative flex items-center justify-center">
-              <div className="w-full border-t border-white/10" />
-              <span className="absolute bg-[#141414] px-3 text-[10px] font-mono text-[#A0A0A0] uppercase tracking-widest">
+              <div className="w-full border-t border-border-default" />
+              <span className="absolute bg-panel px-3 text-[10px] font-mono text-text-secondary uppercase tracking-widest">
                 OR SIGN IN WITH CREDENTIALS
               </span>
             </div>
@@ -192,17 +201,17 @@ export default function LoginPage() {
             {/* Standard Credential Form */}
             <form onSubmit={handleStandardLogin} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-mono text-[#A0A0A0] font-medium mb-1">
+                <label className="block text-[11px] font-mono text-text-secondary font-medium mb-1">
                   WORK EMAIL ADDRESS:
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#737373] pointer-events-none" />
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#080808] border border-white/10 focus:border-white focus:outline-none rounded-md pl-9 pr-3 py-2 text-xs font-mono text-white"
+                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-md pl-9 pr-3 py-2 text-xs font-mono text-text-primary"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -210,24 +219,24 @@ export default function LoginPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-mono text-[#A0A0A0] font-medium">
+                  <label className="text-[11px] font-mono text-text-secondary font-medium">
                     PASSWORD:
                   </label>
                   <Link
                     href="/prototype-notice?feature=password-recovery"
-                    className="text-[10px] font-mono text-white hover:underline"
+                    className="text-[10px] font-mono text-text-primary hover:underline"
                   >
                     Forgot Password?
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#737373] pointer-events-none" />
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#080808] border border-white/10 focus:border-white focus:outline-none rounded-md pl-9 pr-3 py-2 text-xs font-mono text-white"
+                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-md pl-9 pr-3 py-2 text-xs font-mono text-text-primary"
                     placeholder="••••••••••••"
                   />
                 </div>
@@ -236,7 +245,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-white hover:bg-neutral-200 text-black py-2.5 rounded-md text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-sm"
+                className="w-full bg-ink hover:bg-navy-soft text-ghost py-2.5 rounded-md text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shadow-sm"
               >
                 {loading ? (
                   <>
@@ -253,15 +262,15 @@ export default function LoginPage() {
             </form>
 
             {/* Enterprise Single Sign-On (SSO) Section */}
-            <div className="pt-2 border-t border-white/10 space-y-2.5">
-              <span className="text-[10px] font-mono text-[#A0A0A0] uppercase tracking-wider block text-center">
+            <div className="pt-2 border-t border-border-default space-y-2.5">
+              <span className="text-[10px] font-mono text-text-secondary uppercase tracking-wider block text-center">
                 ENTERPRISE IDENTITY FEDERATION
               </span>
 
               <div className="grid grid-cols-3 gap-2">
                 <Link
                   href="/prototype-notice?feature=sso"
-                  className="p-2 rounded bg-[#080808] hover:bg-neutral-800 border border-white/10 hover:border-white text-center transition-colors flex items-center justify-center gap-1.5 text-xs text-[#A0A0A0] hover:text-white"
+                  className="p-2 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-center transition-colors flex items-center justify-center gap-1.5 text-xs text-text-secondary hover:text-text-primary"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>Google</span>
@@ -269,7 +278,7 @@ export default function LoginPage() {
 
                 <Link
                   href="/prototype-notice?feature=sso"
-                  className="p-2 rounded bg-[#080808] hover:bg-neutral-800 border border-white/10 hover:border-white text-center transition-colors flex items-center justify-center gap-1.5 text-xs text-[#A0A0A0] hover:text-white"
+                  className="p-2 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-center transition-colors flex items-center justify-center gap-1.5 text-xs text-text-secondary hover:text-text-primary"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>Okta SAML</span>
@@ -277,7 +286,7 @@ export default function LoginPage() {
 
                 <Link
                   href="/prototype-notice?feature=sso"
-                  className="p-2 rounded bg-[#080808] hover:bg-neutral-800 border border-white/10 hover:border-white text-center transition-colors flex items-center justify-center gap-1.5 text-xs text-[#A0A0A0] hover:text-white"
+                  className="p-2 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-center transition-colors flex items-center justify-center gap-1.5 text-xs text-text-secondary hover:text-text-primary"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>GitHub</span>
@@ -286,11 +295,11 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="text-center text-xs text-[#A0A0A0]">
+          <div className="text-center text-xs text-text-secondary">
             Need to register a corporate brand?{" "}
             <Link
               href="/auth/register"
-              className="text-white hover:underline font-medium"
+              className="text-text-primary hover:underline font-medium"
             >
               Deploy New Organization &rarr;
             </Link>
@@ -299,7 +308,7 @@ export default function LoginPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-4 text-center text-xs font-mono text-[#737373]">
+      <footer className="border-t border-border-subtle py-4 text-center text-xs font-mono text-text-muted">
         AdSnitch Sovereign Governance · FTC 16 CFR § 255 · FDA 21 CFR Part 11
       </footer>
     </div>

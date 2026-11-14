@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { SEED_IDS } from "@/lib/db/seed";
 import { runGovernancePipeline } from "@/lib/ai";
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const brandId = searchParams.get("brandId") || undefined;
-    const orgId = searchParams.get("orgId") || "org_uideas_digital";
+    const orgId = searchParams.get("orgId") || SEED_IDS.ORGANISATION_UIDEAS;
     const status = searchParams.get("status") || undefined;
 
     const submissions = db.listSubmissions(brandId, orgId, status as any);
@@ -21,15 +22,26 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       title,
-      content,
-      brandId = "brand_apex",
-      organizationId = "org_uideas_digital",
-      authorId = "usr_daksh",
+      content: rawContent,
+      text,
+      sourceFile,
+      brandId = SEED_IDS.BRAND_APEX,
+      organizationId = SEED_IDS.ORGANISATION_UIDEAS,
+      authorId = body?.userId ?? "usr_daksh",
       authorName = "Daksh Agrawal",
       channel = "social_media",
       submissionType = "reel_script",
       runAnalysis = true,
     } = body;
+
+    // `text` is accepted as an alias so /api/extract output can be posted straight through.
+    const content = typeof rawContent === "string" && rawContent.trim() ? rawContent : text;
+    if (sourceFile !== undefined && (typeof sourceFile !== "object" || sourceFile === null || typeof sourceFile.fileName !== "string")) {
+      return NextResponse.json(
+        { success: false, error: "sourceFile must be an object with fileName, mime and method" },
+        { status: 400 }
+      );
+    }
 
     if (!title || !content) {
       return NextResponse.json(
@@ -48,6 +60,16 @@ export async function POST(req: NextRequest) {
       submissionType,
       currentContent: content,
       status: "under_review",
+      metadata: sourceFile
+        ? {
+            sourceFile: {
+              fileName: String(sourceFile.fileName).slice(0, 255),
+              mime: typeof sourceFile.mime === "string" ? sourceFile.mime.slice(0, 120) : undefined,
+              method: ["plain", "docx", "gemini-ocr", "paste"].includes(sourceFile.method) ? sourceFile.method : undefined,
+              ocrUnverified: sourceFile.method === "gemini-ocr" || undefined,
+            },
+          }
+        : undefined,
     });
 
     let reviewReport = null;

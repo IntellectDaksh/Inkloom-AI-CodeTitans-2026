@@ -1,322 +1,194 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import {
-  ArrowLeft,
-  BookOpen,
-  CheckCircle2,
-  XCircle,
-  Sparkles,
-  Plus,
-  X,
-  ShieldCheck,
-  Check,
-} from "lucide-react";
+import React, { useRef, useState } from "react";
+import { Check, FileUp, Plus, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Extracted, FileDrop, KbHeader, Modal, Toast, area, field, labelCls } from "@/components/knowledge/kb";
 
 interface GuidelineRule {
+  id: string;
   category: string;
   title: string;
   description: string;
   dos: string[];
   donts: string[];
+  source?: string;
 }
 
-const INITIAL_GUIDELINES: GuidelineRule[] = [
+const CATEGORIES = ["Voice and tone", "Messaging standards", "Legal and disclosures", "Visual identity"];
+
+const INITIAL: GuidelineRule[] = [
   {
-    category: "Voice & Tone",
-    title: "Authoritative, Science-Backed, and Energetic",
-    description:
-      "Speak with grounded confidence. Avoid hyperbole, buzzwords, or sensationalism. Educate rather than pressure.",
+    id: "g1", category: "Voice and tone", title: "Confident, science-backed, never hyped",
+    description: "Speak with grounded confidence. Educate rather than pressure. No buzzwords or sensational promises.",
     dos: [
-      "Use active, empowering language ('Fuel your peak athletic performance')",
-      "Attribute speed and absorption claims to documented clinical trials and published DOIs",
-      "Keep language approachable for both competitive athletes and everyday fitness enthusiasts",
+      "Use active, encouraging language, e.g. \"Fuel your training\"",
+      "Point speed or absorption claims to the approved study in the claims library",
+      "Write for everyday gym-goers as well as competitive athletes",
     ],
     donts: [
-      "Never use miraculous or cure-oriented phrases ('magic bullet', 'miracle cure', 'cheat code')",
-      "Never guarantee specific timeframes without verified clinical backup ('build muscle in 14 days')",
-      "Avoid aggressive bro-science or fear-based marketing",
+      "\"Miracle\", \"magic bullet\", \"cheat code\" or any cure-style phrasing",
+      "Promising results in a fixed time without approved proof, e.g. \"build muscle in 14 days\"",
+      "Fear-based or bro-science messaging",
     ],
   },
   {
-    category: "Messaging Standards",
-    title: "Clean Sourcing & Ingredient Transparency",
-    description:
-      "Every raw ingredient claim must reflect third-party laboratory verification and sustainable supply chains.",
-    dos: [
-      "Highlight 100% bio-available plant proteins and complete amino acid profile",
-      "Mention non-GMO and eco-certified packaging where relevant",
-    ],
-    donts: [
-      "Do not claim 100% absorption without citing Lab Certificate ISO-9001-NTR",
-      "Do not disparage entire categories of competitors without independent audit data",
-    ],
+    id: "g2", category: "Messaging standards", title: "Clear sourcing and ingredient transparency",
+    description: "Ingredient claims must match a lab-tested, approved claim. Mention sustainability only when it is documented.",
+    dos: ["Name the protein source and amino acid profile", "Mention non-GMO or recyclable packaging where documented"],
+    donts: ["\"100% absorption\" without the approved lab report", "Knocking competitor categories without independent data"],
   },
 ];
 
-export default function BrandGuidelinesPage() {
-  const [guidelines, setGuidelines] = useState<GuidelineRule[]>(INITIAL_GUIDELINES);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formCategory, setFormCategory] = useState("Voice & Tone");
-  const [formTitle, setFormTitle] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formDos, setFormDos] = useState("");
-  const [formDonts, setFormDonts] = useState("");
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const handleAddRule = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formTitle.trim()) return;
-
-    const newRule: GuidelineRule = {
-      category: formCategory,
-      title: formTitle,
-      description: formDescription,
-      dos: formDos
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      donts: formDonts
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean),
-    };
-
-    setGuidelines([newRule, ...guidelines]);
-    setIsModalOpen(false);
-    setFormTitle("");
-    setFormDescription("");
-    setFormDos("");
-    setFormDonts("");
-    setToastMessage(`Brand guideline "${formTitle}" added and actively enforced by deterministic pre-flight engine.`);
-    setTimeout(() => setToastMessage(null), 4000);
+/** Turn uploaded guideline text into a rule: lines starting with do/avoid/don't become lists. */
+function ruleFromText(r: Extracted): GuidelineRule {
+  const lines = r.text.split(/\r?\n/).map((l) => l.replace(/^[\s\-*•]+/, "").trim()).filter(Boolean);
+  const dos = lines.filter((l) => /^do\b(?!n)/i.test(l)).map((l) => l.replace(/^do[:\s]+/i, ""));
+  const donts = lines.filter((l) => /^(don'?t|do not|avoid|never)\b/i.test(l));
+  return {
+    id: `g-${Date.now()}`, category: "Messaging standards",
+    title: r.fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
+    description: lines.filter((l) => !dos.includes(l.replace(/^do[:\s]+/i, "")) && !donts.includes(l)).slice(0, 6).join(" ").slice(0, 600),
+    dos, donts, source: r.fileName,
   };
+}
+
+export default function BrandGuidelinesPage() {
+  const [rules, setRules] = useState<GuidelineRule[]>(INITIAL);
+  const [cat, setCat] = useState("all");
+  const [draft, setDraft] = useState<GuidelineRule | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const addRef = useRef<HTMLDialogElement>(null);
+  const uploadRef = useRef<HTMLDialogElement>(null);
+
+  const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(null), 4000); };
+  const lines = (v: FormDataEntryValue | null) => String(v ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
+
+  function save(e: React.FormEvent<HTMLFormElement>, dialog: HTMLDialogElement | null, base?: GuidelineRule) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const title = String(f.get("title") ?? "").trim();
+    if (!title) return;
+    setRules((p) => [{
+      id: base?.id ?? `g-${Date.now()}`, source: base?.source, title,
+      category: String(f.get("category")), description: String(f.get("description") ?? "").trim(),
+      dos: lines(f.get("dos")), donts: lines(f.get("donts")),
+    }, ...p]);
+    e.currentTarget.reset();
+    setDraft(null);
+    dialog?.close();
+    flash(`Saved "${title}". New ad checks will use it.`);
+  }
+
+  const visible = rules.filter((r) => cat === "all" || r.category === cat);
+
+  const ruleFields = (r?: GuidelineRule) => (
+    <>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className={`${labelCls} sm:col-span-2`}>Rule title
+          <input name="title" required defaultValue={r?.title} placeholder="e.g. No medical promises" className={field} />
+        </label>
+        <label className={labelCls}>Category
+          <select name="category" defaultValue={r?.category} className={field}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
+        </label>
+      </div>
+      <label className={labelCls}>What this rule means
+        <textarea name="description" rows={4} defaultValue={r?.description} className={area} />
+      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className={labelCls}>Do (one per line)
+          <textarea name="dos" rows={4} defaultValue={r?.dos.join("\n")} className={area} />
+        </label>
+        <label className={labelCls}>Don&apos;t (one per line)
+          <textarea name="donts" rows={4} defaultValue={r?.donts.join("\n")} className={area} />
+        </label>
+      </div>
+    </>
+  );
 
   return (
-    <AppLayout
-      title="Brand Voice & Regulatory Guidelines"
-      subtitle="Deterministic rules and voice parameters enforced across copy generation and human review triage."
-    >
-      <div className="space-y-6">
-        {/* Breadcrumb & Action Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <Link
-              href="/knowledge-base"
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>KNOWLEDGE BASE / BRAND GUIDELINES</span>
-            </Link>
+    <AppLayout>
+      <div className="mx-auto max-w-6xl space-y-8">
+        <KbHeader title="Brand guidelines" intro="The voice, tone and wording rules every ad is checked against. Add a rule by hand or upload your brand book.">
+          <Button size="sm" variant="secondary" className="h-10" icon={<FileUp className="h-4 w-4" />} onClick={() => uploadRef.current?.showModal()}>
+            Upload brand book
+          </Button>
+          <Button size="sm" className="h-10" icon={<Plus className="h-4 w-4" />} onClick={() => addRef.current?.showModal()}>Add rule</Button>
+        </KbHeader>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="led-indicator led-turquoise" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-100">
-                Brand Voice Guidelines &amp; Rules
-              </h1>
-              <Badge variant="verified" size="xs">
-                {guidelines.length} ACTIVE RULES
-              </Badge>
-              <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
-                PRE-FLIGHT REGEX SYNCED
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Authoritative brand rules used by the deterministic governance engine to evaluate tone, superlative leakage, and regulatory consistency.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Button
-              size="sm"
-              variant="gold"
-              icon={<Plus className="w-3.5 h-3.5 text-[#080C16]" />}
-              onClick={() => setIsModalOpen(true)}
-            >
-              Add Guideline Rule
-            </Button>
-          </div>
-        </div>
-
-        {/* Feedback Alert Toast */}
-        {toastMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="font-sans font-medium">{toastMessage}</span>
-            </div>
-            <button
-              onClick={() => setToastMessage(null)}
-              className="text-emerald-400 hover:text-white cursor-pointer"
-            >
-              <X className="w-4 h-4" />
+        <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-2">
+          {["all", ...CATEGORIES].map((c) => (
+            <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}
+              className={`h-9 rounded-full border px-4 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 ${cat === c ? "border-ink bg-ink text-canvas" : "border-border-default text-text-secondary hover:bg-panel-hover"}`}>
+              {c === "all" ? `All (${rules.length})` : c}
             </button>
-          </div>
-        )}
-
-        {/* Guidelines List */}
-        <div className="space-y-6">
-          {guidelines.map((g, idx) => (
-            <div key={idx} className="tactile-card rounded-xl p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#303030] pb-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#B5B5B5] px-2 py-0.5 rounded bg-[#191919] border border-[#303030]">
-                      {g.category}
-                    </span>
-                    <span className="text-[#858585] font-mono text-[11px]">RULE #{idx + 1}</span>
-                  </div>
-                  <h2 className="text-base font-bold text-white tracking-tight">{g.title}</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="led-indicator led-emerald" />
-                  <span className="text-[11px] font-mono text-emerald-400 font-semibold uppercase">
-                    ACTIVE &amp; ENFORCED
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-xs text-slate-300 leading-relaxed font-sans">{g.description}</p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
-                {/* Do's */}
-                <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-3">
-                  <div className="font-semibold text-emerald-400 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Approved Language &amp; Practices (Do&apos;s)</span>
-                  </div>
-                  <ul className="space-y-2 text-slate-200">
-                    {g.dos.map((item, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-emerald-400 font-bold">&bull;</span>
-                        <span className="leading-relaxed">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Don'ts */}
-                <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-3">
-                  <div className="font-semibold text-rose-400 flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    <span>Prohibited Violations (Don&apos;ts)</span>
-                  </div>
-                  <ul className="space-y-2 text-slate-200">
-                    {g.donts.map((item, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-rose-400 font-bold">&bull;</span>
-                        <span className="leading-relaxed">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
           ))}
         </div>
 
-        {/* Add Guideline Rule Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-[#303030] bg-[#141414]">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-white" />
-                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
-                    Add Brand Guideline Rule
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddRule} className="space-y-3.5 text-xs font-mono">
+        {visible.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {visible.map((r) => (
+              <article key={r.id} className="glass space-y-5 rounded-2xl p-5 sm:p-6">
                 <div>
-                  <label className="block text-[#858585] mb-1">CATEGORY</label>
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] cursor-pointer"
-                  >
-                    <option value="Voice & Tone">Voice &amp; Tone</option>
-                    <option value="Messaging Standards">Messaging Standards</option>
-                    <option value="Regulatory Safety">Regulatory Safety</option>
-                    <option value="Channel Format">Channel Format</option>
-                  </select>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="neutral" size="xs">{r.category}</Badge>
+                    {r.source && <span className="text-[13px] text-text-muted">From {r.source}</span>}
+                  </div>
+                  <h2 className="mt-2 text-lg font-semibold text-text-primary">{r.title}</h2>
+                  {r.description && <p className="mt-1 text-sm leading-relaxed text-text-secondary">{r.description}</p>}
                 </div>
-
-                <div>
-                  <label className="block text-[#858585] mb-1">RULE TITLE *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Clinical Efficacy & Substantiation Standards"
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white font-sans"
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {([["Do", r.dos, Check, "text-status-success"], ["Don't", r.donts, X, "text-status-critical"]] as const).map(([h, list, Icon, color]) => (
+                    <div key={h}>
+                      <h3 className="text-sm font-semibold text-text-primary">{h}</h3>
+                      {list.length ? (
+                        <ul className="mt-2 space-y-2">
+                          {list.map((t) => (
+                            <li key={t} className="flex gap-2 text-sm text-text-secondary">
+                              <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${color}`} aria-hidden="true" />{t}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="mt-2 text-sm text-text-muted">None yet.</p>}
+                    </div>
+                  ))}
                 </div>
-
-                <div>
-                  <label className="block text-[#858585] mb-1">RULE DESCRIPTION *</label>
-                  <textarea
-                    rows={2}
-                    required
-                    placeholder="Summary of brand policy and legal rationale..."
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] font-sans resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[#858585] mb-1">APPROVED LANGUAGE (DO'S) — 1 PER LINE</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Fuel your peak performance&#10;Backed by double-blind clinical trials"
-                    value={formDos}
-                    onChange={(e) => setFormDos(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] font-sans resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[#858585] mb-1">PROHIBITED PHRASES (DON'TS) — 1 PER LINE</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Never guarantee overnight results&#10;Never claim to cure chronic disease"
-                    value={formDonts}
-                    onChange={(e) => setFormDonts(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-[#B5B5B5] font-sans resize-none"
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" size="sm" variant="gold">
-                    Enforce Rule
-                  </Button>
-                </div>
-              </form>
-            </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="glass rounded-2xl py-12 text-center">
+            <p className="text-sm font-medium text-text-primary">No rules in this category yet</p>
+            <button onClick={() => addRef.current?.showModal()} className="mt-2 text-[13px] text-text-muted underline underline-offset-4 hover:text-text-primary">Add the first one</button>
           </div>
         )}
       </div>
+
+      <Modal ref={addRef} title="Add a guideline rule" wide>
+        <form onSubmit={(e) => save(e, addRef.current)} className="space-y-4">
+          {ruleFields()}
+          <div className="flex justify-end"><Button type="submit" size="sm" className="h-10">Save rule</Button></div>
+        </form>
+      </Modal>
+
+      <Modal ref={uploadRef} title="Upload a brand book" wide onClose={() => setDraft(null)}>
+        {!draft ? (
+          <FileDrop label="Choose your brand book" hint="PDF, Word, image or text, up to 15 MB. We read the text so you can review it before saving."
+            onText={(r) => setDraft(ruleFromText(r))} />
+        ) : (
+          <form key={draft.id} onSubmit={(e) => save(e, uploadRef.current, draft)} className="space-y-4">
+            <p className="text-sm text-text-secondary">We pulled this from <span className="font-medium text-text-primary">{draft.source}</span>. Tidy it up, then save.</p>
+            {ruleFields(draft)}
+            <div className="flex justify-end gap-2">
+              <Button type="button" size="sm" variant="secondary" className="h-10" onClick={() => setDraft(null)}>Choose another file</Button>
+              <Button type="submit" size="sm" className="h-10">Save as guideline</Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+      <Toast msg={toast} />
     </AppLayout>
   );
 }

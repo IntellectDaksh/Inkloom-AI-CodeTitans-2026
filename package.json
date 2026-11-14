@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx tests/full-e2e.test.ts && npx tsx tests/proposal-features.test.ts"
+    "test": "npx tsx tests/full-e2e.test.ts && npx tsx tests/proposal-features.test.ts && npx tsx src/lib/ai/__tests__/extract.test.ts",
+    "eval": "npx tsx src/lib/eval/run.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

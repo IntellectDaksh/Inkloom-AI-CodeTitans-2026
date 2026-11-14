@@ -292,7 +292,7 @@ export function runDeterministicFallbackAnalysis(input: GeminiAnalysisInput): Ge
 // Helper: Send Prompt to Gemini REST Endpoint
 // ============================================================================
 
-async function callGeminiEndpoint(
+export async function callGeminiEndpoint(
   endpointUrl: string,
   apiKey: string,
   requestBody: unknown,

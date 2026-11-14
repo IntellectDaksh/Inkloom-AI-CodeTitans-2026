@@ -110,10 +110,10 @@ export function DiffViewer({
     if (!textToSearch.includes(flaggedPhrase)) {
       return (
         <div className="flex flex-col gap-2.5 text-[15px] leading-relaxed">
-          <div className="line-through text-[#F87171] bg-[#1C1214] px-4 py-3 rounded-lg border border-[#7F1D1D]/50 font-medium">
+          <div className="line-through text-status-critical bg-status-critical/10 px-4 py-3 rounded-lg border border-status-critical/50 font-medium">
             {flaggedPhrase}
           </div>
-          <div className="text-[#4ADE80] bg-[#0C1A14] px-4 py-3 rounded-lg border border-[#166534]/50 font-medium">
+          <div className="text-status-success bg-status-success/10 px-4 py-3 rounded-lg border border-status-success/50 font-medium">
             {suggestedReplacement}
           </div>
         </div>
@@ -122,12 +122,12 @@ export function DiffViewer({
 
     const parts = textToSearch.split(flaggedPhrase);
     return (
-      <div className="text-[15px] text-[#B5B5B5] leading-relaxed p-5 rounded-lg bg-[#0A0A0A] border border-[#303030]">
+      <div className="text-[15px] text-text-secondary leading-relaxed p-5 rounded-lg glass-inset">
         <span>{parts[0]}</span>
-        <del className="bg-[#241013] text-[#EF4444] font-medium line-through decoration-[#EF4444] px-2 py-0.5 rounded-md border border-[#7F1D1D]/60 mx-1 inline-block">
+        <del className="bg-status-critical/10 text-status-critical font-medium line-through decoration-status-critical px-2 py-0.5 rounded-md border border-status-critical/60 mx-1 inline-block">
           {flaggedPhrase}
         </del>
-        <ins className="bg-[#0C241B] text-[#10B981] font-medium no-underline px-2 py-0.5 rounded-md border border-[#166534]/60 mx-1 inline-block">
+        <ins className="bg-status-success/10 text-status-success font-medium no-underline px-2 py-0.5 rounded-md border border-status-success/60 mx-1 inline-block">
           {suggestedReplacement}
         </ins>
         <span>{parts.slice(1).join(flaggedPhrase)}</span>
@@ -137,16 +137,16 @@ export function DiffViewer({
 
   return (
     <div
-      className={`rounded-xl bg-[#141414] border border-[#303030] overflow-hidden shadow-sm transition-all ${className}`}
+      className={`rounded-xl bg-panel border border-border-default overflow-hidden shadow-sm transition-all ${className}`}
     >
       {/* Diff Header */}
-      <div className="px-5 py-3.5 bg-[#141414] border-b border-[#303030] flex flex-wrap items-center justify-between gap-3">
+      <div className="px-5 py-3.5 bg-panel border-b border-border-default flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Badge variant={severity as BadgeVariant} dot size="xs">
             {severity.toUpperCase()}
           </Badge>
           {ruleName && (
-            <span className="text-sm font-semibold text-white truncate max-w-sm tracking-tight">
+            <span className="text-sm font-semibold text-text-primary truncate max-w-sm tracking-tight">
               {ruleName}
             </span>
           )}
@@ -158,7 +158,7 @@ export function DiffViewer({
             onClick={() =>
               setViewMode(viewMode === "split" ? "inline" : "split")
             }
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-[#858585] hover:text-white bg-[#191919] hover:bg-[#222222] border border-[#303030] transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-text-muted hover:text-text-primary bg-panel-hover hover:bg-panel-elevated border border-border-default transition-colors cursor-pointer"
             title={`Switch to ${viewMode === "split" ? "Inline" : "Split"} view`}
           >
             <SplitSquareVertical className="w-3.5 h-3.5" />
@@ -168,13 +168,13 @@ export function DiffViewer({
           {/* Copy Replacement */}
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-[#858585] hover:text-white bg-[#191919] hover:bg-[#222222] border border-[#303030] transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-text-muted hover:text-text-primary bg-panel-hover hover:bg-panel-elevated border border-border-default transition-colors cursor-pointer"
             title="Copy suggestion"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-[#10B981]" />
-                <span className="text-[#10B981] font-medium">Copied</span>
+                <Check className="w-3.5 h-3.5 text-status-success" />
+                <span className="text-status-success font-medium">Copied</span>
               </>
             ) : (
               <>
@@ -187,10 +187,10 @@ export function DiffViewer({
       </div>
 
       {/* Diff Content Body */}
-      <div className="p-5 space-y-4 bg-[#0A0A0A]">
+      <div className="p-5 space-y-4">
         {reason && (
-          <div className="flex items-start gap-3 p-3.5 rounded-lg bg-[#141414] border border-[#303030] text-sm text-[#B5B5B5] leading-relaxed">
-            <ShieldAlert className="w-4 h-4 text-[#F59E0B] shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 p-3.5 rounded-lg bg-panel border border-border-default text-sm text-text-secondary leading-relaxed">
+            <ShieldAlert className="w-4 h-4 text-status-warning shrink-0 mt-0.5" />
             <p>{reason}</p>
           </div>
         )}
@@ -198,21 +198,21 @@ export function DiffViewer({
         {viewMode === "split" ? (
           <div className="space-y-3 text-[15px] leading-relaxed">
             {/* Redline Strike-through Original Row with Word-Level Highlighting */}
-            <div className="flex items-start gap-3 p-3.5 rounded-lg bg-[#180E10] border border-[#4C1D24]">
-              <span className="text-[#EF4444] font-bold shrink-0 select-none text-base leading-none mt-0.5">
+            <div className="flex items-start gap-3 p-3.5 rounded-lg bg-status-critical/10 border border-status-critical/30">
+              <span className="text-status-critical font-bold shrink-0 select-none text-base leading-none mt-0.5">
                 -
               </span>
-              <div className="flex-1 text-[#EF4444] break-words font-normal">
+              <div className="flex-1 text-status-critical break-words font-normal">
                 {wordDiff.commonPrefix && (
-                  <span className="text-[#858585] mr-1.5">
+                  <span className="text-text-muted mr-1.5">
                     {wordDiff.commonPrefix}
                   </span>
                 )}
-                <span className="line-through decoration-[#EF4444] font-medium bg-[#2E1418] px-1.5 py-0.5 rounded">
+                <span className="line-through decoration-status-critical font-medium bg-status-critical/10 px-1.5 py-0.5 rounded">
                   {wordDiff.removed || flaggedPhrase}
                 </span>
                 {wordDiff.commonSuffix && (
-                  <span className="text-[#858585] ml-1.5">
+                  <span className="text-text-muted ml-1.5">
                     {wordDiff.commonSuffix}
                   </span>
                 )}
@@ -220,21 +220,21 @@ export function DiffViewer({
             </div>
 
             {/* Green Highlight Suggested Replacement Row */}
-            <div className="flex items-start gap-3 p-3.5 rounded-lg bg-[#0C1A14] border border-[#166534]">
-              <span className="text-[#10B981] font-bold shrink-0 select-none text-base leading-none mt-0.5">
+            <div className="flex items-start gap-3 p-3.5 rounded-lg bg-status-success/10 border border-status-success/30">
+              <span className="text-status-success font-bold shrink-0 select-none text-base leading-none mt-0.5">
                 +
               </span>
-              <div className="flex-1 text-[#10B981] break-words font-medium">
+              <div className="flex-1 text-status-success break-words font-medium">
                 {wordDiff.commonPrefix && (
-                  <span className="text-[#858585] mr-1.5 font-normal">
+                  <span className="text-text-muted mr-1.5 font-normal">
                     {wordDiff.commonPrefix}
                   </span>
                 )}
-                <span className="bg-[#122A1E] px-1.5 py-0.5 rounded">
+                <span className="bg-status-success/10 px-1.5 py-0.5 rounded">
                   {wordDiff.added || suggestedReplacement}
                 </span>
                 {wordDiff.commonSuffix && (
-                  <span className="text-[#858585] ml-1.5 font-normal">
+                  <span className="text-text-muted ml-1.5 font-normal">
                     {wordDiff.commonSuffix}
                   </span>
                 )}
@@ -247,9 +247,9 @@ export function DiffViewer({
       </div>
 
       {/* Diff Footer / Action bar */}
-      <div className="px-5 py-3.5 bg-[#141414] border-t border-[#303030] flex items-center justify-between">
-        <span className="text-xs text-[#858585] flex items-center gap-2 font-medium">
-          <GitCompare className="w-4 h-4 text-[#858585]" />
+      <div className="px-5 py-3.5 bg-panel border-t border-border-default flex items-center justify-between">
+        <span className="text-xs text-text-muted flex items-center gap-2 font-medium">
+          <GitCompare className="w-4 h-4 text-text-muted" />
           <span>Remediation Diff</span>
         </span>
 
@@ -262,7 +262,7 @@ export function DiffViewer({
             disabled={applied}
             icon={
               applied ? (
-                <Check className="w-4 h-4 text-[#10B981]" />
+                <Check className="w-4 h-4 text-status-success" />
               ) : (
                 <ArrowRight className="w-4 h-4" />
               )

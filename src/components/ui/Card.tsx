@@ -26,16 +26,16 @@ export function Card({
 }: CardProps) {
   // Primary surface #141414, Secondary surface #191919, Borders #303030
   const variantStyles: Record<string, string> = {
-    default: "bg-[#141414] border border-[#303030] shadow-sm",
-    elevated: "bg-[#191919] border border-[#303030] shadow-md",
+    default: "glass",
+    elevated: "glass-strong",
     interactive:
-      "bg-[#141414] hover:bg-[#191919] border border-[#303030] hover:border-[#404040] transition-colors cursor-pointer",
-    glass: "bg-[#141414]/95 backdrop-blur-sm border border-[#303030]",
-    highlight: "bg-[#141414] border border-[#404040]",
-    gold: "bg-[#141414] border border-[#303030]",
-    turquoise: "bg-[#141414] border border-[#303030]",
-    well: "bg-[#0A0A0A] border border-[#303030] p-6",
-    open: "bg-[#141414] border-0",
+      "glass hover:bg-panel-hover hover:border-border-strong transition-colors cursor-pointer",
+    glass: "glass",
+    highlight: "glass border-border-strong",
+    gold: "glass",
+    turquoise: "glass",
+    well: "glass-inset p-6",
+    open: "bg-panel border-0",
     borderless: "bg-transparent border-0",
   };
 
@@ -63,7 +63,7 @@ export function CardHeader({
   return (
     <div
       className={`px-6 py-5 ${
-        divided ? "border-b border-[#303030]" : ""
+        divided ? "border-b border-border-default" : ""
       } ${className}`}
     >
       {children}
@@ -80,7 +80,7 @@ export function CardTitle({
 }) {
   return (
     <h3
-      className={`text-lg sm:text-xl font-medium text-white tracking-tight ${className}`}
+      className={`font-display text-lg sm:text-xl font-semibold text-text-primary tracking-tight ${className}`}
     >
       {children}
     </h3>
@@ -95,7 +95,7 @@ export function CardDescription({
   className?: string;
 }) {
   return (
-    <p className={`text-sm leading-normal text-[#858585] mt-1.5 ${className}`}>
+    <p className={`text-sm leading-normal text-text-muted mt-1.5 ${className}`}>
       {children}
     </p>
   );
@@ -123,7 +123,7 @@ export function CardFooter({
   return (
     <div
       className={`px-6 py-4 flex items-center ${
-        divided ? "border-t border-[#303030]" : ""
+        divided ? "border-t border-border-default" : ""
       } ${className}`}
     >
       {children}

@@ -55,7 +55,13 @@ export function AppLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-[#080808] text-white selection:bg-white/20 selection:text-white overflow-x-hidden">
+    <div className="relative isolate flex min-h-screen bg-canvas text-text-primary overflow-x-hidden">
+      <div className="atmosphere" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
+
       {/* Global CommandK Quick Switcher Dialog */}
       <CommandK
         isOpen={isCommandKOpen}
@@ -72,7 +78,7 @@ export function AppLayout({
       />
 
       {/* Main Swiss Content Shell */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#080808]">
+      <div className="flex-1 flex flex-col min-w-0">
         <Header
           title={title}
           subtitle={subtitle}

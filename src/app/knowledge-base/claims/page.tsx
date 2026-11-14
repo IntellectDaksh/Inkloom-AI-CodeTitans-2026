@@ -1,1241 +1,788 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ShieldCheck,
-  Plus,
-  Search,
-  Filter,
-  AlertTriangle,
-  Calendar,
-  User,
-  FileText,
-  CheckCircle2,
-  Clock,
-  ArrowLeft,
-  X,
-  Database,
-  ExternalLink,
-  ChevronRight,
-  Copy,
-  Check,
-  Lock,
-  Layers,
-  Sparkles,
-  RefreshCw,
-  AlertOctagon,
-} from "lucide-react";
+import { AlertTriangle, BadgeCheck, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { AddClaimsDialog, type NewClaimInput } from "@/components/knowledge/AddClaimsDialog";
+import { FileDrop, Toast, UNVERIFIED, area, field, focusRing, labelCls } from "@/components/knowledge/kb";
 
-interface DependentSubmissionItem {
+type Brand = string;
+
+interface Evidence {
+  source: string;
+  kind: string;
+  ref: string;
+  excerpt: string;
+  version: string;
+  checkedAt: string;
+  /** Added through the UI: never shown as verified until a reviewer signs it off. */
+  userAdded?: boolean;
+  fileName?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+}
+
+interface Usage {
   id: string;
   title: string;
-  status: string;
-  channel?: string;
-  authorName?: string;
+  channel: string;
+  date: string;
 }
 
-interface ClaimItem {
+interface Claim {
   id: string;
-  claimId?: string;
-  claim_code?: string;
-  claimText: string;
-  category: string;
-  evidenceSource: string;
-  evidenceExcerpt?: string;
-  doi?: string;
-  assayStandard?: string;
-  permittedContext?: string;
-  owner?: string;
-  status: "approved" | "expired" | "under_review";
+  code: string;
+  brand: Brand;
+  type: string;
+  text: string;
+  draft?: boolean;
   expiresAt: string;
-  daysRemaining?: number;
-  sha256?: string;
-  dependentSubmissions?: DependentSubmissionItem[];
-  dependentCount?: number;
+  updatedAt: string;
+  channels: string[];
+  owner: string;
+  prohibited: string[];
+  evidence: Evidence[];
+  usage: Usage[];
+  /** Id in the claims API store, when this claim exists there. */
+  apiId?: string;
+  /** Wording or expiry changed since drafts were checked against it. */
+  edited?: boolean;
+  flaggedAt?: string;
+  /** Not saved to the server (API unavailable). */
+  localOnly?: boolean;
 }
 
-const SEED_CLAIMS: ClaimItem[] = [
+// Demo data. Every source below is fictional and has not been independently verified.
+const SEED_CLAIMS: Claim[] = [
   {
-    id: "00000000-0000-4000-clm0-000000000001",
-    claimId: "CLM-APX-001",
-    claim_code: "CLM-APX-001",
-    claimText:
-      "Supports post-workout protein synthesis when consumed within 45 minutes of resistance training.",
-    category: "Performance",
-    evidenceSource: "Clinical Study Report APX-2024-C3: Muscle Protein Synthesis Biomarkers",
-    doi: "10.1016/j.nutres.2024.108421",
-    assayStandard: "ISO 22196:2011 Annex C / Double-Blind Cross-Over RCT",
-    evidenceExcerpt:
-      "Mean fractional synthetic rate (FSR) showed a 28.4% elevation (p = 0.004) relative to control over an 8-week intervention protocol.",
-    permittedContext: "Digital Video, Paid Social, Product Detail Pages",
-    owner: "Dr. Aris Vance (VP Medical & Regulatory)",
-    status: "approved",
-    expiresAt: "2026-12-31",
-    daysRemaining: 54,
-    sha256: "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1a209b1f074d6b05be5cf6287c",
-    dependentSubmissions: [
-      {
-        id: "00000000-0000-4000-c000-000000000001",
-        title: "Q4 Campaign – Clinical Protein Reel Script",
-        status: "under_review",
-        channel: "Instagram Reel",
-        authorName: "Riddhi S. (Content Specialist)",
-      },
-      {
-        id: "00000000-0000-4000-c000-000000000003",
-        title: "Apex Iso-Whey E-Commerce PDP Headline",
-        status: "approved",
-        channel: "Landing Page / Hero",
-        authorName: "Daksh Agrawal (Brand Director)",
-      },
+    id: "clm-apx-001", code: "CLM-APX-001", brand: "Apex Nutrition", type: "Performance",
+    text: "Supports post-workout protein synthesis when taken within 45 minutes of resistance training.",
+    expiresAt: "2026-12-31", updatedAt: "2026-11-02",
+    channels: ["Instagram", "Paid social", "Product page"], owner: "Dr. Aris Vance, Medical & Regulatory",
+    prohibited: ["Builds muscle faster than any other protein", "Doubles muscle growth", "Clinically proven to build muscle"],
+    evidence: [
+      { source: "Clinical study report APX-2024-C3", kind: "Clinical study", ref: "DOI 10.1016/j.nutres.2024.108421", excerpt: "Mean fractional synthetic rate was 28.4% higher than control (p = 0.004) over 8 weeks.", version: "v2", checkedAt: "2026-10-18" },
+      { source: "Internal formulation sheet", kind: "Internal document", ref: "FORM-APX-ISO-12", excerpt: "Each serving provides 25 g whey isolate with 2.8 g leucine.", version: "v5", checkedAt: "2026-09-30" },
     ],
-    dependentCount: 2,
+    usage: [
+      { id: "sub_reel_script", title: "Q4 campaign, clinical protein reel script", channel: "Instagram Reel", date: "2026-11-12" },
+      { id: "sub_pdp_headline", title: "Iso-Whey product page headline", channel: "Product page", date: "2026-10-20" },
+    ],
   },
   {
-    id: "00000000-0000-4000-clm0-000000000002",
-    claimId: "CLM-APX-002",
-    claim_code: "CLM-APX-002",
-    claimText:
-      "100% Informed-Sport certified, tested for over 250 WADA-prohibited substances.",
-    category: "Certifications",
-    evidenceSource: "LGC Informed-Sport Certificate of Analysis (Batch Cert #IS-8921)",
-    doi: "LGC-IS-2026-Q1",
-    assayStandard: "ISO/IEC 17025 Accredited Mass Spectrometry Screening",
-    evidenceExcerpt:
-      "All screened multi-residue pesticide and anabolic compounds were below limit of quantification (LOQ < 10ng/g).",
-    permittedContext: "Packaging, Global Web, Brand Ambassador Kits",
-    owner: "Mansoor R. (Quality Assurance Director)",
-    status: "approved",
-    expiresAt: "2026-11-25",
-    daysRemaining: 17,
-    sha256: "e4d909c290d0fb1ca068ffaddf22cbd0add917136e1436dd531a450b2071edd0",
-    dependentSubmissions: [
-      {
-        id: "00000000-0000-4000-c000-000000000002",
-        title: "Product Launch – Recovery Blend Carousel",
-        status: "approved",
-        channel: "Meta Paid Social",
-        authorName: "Mansoor R. (QA Director)",
-      },
-      {
-        id: "00000000-0000-4000-c000-000000000005",
-        title: "Collegiate Athlete Sponsorship Ad Copy",
-        status: "submitted",
-        channel: "Video Ad",
-        authorName: "Laksh K. (Reviewer)",
-      },
+    id: "clm-apx-002", code: "CLM-APX-002", brand: "Apex Nutrition", type: "Certification",
+    text: "Informed-Sport certified. Every batch is tested for substances on the WADA prohibited list.",
+    expiresAt: "2026-12-01", updatedAt: "2026-10-28",
+    channels: ["Packaging", "Website", "Ambassador kits"], owner: "Mansoor R., Quality Assurance",
+    prohibited: ["100% drug free", "Guaranteed safe for all athletes", "Banned-substance proof"],
+    evidence: [
+      { source: "Certificate of analysis, batch IS-8921", kind: "Certificate", ref: "LGC-IS-2026-Q1", excerpt: "All screened compounds were below the limit of quantification (LOQ < 10 ng/g).", version: "Q1 2026", checkedAt: "2026-10-28" },
     ],
-    dependentCount: 2,
+    usage: [
+      { id: "sub_insta_launch", title: "Recovery blend carousel", channel: "Instagram Carousel", date: "2026-11-13" },
+      { id: "sub_athlete_ad", title: "College athlete sponsorship ad", channel: "Video ad", date: "2026-10-04" },
+    ],
   },
   {
-    id: "00000000-0000-4000-clm0-000000000003",
-    claimId: "CLM-APX-003",
-    claim_code: "CLM-APX-003",
-    claimText:
-      "Clinically shown to increase peak VO2 max output and time-to-exhaustion by 14.3% in trained endurance athletes.",
-    category: "Clinical",
-    evidenceSource: "Cardiopulmonary Exercise Testing Protocol (CPET-2024-B)",
-    doi: "10.1249/MSS.0000000000003189",
-    assayStandard: "Vyntus CPET Metabolic Cart Validation",
-    evidenceExcerpt:
-      "Peak oxygen uptake increased from 51.2 ± 3.4 to 58.5 ± 3.1 mL/kg/min (p < 0.001) over 6 weeks.",
-    permittedContext: "B2B Performance Reports, Clinical Whitepapers",
-    owner: "Dr. Aris Vance (VP Medical & Regulatory)",
-    status: "approved",
-    expiresAt: "2026-12-05",
-    daysRemaining: 27,
-    sha256: "8a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef",
-    dependentSubmissions: [
-      {
-        id: "00000000-0000-4000-c000-000000000004",
-        title: "Endurance Breakthrough — LinkedIn Thought Leadership",
-        status: "approved",
-        channel: "Newsletter / LinkedIn",
-        authorName: "Laksh K. (Reviewer)",
-      },
+    id: "clm-apx-003", code: "CLM-APX-003", brand: "Apex Nutrition", type: "Clinical",
+    text: "Raised peak VO2 max by 14.3% in trained endurance athletes over six weeks.",
+    expiresAt: "2026-12-05", updatedAt: "2026-09-14",
+    channels: ["B2B reports", "Whitepapers"], owner: "Dr. Aris Vance, Medical & Regulatory",
+    prohibited: ["Boosts stamina for everyone", "Makes you run 14% faster"],
+    evidence: [
+      { source: "CPET protocol report CPET-2024-B", kind: "Clinical study", ref: "DOI 10.1249/MSS.0000000000003189", excerpt: "Peak oxygen uptake rose from 51.2 to 58.5 mL/kg/min (p < 0.001).", version: "v1", checkedAt: "2026-09-14" },
     ],
-    dependentCount: 1,
+    usage: [{ id: "sub_linkedin_endurance", title: "Endurance results LinkedIn post", channel: "LinkedIn", date: "2026-09-22" }],
   },
   {
-    id: "00000000-0000-4000-clm0-000000000004",
-    claimId: "CLM-APX-004",
-    claim_code: "CLM-APX-004",
-    claimText:
-      "Zero added sugars, naturally sweetened with non-GMO fermented stevia leaf extract.",
-    category: "Ingredients",
-    evidenceSource: "Nutritional Composition Assay (Eurofins Food Chemistry #EF-9921)",
-    doi: "AOAC Official Method 996.11",
-    assayStandard: "AOAC High-Performance Anion-Exchange Chromatography",
-    evidenceExcerpt:
-      "Free sucrose, fructose, and glucose concentrations tested below 0.1g per 100g serving.",
-    permittedContext: "Nutrition Facts Panel, Social Media, Retail Displays",
-    owner: "Elena Rostova (Compliance Counsel)",
-    status: "approved",
-    expiresAt: "2027-06-30",
-    daysRemaining: 234,
-    sha256: "123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
-    dependentSubmissions: [
-      {
-        id: "00000000-0000-4000-c000-000000000002",
-        title: "Clean Nutrition Ingredient Spotlight Banner",
-        status: "approved",
-        channel: "Display Banner",
-        authorName: "Riddhi S. (Content Specialist)",
-      },
+    id: "clm-apx-004", code: "CLM-APX-004", brand: "Apex Nutrition", type: "Ingredient",
+    text: "No added sugar. Sweetened with stevia leaf extract.",
+    expiresAt: "2027-06-30", updatedAt: "2026-08-03",
+    channels: ["Nutrition panel", "Social", "Retail displays"], owner: "Elena Rostova, Compliance Counsel",
+    prohibited: ["Sugar free", "Zero calories", "Diabetic friendly"],
+    evidence: [
+      { source: "Nutritional composition assay EF-9921", kind: "Lab test", ref: "AOAC 996.11", excerpt: "Sucrose, fructose and glucose each measured below 0.1 g per 100 g.", version: "v1", checkedAt: "2026-08-03" },
     ],
-    dependentCount: 1,
+    usage: [{ id: "sub_banner_ingredients", title: "Ingredient spotlight banner", channel: "Display", date: "2026-08-19" }],
   },
   {
-    id: "00000000-0000-4000-clm0-000000000005",
-    claimId: "CLM-APX-005",
-    claim_code: "CLM-APX-005",
-    claimText:
-      "Promotes sustained cellular hydration through balanced 3:1 sodium-to-potassium electrolyte ratios.",
-    category: "Performance",
-    evidenceSource: "Electrolyte Osmolality Validation Report EOS-2023",
-    doi: "USP <785> Osmolality Standard",
-    assayStandard: "Freezing Point Depression Osmometry",
-    evidenceExcerpt:
-      "Final solution measured 285 mOsm/kg H2O, conforming to isotonic rehydration guidelines.",
-    permittedContext: "DTC Website, Digital Ads, Fitness Partnerships",
-    owner: "Dr. Marcus Lin (Scientific Advisor)",
-    status: "approved",
-    expiresAt: "2026-08-15",
-    daysRemaining: 0,
-    sha256: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
-    dependentSubmissions: [
-      {
-        id: "00000000-0000-4000-c000-000000000001",
-        title: "Paid Social Ad Creative – Hydration Electrolytes V2",
-        status: "approved",
-        channel: "Instagram Reel",
-        authorName: "Daksh Agrawal (Brand Director)",
-      },
+    id: "clm-apx-005", code: "CLM-APX-005", brand: "Apex Nutrition", type: "Performance",
+    text: "Helps maintain hydration with a 3:1 sodium to potassium electrolyte ratio.",
+    expiresAt: "2026-08-15", updatedAt: "2026-05-11",
+    channels: ["Website", "Digital ads"], owner: "Dr. Marcus Lin, Scientific Advisor",
+    prohibited: ["Hydrates 3x better than water", "Prevents cramps"],
+    evidence: [
+      { source: "Electrolyte osmolality report EOS-2023", kind: "Lab test", ref: "USP <785>", excerpt: "Solution measured 285 mOsm/kg, within isotonic range.", version: "v1", checkedAt: "2025-08-15" },
     ],
-    dependentCount: 1,
+    usage: [{ id: "sub_hydration_v2", title: "Hydration electrolytes ad, version 2", channel: "Instagram Reel", date: "2026-07-30" }],
+  },
+  {
+    id: "clm-apx-006", code: "CLM-APX-006", brand: "Apex Nutrition", type: "Ingredient",
+    text: "Contains 5 g creatine monohydrate per serving.",
+    draft: true, expiresAt: "2027-11-01", updatedAt: "2026-11-10",
+    channels: ["Packaging"], owner: "Elena Rostova, Compliance Counsel",
+    prohibited: ["Pharmaceutical-grade creatine"],
+    evidence: [
+      { source: "Supplier certificate of analysis", kind: "Certificate", ref: "SUP-CR-0412", excerpt: "Creatine monohydrate purity 99.6% by HPLC.", version: "draft", checkedAt: "2026-11-10" },
+    ],
+    usage: [],
+  },
+  {
+    id: "clm-zen-001", code: "CLM-ZEN-001", brand: "Zenith Cloud", type: "Service level",
+    text: "99.95% monthly uptime on Enterprise plans, backed by service credits.",
+    expiresAt: "2027-03-31", updatedAt: "2026-10-01",
+    channels: ["Website", "Sales decks", "Email"], owner: "Priya Natarajan, Legal",
+    prohibited: ["Never goes down", "100% uptime", "Guaranteed zero downtime"],
+    evidence: [
+      { source: "Enterprise SLA", kind: "Contract", ref: "SLA-ENT-2026", excerpt: "Monthly uptime of at least 99.95%, otherwise credits apply per section 4.", version: "2026.2", checkedAt: "2026-10-01" },
+      { source: "Status history export", kind: "Internal document", ref: "STATUS-Q3-2026", excerpt: "Q3 measured uptime 99.97% across all regions.", version: "Q3", checkedAt: "2026-10-03" },
+    ],
+    usage: [{ id: "sub_email_promo", title: "Enterprise SLA email announcement", channel: "Newsletter", date: "2026-11-14" }],
+  },
+  {
+    id: "clm-zen-002", code: "CLM-ZEN-002", brand: "Zenith Cloud", type: "Security",
+    text: "SOC 2 Type II report available to customers under NDA.",
+    expiresAt: "2026-11-30", updatedAt: "2026-06-12",
+    channels: ["Website", "Sales decks"], owner: "Tomás Herrera, Security",
+    prohibited: ["SOC 2 certified", "Unhackable", "Bank-grade security"],
+    evidence: [
+      { source: "SOC 2 Type II attestation report", kind: "Audit report", ref: "AUD-ZEN-2025", excerpt: "Report period 1 Dec 2024 to 30 Nov 2025, no exceptions noted.", version: "2025", checkedAt: "2026-06-12" },
+    ],
+    usage: [{ id: "sub_security_page", title: "Trust page refresh", channel: "Website", date: "2026-06-20" }],
+  },
+  {
+    id: "clm-zen-003", code: "CLM-ZEN-003", brand: "Zenith Cloud", type: "Performance",
+    text: "Median API response time under 120 ms in EU and US regions.",
+    expiresAt: "2026-10-31", updatedAt: "2026-04-30",
+    channels: ["Developer docs", "Website"], owner: "Wen Li, Platform",
+    prohibited: ["Fastest cloud on the market", "Instant responses"],
+    evidence: [
+      { source: "Internal latency benchmark", kind: "Internal document", ref: "BENCH-API-0426", excerpt: "p50 latency 104 ms (EU), 111 ms (US) across 30 days.", version: "v1", checkedAt: "2026-04-30" },
+    ],
+    usage: [{ id: "sub_dev_landing", title: "Developer landing page", channel: "Website", date: "2026-05-14" }],
+  },
+  {
+    id: "clm-zen-004", code: "CLM-ZEN-004", brand: "Zenith Cloud", type: "Comparison",
+    text: "Up to 30% lower compute cost than our 2024 pricing for the same workload.",
+    draft: true, expiresAt: "2027-05-01", updatedAt: "2026-11-08",
+    channels: ["Paid search"], owner: "Priya Natarajan, Legal",
+    prohibited: ["30% cheaper than AWS", "Cheapest cloud provider"],
+    evidence: [
+      { source: "Pricing comparison worksheet", kind: "Internal document", ref: "PRICE-CMP-1108", excerpt: "Reference workload cost fell from $4,210 to $2,960 per month.", version: "draft", checkedAt: "2026-11-08" },
+    ],
+    usage: [],
+  },
+  {
+    id: "clm-lum-001", code: "CLM-LUM-001", brand: "Lumina Labs", type: "Cosmetic",
+    text: "Visibly reduces the look of fine lines after 8 weeks of twice-daily use.",
+    expiresAt: "2027-02-28", updatedAt: "2026-09-21",
+    channels: ["Instagram", "Product page", "Retail"], owner: "Dr. Hana Sato, Dermatology",
+    prohibited: ["Reverses aging", "Repairs cells", "Removes wrinkles permanently", "Works like Botox"],
+    evidence: [
+      { source: "Consumer perception and instrumental study LUM-CS-07", kind: "Clinical study", ref: "LUM-CS-07", excerpt: "Profilometry showed an 11% reduction in fine line depth at week 8 (n = 42).", version: "v3", checkedAt: "2026-09-21" },
+      { source: "Panel self-assessment", kind: "Consumer survey", ref: "LUM-SA-07", excerpt: "71% of participants agreed fine lines looked less visible.", version: "v1", checkedAt: "2026-09-21" },
+    ],
+    usage: [
+      { id: "sub_clinical_whitepaper", title: "Peptide serum study summary", channel: "Healthcare portal", date: "2026-11-14" },
+      { id: "sub_lumina_reel", title: "Night serum launch reel", channel: "Instagram Reel", date: "2026-10-09" },
+    ],
+  },
+  {
+    id: "clm-lum-002", code: "CLM-LUM-002", brand: "Lumina Labs", type: "Safety",
+    text: "Dermatologist tested on sensitive skin.",
+    expiresAt: "2026-12-10", updatedAt: "2026-07-07",
+    channels: ["Packaging", "Website"], owner: "Dr. Hana Sato, Dermatology",
+    prohibited: ["Hypoallergenic", "Safe for all skin", "Dermatologist recommended"],
+    evidence: [
+      { source: "Repeat insult patch test report", kind: "Lab test", ref: "HRIPT-LUM-22", excerpt: "No irritation or sensitization observed in 55 subjects with self-declared sensitive skin.", version: "v1", checkedAt: "2026-07-07" },
+    ],
+    usage: [{ id: "sub_lumina_pack", title: "Gentle cleanser pack copy", channel: "Packaging", date: "2026-07-15" }],
+  },
+  {
+    id: "clm-lum-003", code: "CLM-LUM-003", brand: "Lumina Labs", type: "Ingredient",
+    text: "Fragrance free and formulated without parabens.",
+    expiresAt: "2027-09-30", updatedAt: "2026-10-14",
+    channels: ["Packaging", "Website", "Instagram"], owner: "Grace Oduya, Regulatory",
+    prohibited: ["Chemical free", "Non-toxic", "Clean beauty certified"],
+    evidence: [
+      { source: "Full ingredient declaration", kind: "Internal document", ref: "INCI-LUM-NS-04", excerpt: "No fragrance, parfum or paraben compounds listed in INCI.", version: "v4", checkedAt: "2026-10-14" },
+    ],
+    usage: [],
   },
 ];
 
-export default function ApprovedClaimsPage() {
-  const [claims, setClaims] = useState<ClaimItem[]>(SEED_CLAIMS);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [selectedClaim, setSelectedClaim] = useState<ClaimItem | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [copiedClaimId, setCopiedClaimId] = useState<string | null>(null);
+type Status = "approved" | "expiring" | "expired" | "draft";
 
-  // Proposal Central Originality States: Cascade Re-Review
-  const [cascadeModalClaim, setCascadeModalClaim] = useState<ClaimItem | null>(null);
-  const [dependentDraftsModalClaim, setDependentDraftsModalClaim] = useState<ClaimItem | null>(null);
-  const [isCascading, setIsCascading] = useState(false);
-  const [cascadeSuccessMessage, setCascadeSuccessMessage] = useState<string | null>(null);
-  const [cascadeReason, setCascadeReason] = useState(
-    "Clinical evidence contract expired / regulatory permitted scope updated"
-  );
-  const [cascadeLoading, setCascadeLoading] = useState(false);
-  const [cascadeFeedback, setCascadeFeedback] = useState<string | null>(null);
+const STATUS: Record<Status, { label: string; variant: "approved" | "warning" | "violation" | "draft" }> = {
+  approved: { label: "Approved", variant: "approved" },
+  expiring: { label: "Expiring soon", variant: "warning" },
+  expired: { label: "Expired", variant: "violation" },
+  draft: { label: "Draft", variant: "draft" },
+};
 
-  // Form State
-  const [formStatement, setFormStatement] = useState("");
-  const [formCategory, setFormCategory] = useState("Performance");
-  const [formDoc, setFormDoc] = useState("");
-  const [formDoi, setFormDoi] = useState("");
-  const [formAssay, setFormAssay] = useState("");
-  const [formExcerpt, setFormExcerpt] = useState("");
-  const [formContext, setFormContext] = useState("Digital Video, Paid Social, Product Detail Pages");
-  const [formExpiresAt, setFormExpiresAt] = useState("2027-12-31");
-  const [formOwner, setFormOwner] = useState("Dr. Aris Vance (VP Medical & Regulatory)");
+const BRANDS: Brand[] = ["Apex Nutrition", "Zenith Cloud", "Lumina Labs"];
+const DAY = 86_400_000;
+const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
-  useEffect(() => {
-    fetch("/api/claims?brandId=brand_apex")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.claims && data.claims.length > 0) {
-          const merged = data.claims.map((apiClaim: any) => {
-            const seed = SEED_CLAIMS.find(
-              (sc) => sc.claimId === apiClaim.claim_code || sc.id === apiClaim.id
-            );
-            return {
-              ...apiClaim,
-              id: apiClaim.id,
-              claimId: apiClaim.claim_code,
-              claim_code: apiClaim.claim_code,
-              claimText: apiClaim.claimText || apiClaim.claim_text,
-              evidenceSource: seed?.evidenceSource || "Clinical Protocol Verification",
-              doi: seed?.doi || "ISO 17025 ASSAY",
-              assayStandard: seed?.assayStandard || "Clinical Trial Protocol",
-              evidenceExcerpt: seed?.evidenceExcerpt || apiClaim.claimText,
-              permittedContext: apiClaim.permittedContext || apiClaim.permitted_context,
-              owner: seed?.owner || "Daksh Agrawal",
-              status: apiClaim.status,
-              expiresAt: apiClaim.expiresAt || apiClaim.expires_at || "2027-12-31",
-              daysRemaining: apiClaim.days_until_expiry ?? seed?.daysRemaining ?? 45,
-              sha256: seed?.sha256 || "7f83b165...9b12",
-              dependentSubmissions:
-                apiClaim.dependent_submissions && apiClaim.dependent_submissions.length > 0
-                  ? apiClaim.dependent_submissions.map((s: any) => ({
-                      id: s.id,
-                      title: s.title,
-                      status: s.status,
-                      channel: s.channel || s.metadata?.channel || "Marketing Draft",
-                      authorName: s.authorName || "Riddhi S.",
-                    }))
-                  : seed?.dependentSubmissions || [],
-              dependentCount:
-                apiClaim.dependentCount || seed?.dependentCount || 1,
-            };
-          });
-          setClaims(merged);
-        }
-      })
-      .catch(() => {});
-  }, []);
+const BRAND_IDS: Record<string, string> = {
+  "00000000-0000-4000-b000-000000000001": "Apex Nutrition",
+  "00000000-0000-4000-b000-000000000002": "Zenith Cloud",
+};
+const today = () => new Date().toISOString().slice(0, 10);
+const cap = (s?: string) => (s ? s[0].toUpperCase() + s.slice(1).replace(/_/g, " ") : "General");
 
-  const handleTriggerCascade = async (claimId: string) => {
-    setCascadeLoading(true);
-    try {
-      const res = await fetch(`/api/claims/${claimId}/cascade`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reason: cascadeReason,
-          triggeredBy: "usr_daksh",
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        // Update local claims state to reflect dependent submissions status change
-        setClaims((prev) =>
-          prev.map((c) => {
-            if (c.id === claimId || c.claimId === claimId || c.claim_code === claimId) {
-              const updatedDeps = (c.dependentSubmissions || []).map((dep) => ({
-                ...dep,
-                status: "needs_re_review",
-              }));
-              return {
-                ...c,
-                dependentSubmissions: updatedDeps,
-              };
-            }
-            return c;
-          })
-        );
-        if (selectedClaim && (selectedClaim.id === claimId || selectedClaim.claimId === claimId)) {
-          setSelectedClaim((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  dependentSubmissions: (prev.dependentSubmissions || []).map((dep) => ({
-                    ...dep,
-                    status: "needs_re_review",
-                  })),
-                }
-              : null
-          );
-        }
-        setCascadeFeedback(
-          `Cascade Re-Review triggered! ${data.count || 2} dependent draft(s) quarantined with status 'needs_re_review'. Audit trail updated.`
-        );
-        setTimeout(() => setCascadeFeedback(null), 5000);
-        setCascadeModalClaim(null);
-      }
-    } finally {
-      setCascadeLoading(false);
-    }
+/* eslint-disable @typescript-eslint/no-explicit-any -- API returns the loose store shape */
+function fromApi(c: any): Claim {
+  const day = (v?: string | null) => (v ? String(v).slice(0, 10) : today());
+  return {
+    id: c.id, apiId: c.id, code: c.claim_code ?? c.id, brand: BRAND_IDS[c.brand_id] ?? c.brand ?? "Apex Nutrition",
+    type: cap(c.category), text: c.claim_text ?? c.claimText ?? "", draft: c.status === "draft",
+    expiresAt: day(c.expires_at ?? "2099-12-31"), updatedAt: day(c.updated_at),
+    channels: String(c.permitted_context ?? "").split(/[,;]/).map((x: string) => x.trim()).filter(Boolean),
+    owner: c.verifier?.full_name ?? c.owner ?? "Unassigned", prohibited: [],
+    evidence: (c.evidence ?? []).map((e: any) => ({
+      source: e.title, kind: cap(e.evidence_type), ref: e.citation, excerpt: e.excerpt,
+      version: "v1", checkedAt: day(e.updated_at),
+    })),
+    usage: usageFromApi(c.dependent_submissions),
   };
+}
+function usageFromApi(subs: any[] = []): Usage[] {
+  return subs.map((u) => ({ id: u.id, title: u.title, channel: cap(u.submission_type), date: String(u.created_at ?? today()).slice(0, 10) }));
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
-  const handleTriggerCascadeAudit = async (claim: ClaimItem) => {
-    setIsCascading(true);
+/** Demo seed plus API claims; an API claim with a seed's code lends it its id (for cascade) instead of duplicating it. */
+function merge(seed: Claim[], api: Claim[]): Claim[] {
+  const byCode = new Map(api.map((c) => [c.code, c]));
+  const out = seed.map((s) => {
+    const a = byCode.get(s.code);
+    if (!a) return s;
+    byCode.delete(s.code);
+    return { ...s, apiId: a.apiId, usage: s.usage.length ? s.usage : a.usage };
+  });
+  return [...byCode.values(), ...out];
+}
+
+const daysLeft = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / DAY);
+const fmt = (iso: string) => dateFmt.format(new Date(iso));
+
+function statusOf(c: Claim): Status {
+  if (c.draft) return "draft";
+  const d = daysLeft(c.expiresAt);
+  return d < 0 ? "expired" : d <= 30 ? "expiring" : "approved";
+}
+
+function expiryWords(c: Claim) {
+  const d = daysLeft(c.expiresAt);
+  if (d < 0) return `Expired ${fmt(c.expiresAt)}`;
+  if (d === 0) return "Expires today";
+  if (d <= 30) return `Expires in ${d} day${d === 1 ? "" : "s"}`;
+  return `Valid until ${fmt(c.expiresAt)}`;
+}
+
+function Select({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-[13px] text-text-muted">
+      {label}
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={field}>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function ClaimsLibrary() {
+  const [claims, setClaims] = useState<Claim[]>(SEED_CLAIMS);
+  const [loadState, setLoadState] = useState<"loading" | "live" | "offline">("loading");
+  const [toast, setToast] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [review, setReview] = useState<{ busy: boolean; msg: string }>({ busy: false, msg: "" });
+  const [brand, setBrand] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [type, setType] = useState("all");
+  const [channel, setChannel] = useState("all");
+  const [sort, setSort] = useState<"expiry" | "updated">("expiry");
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState<Claim | null>(null);
+  const drawerRef = useRef<HTMLDialogElement>(null);
+  const addRef = useRef<HTMLDialogElement>(null);
+
+  const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(null), 4000); };
+
+  const load = useCallback(async () => {
     try {
-      const claimId = claim.claimId || claim.id;
-      const res = await fetch(`/api/claims/${claimId}/cascade`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reason: `Cascade Audit triggered for ${claimId}: ${claim.claimText.slice(0, 60)}...`,
-          triggeredBy: "usr_daksh",
-        }),
+      const res = await fetch("/api/claims", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error();
+      const api = (data.claims as unknown[]).map(fromApi);
+      // Keep claims created on this device that the server never saw.
+      setClaims((prev) => [...prev.filter((c) => c.localOnly), ...merge(SEED_CLAIMS, api)]);
+      setLoadState("live");
+    } catch {
+      setLoadState("offline");
+    }
+  }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount; state is set after await
+  useEffect(() => { load(); }, [load]);
+
+  // The drawer reads the live claim by id so edits, evidence and flags show immediately.
+  const current = open ? claims.find((c) => c.id === open.id) ?? open : null;
+  const patch = (id: string, fn: (c: Claim) => Claim) => setClaims((prev) => prev.map((c) => (c.id === id ? fn(c) : c)));
+
+  async function createClaims(inputs: NewClaimInput[]): Promise<string> {
+    let saved = 0;
+    const made: Claim[] = [];
+    for (const [i, c] of inputs.entries()) {
+      const evidence: Evidence[] = c.evidence
+        ? [{ source: c.evidence.source, kind: c.evidence.fileName ? "Uploaded file" : "Owner supplied", ref: c.evidence.ref || "No reference", excerpt: c.evidence.excerpt, version: "v1", checkedAt: today(), userAdded: true, fileName: c.evidence.fileName }]
+        : [];
+      let saved1: Claim | null = null;
+      try {
+        const res = await fetch("/api/claims", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            claimText: c.text, category: c.type.toLowerCase(), status: "draft", expiresAt: c.expiresAt,
+            permittedContext: c.channels.join(", ") || undefined, evidenceSource: c.evidence?.source, evidenceExcerpt: c.evidence?.excerpt,
+            brandId: Object.keys(BRAND_IDS).find((k) => BRAND_IDS[k] === c.brand) ?? c.brand,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) { saved1 = fromApi(data.claim); saved++; }
+      } catch { /* fall through to a local draft */ }
+      const base: Claim = saved1 ?? {
+        id: `local-${Date.now()}-${i}`, code: `CLM-NEW-${claims.length + i + 1}`, brand: c.brand, type: c.type, text: c.text,
+        expiresAt: c.expiresAt, updatedAt: today(), channels: [], owner: "You", prohibited: [], evidence: [], usage: [], localOnly: true,
+      };
+      made.push({ ...base, brand: c.brand, type: c.type, draft: true, channels: c.channels, evidence, owner: "You" });
+    }
+    setClaims((prev) => [...made, ...prev]);
+    const n = inputs.length;
+    const m = `Added ${n} draft claim${n === 1 ? "" : "s"}.` +
+      (saved < n ? ` ${n - saved} could not reach the server and are kept on this device only.` : "");
+    flash(m);
+    return m;
+  }
+
+  async function checkUsage(c: Claim) {
+    if (!c.apiId) return;
+    try {
+      const res = await fetch(`/api/claims/${encodeURIComponent(c.apiId)}/cascade`);
+      const data = await res.json();
+      if (res.ok && data.success && data.dependentSubmissions?.length) {
+        const fresh = usageFromApi(data.dependentSubmissions);
+        patch(c.id, (x) => ({ ...x, usage: [...x.usage, ...fresh.filter((f) => !x.usage.some((u) => u.id === f.id))] }));
+      }
+    } catch { /* keep the usage we already know */ }
+  }
+
+  async function flagForReview(c: Claim) {
+    setReview({ busy: true, msg: "" });
+    let msg: string;
+    try {
+      const res = await fetch(`/api/claims/${encodeURIComponent(c.apiId ?? c.code)}/cascade`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: c.edited ? "Claim wording or expiry was edited" : "Claim expired" }),
       });
       const data = await res.json().catch(() => ({}));
-      const affectedCount = data.count || claim.dependentSubmissions?.length || 2;
-      setClaims((prev) =>
-        prev.map((c) => {
-          if (c.id === claim.id || c.claimId === claim.claimId || c.claim_code === claim.claimId) {
-            return {
-              ...c,
-              dependentSubmissions: (c.dependentSubmissions || []).map((dep) => ({
-                ...dep,
-                status: "needs_re_review",
-              })),
-            };
-          }
-          return c;
-        })
-      );
-      setCascadeSuccessMessage(
-        `Cascade Re-Review Complete: ${affectedCount} dependent marketing draft(s) quarantined and flagged as 'needs_re_review'.`
-      );
-      setTimeout(() => setCascadeSuccessMessage(null), 6000);
-      setDependentDraftsModalClaim(null);
+      if (!res.ok || !data.success) throw new Error();
+      msg = `${data.count} draft${data.count === 1 ? "" : "s"} sent back for re-review.`;
     } catch {
-      setCascadeSuccessMessage("Cascade re-review initiated across all connected drafts.");
-      setTimeout(() => setCascadeSuccessMessage(null), 4000);
-      setDependentDraftsModalClaim(null);
-    } finally {
-      setIsCascading(false);
+      msg = `${c.usage.length} draft${c.usage.length === 1 ? "" : "s"} marked for re-review on this device. The server could not be updated.`;
     }
-  };
+    patch(c.id, (x) => ({ ...x, flaggedAt: today() }));
+    setReview({ busy: false, msg });
+  }
 
-  const handleCreateClaim = (e: React.FormEvent) => {
+  function saveEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!formStatement.trim()) return;
+    if (!current) return;
+    const f = new FormData(e.currentTarget);
+    const text = String(f.get("text") ?? "").trim();
+    const expiresAt = String(f.get("expires") || current.expiresAt);
+    if (!text) return;
+    const changed = text !== current.text || expiresAt !== current.expiresAt;
+    // ponytail: edits are client-side only; add PATCH /api/claims/[id] to persist them.
+    patch(current.id, (x) => ({ ...x, text, expiresAt, updatedAt: today(), edited: x.edited || changed, flaggedAt: changed ? undefined : x.flaggedAt }));
+    setEditing(false);
+    if (changed) { checkUsage(current); flash("Claim updated. Drafts that use it are listed under Re-review."); }
+  }
 
-    const newIdNum = claims.length + 1;
-    const newClaim: ClaimItem = {
-      id: `clm-${Date.now()}`,
-      claimId: `CLM-APX-00${newIdNum}`,
-      claimText: formStatement,
-      category: formCategory,
-      evidenceSource: formDoc || "Clinical Protocol Verification APX-2026-D1",
-      doi: formDoi || "10.1016/j.envres.2026.10928",
-      assayStandard: formAssay || "ISO 22196 Annex C / Blinded RCT",
-      evidenceExcerpt:
-        formExcerpt || "Statistically significant improvement recorded across all study cohorts (p < 0.001).",
-      permittedContext: formContext,
-      owner: formOwner,
-      status: "approved",
-      expiresAt: formExpiresAt,
-      daysRemaining: 365,
-      sha256: "8f72a1b9c02d4e5f67890123456789abcdef0123456789abcdef0123456789ab",
-    };
+  function attachEvidence(c: Claim, text: string, fileName: string) {
+    const excerpt = text.replace(/\s+/g, " ").trim().slice(0, 400);
+    patch(c.id, (x) => ({
+      ...x,
+      evidence: [...x.evidence, { source: fileName, kind: "Uploaded file", ref: fileName, excerpt, version: "v1", checkedAt: today(), userAdded: true, fileName }],
+    }));
+    flash(`${fileName} attached as evidence.`);
+  }
 
-    setClaims([newClaim, ...claims]);
-    setIsModalOpen(false);
-    setFormStatement("");
-    setFormDoc("");
-    setFormDoi("");
-    setFormAssay("");
-    setFormExcerpt("");
+  function verifyEvidence(e: React.FormEvent<HTMLFormElement>, c: Claim, idx: number) {
+    e.preventDefault();
+    const name = String(new FormData(e.currentTarget).get("reviewer") ?? "").trim();
+    if (!name) return;
+    patch(c.id, (x) => ({ ...x, evidence: x.evidence.map((ev, i) => (i === idx ? { ...ev, verifiedBy: name, verifiedAt: today() } : ev)) }));
+    flash("Evidence marked as verified.");
+  }
+
+  const needsReview = claims.filter((c) => !c.flaggedAt && c.usage.length > 0 && (c.edited || statusOf(c) === "expired"));
+  const allBrands = [...new Set([...BRANDS, ...claims.map((c) => c.brand)])];
+  const brandClaims = claims.filter((c) => brand === "all" || c.brand === brand);
+  const types = [...new Set(claims.map((c) => c.type))].sort();
+  const channels = [...new Set(claims.flatMap((c) => c.channels))].sort();
+
+  const stats = [
+    { label: "Approved", value: brandClaims.filter((c) => statusOf(c) === "approved").length },
+    { label: "Expiring in 30 days", value: brandClaims.filter((c) => statusOf(c) === "expiring").length },
+    { label: "Expired, needs re-review", value: brandClaims.filter((c) => statusOf(c) === "expired").length },
+    { label: "Evidence records", value: brandClaims.reduce((n, c) => n + c.evidence.length, 0) },
+  ];
+
+  const visible = (() => {
+    const q = query.trim().toLowerCase();
+    return brandClaims
+      .filter(
+        (c) =>
+          (status === "all" || statusOf(c) === status) &&
+          (type === "all" || c.type === type) &&
+          (channel === "all" || c.channels.includes(channel)) &&
+          [c.text, c.code, c.owner, ...c.evidence.map((e) => e.source)].some((v) => v.toLowerCase().includes(q))
+      )
+      .sort((a, b) =>
+        sort === "expiry" ? a.expiresAt.localeCompare(b.expiresAt) : b.updatedAt.localeCompare(a.updatedAt)
+      );
+  })();
+
+  const clearFilters = () => { setQuery(""); setStatus("all"); setType("all"); setChannel("all"); };
+
+  // Native modal <dialog>: traps focus, closes on Esc, and returns focus to the opener.
+  const openClaim = (c: Claim) => {
+    setOpen(c); setEditing(false); setReview({ busy: false, msg: "" });
+    drawerRef.current?.showModal();
+    if (statusOf(c) === "expired" || c.edited) checkUsage(c);
   };
-
-  const handleCopyText = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedClaimId(id);
-      setTimeout(() => setCopiedClaimId(null), 2000);
-    } catch {}
-  };
-
-  const filteredClaims = claims.filter((c) => {
-    const matchesSearch =
-      c.claimText.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.evidenceSource.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.claimId && c.claimId.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const matchesCategory =
-      filterCategory === "all" ? true : c.category.toLowerCase() === filterCategory.toLowerCase();
-
-    const matchesStatus =
-      filterStatus === "all"
-        ? true
-        : filterStatus === "expiring"
-        ? (c.daysRemaining !== undefined && c.daysRemaining > 0 && c.daysRemaining <= 30)
-        : filterStatus === "active"
-        ? (c.daysRemaining !== undefined && c.daysRemaining > 30)
-        : filterStatus === "expired"
-        ? (c.daysRemaining !== undefined && c.daysRemaining <= 0)
-        : true;
-
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
 
   return (
-    <AppLayout
-      title="Approved Claims & Truth Library"
-      subtitle="Deterministic factual repository linking marketing claims to scientific assays and regulatory approvals."
-    >
-      <div className="space-y-6">
-        {/* Cascade Feedback / Success Banner */}
-        {(cascadeFeedback || cascadeSuccessMessage) && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center justify-between gap-3 animate-in fade-in">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="font-sans font-medium">{cascadeSuccessMessage || cascadeFeedback}</span>
-            </div>
-            <button
-              onClick={() => {
-                setCascadeFeedback(null);
-                setCascadeSuccessMessage(null);
-              }}
-              className="text-emerald-400 hover:text-white cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Breadcrumb & Action Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <Link
-              href="/knowledge-base"
-              className="inline-flex items-center gap-1.5 text-xs text-[#858585] hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Knowledge Base / Verified Claims</span>
+    <AppLayout>
+      <div className="mx-auto max-w-6xl space-y-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Link href="/knowledge-base" className={`rounded text-[13px] text-text-muted hover:text-text-primary ${focusRing}`}>
+              Knowledge base
             </Link>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              <h1 className="text-2xl font-bold tracking-tight text-white">
-                Approved Claims &amp; Scientific Evidence
-              </h1>
-              <Badge variant="approved" size="xs">
-                {claims.length} GROUNDED CLAIMS
-              </Badge>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#191919] text-[#E0E0E0] border border-[#303030]">
-                ISO 22196 VERIFIED
-              </span>
-            </div>
-            <p className="text-sm text-[#A0A0A0] max-w-2xl leading-relaxed">
-              Claims indexed here form the immutable ground truth for Gemini 2.5 Flash pre-flight audits. Zero ungrounded modifications permitted.
-            </p>
+            <h1 className="mt-1 text-[28px] font-semibold leading-tight tracking-tight text-text-primary">Claims library</h1>
+            <p className="mt-1 text-sm text-text-secondary">Approved marketing claims for each brand, with the proof behind them.</p>
           </div>
-
-          <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
-            {/* Interactive "Add Approved Claim" Modal Button */}
-            <Button
-              size="sm"
-              variant="primary"
-              icon={<Plus className="w-4 h-4" />}
-              onClick={() => setIsModalOpen(true)}
-              className="w-full sm:w-auto min-h-[44px] justify-center"
-            >
-              Add Approved Claim
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="brand">Brand</label>
+            <select id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} className={field}>
+              <option value="all">All brands</option>
+              {allBrands.map((b) => <option key={b}>{b}</option>)}
+            </select>
+            <Button size="sm" className="h-10" icon={<Plus className="h-4 w-4" />} onClick={() => addRef.current?.showModal()}>
+              Add claims
             </Button>
           </div>
-        </div>
+        </header>
 
-        {/* Central Originality Engine Banner */}
-        <div className="rounded-xl p-5 sm:p-6 bg-[#141414] border border-[#303030] space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-9 h-9 rounded-lg bg-[#191919] border border-[#303030] flex items-center justify-center text-white shrink-0 mt-0.5">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <div className="space-y-1.5">
-                <div className="text-sm font-semibold text-white flex items-center gap-2.5">
-                  <span>Central Originality Engine: Claim Dependency &amp; Cascade Re-Review</span>
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#191919] text-[#B5B5B5] border border-[#303030]">
-                    Verified Audit Trail
-                  </span>
-                </div>
-                <p className="text-[15px] text-[#D4D4D4] leading-relaxed">
-                  &ldquo;Which approved record supports this statement, is that record still valid for this use, and what previous content is affected if it changes?&rdquo;
-                </p>
-                <div className="text-xs text-[#858585]">
-                  When clinical evidence expires or approved scope is amended, all earlier published drafts relying on it are automatically quarantined for human re-review.
-                </div>
-              </div>
-            </div>
+        <p className="rounded-lg border border-border-default bg-panel px-4 py-3 text-[13px] text-text-secondary">
+          Demo data. Brands, studies and references on this page are fictional and have not been independently verified.{" "}
+          <span aria-live="polite">
+            {loadState === "loading" && "Loading saved claims…"}
+            {loadState === "live" && "Saved claims are loaded from the server."}
+            {loadState === "offline" && (
+              <>Saved claims could not be loaded, showing demo claims only.{" "}
+                <button onClick={() => { setLoadState("loading"); load(); }} className={`rounded underline underline-offset-4 hover:text-text-primary ${focusRing}`}>Try again</button>
+              </>
+            )}
+          </span>
+        </p>
 
-            <div className="shrink-0 flex items-center gap-2">
-              <span className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#191919] border border-[#303030] text-[#B5B5B5] flex items-center gap-2">
-                <Layers className="w-3.5 h-3.5 text-white" />
-                <span>Cascade Engine Active</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter and Search Bar with Category Filter Pills */}
-        <div className="bg-[#141414] border border-[#303030] rounded-xl p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-sm">
-          {/* Search box */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#737373]" />
-            <input
-              type="text"
-              placeholder="Search by claim ID, phrasing, or clinical trial..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#0A0A0A] border border-[#2E2E2E] focus:border-white focus:outline-none rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder:text-[#666666] transition-colors"
-            />
-          </div>
-
-          {/* Category Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs overflow-x-auto whitespace-nowrap scrollbar-none max-w-full">
-              {["all", "Performance", "Clinical", "Certifications", "Ingredients"].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setFilterCategory(cat)}
-                  className={`px-3 py-1 rounded-md transition-colors cursor-pointer font-medium ${
-                    filterCategory === cat
-                      ? "bg-[#222222] text-white shadow-xs"
-                      : "text-[#888888] hover:text-white"
-                  }`}
-                >
-                  {cat === "all" ? "All Categories" : cat}
-                </button>
+        {needsReview.length > 0 && (
+          <section aria-labelledby="nr-h" className="rounded-2xl border border-status-warning/40 bg-status-warning/10 p-5">
+            <h2 id="nr-h" className="flex items-center gap-2 text-base font-semibold text-text-primary">
+              <AlertTriangle className="h-4 w-4 text-status-warning" aria-hidden="true" />
+              {needsReview.length} claim{needsReview.length === 1 ? "" : "s"} changed or expired while still used in drafts
+            </h2>
+            <p className="mt-1 text-sm text-text-secondary">Open one to see which drafts rely on it and send them back for re-review.</p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {needsReview.map((c) => (
+                <li key={c.id}>
+                  <button onClick={() => openClaim(c)}
+                    className={`rounded-lg border border-border-default bg-canvas px-3 py-2 text-left text-[13px] hover:bg-panel-hover ${focusRing}`}>
+                    <span className="font-medium text-text-primary" translate="no">{c.code}</span>
+                    <span className="text-text-muted">, {c.usage.length} draft{c.usage.length === 1 ? "" : "s"}, {c.edited ? "edited" : "expired"}</span>
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
+          </section>
+        )}
 
-            {/* Expiration Status Filter Pills */}
-            <div className="flex items-center bg-[#0A0A0A] border border-[#2E2E2E] rounded-lg p-1 text-xs overflow-x-auto whitespace-nowrap scrollbar-none max-w-full">
-              {[
-                { id: "all", label: "All Status" },
-                { id: "active", label: "Active (>30d)" },
-                { id: "expiring", label: "Expiring (<30d)" },
-              ].map((st) => (
-                <button
-                  key={st.id}
-                  onClick={() => setFilterStatus(st.id)}
-                  className={`px-3 py-1 rounded-md transition-colors cursor-pointer font-medium ${
-                    filterStatus === st.id
-                      ? "bg-[#222222] text-white shadow-xs"
-                      : "text-[#888888] hover:text-white"
-                  }`}
-                >
-                  {st.label}
-                </button>
-              ))}
+        <section aria-label="Summary" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="glass rounded-2xl p-5">
+              <p className="text-[13px] text-text-muted">{s.label}</p>
+              <p className="mt-2 text-2xl font-semibold tabular-nums text-text-primary">{s.value}</p>
             </div>
+          ))}
+        </section>
+
+        <section aria-labelledby="list-h" className="glass rounded-2xl p-5 sm:p-6">
+          <h2 id="list-h" className="sr-only">Claims</h2>
+          <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-6">
+            <div className="relative col-span-2 flex flex-col gap-1 text-[13px] text-text-muted">
+              <label htmlFor="claim-search">Search</label>
+              <div className="relative">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <input
+                  id="claim-search" type="search" placeholder="Claim text, code or source…" value={query}
+                  onChange={(e) => setQuery(e.target.value)} className={`${field} w-full pl-9 placeholder:text-text-muted`}
+                />
+              </div>
+            </div>
+            <Select label="Status" value={status} onChange={setStatus} options={[
+              { value: "all", label: "All" },
+              ...(Object.keys(STATUS) as Status[]).map((s) => ({ value: s, label: STATUS[s].label })),
+            ]} />
+            <Select label="Claim type" value={type} onChange={setType} options={[{ value: "all", label: "All" }, ...types.map((t) => ({ value: t, label: t }))]} />
+            <Select label="Channel" value={channel} onChange={setChannel} options={[{ value: "all", label: "All" }, ...channels.map((t) => ({ value: t, label: t }))]} />
+            <Select label="Sort by" value={sort} onChange={(v) => setSort(v as typeof sort)} options={[
+              { value: "expiry", label: "Expiry date" },
+              { value: "updated", label: "Recently updated" },
+            ]} />
           </div>
-        </div>
 
-        {/* Data Table with Clean 14px Typography & Horizontal Scroll Guarantee */}
-        <div className="bg-[#141414] border border-[#303030] rounded-xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[760px]">
-              <thead className="bg-[#0D0D0D] border-b border-[#262626] text-xs font-medium uppercase tracking-wider text-[#888888]">
-                <tr>
-                  <th className="px-5 py-3.5 w-32">Claim ID</th>
-                  <th className="px-5 py-3.5">Approved Claim Statement</th>
-                  <th className="px-5 py-3.5">Evidence Source &amp; Assay</th>
-                  <th className="px-4 py-3.5">Category</th>
-                  <th className="px-4 py-3.5 text-center">Dependent Drafts</th>
-                  <th className="px-4 py-3.5 text-right">Expiration</th>
-                  <th className="px-4 py-3.5">Governance Status</th>
-                  <th className="px-5 py-3.5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#222222]">
-                {filteredClaims.length > 0 ? (
-                  filteredClaims.map((claim) => {
-                    const isExpiring =
-                      claim.daysRemaining !== undefined &&
-                      claim.daysRemaining > 0 &&
-                      claim.daysRemaining <= 30;
-                    const isExpired =
-                      claim.daysRemaining !== undefined && claim.daysRemaining <= 0;
+          <p className="mb-2 text-[13px] text-text-muted" aria-live="polite">
+            {visible.length} of {brandClaims.length} claims
+          </p>
 
-                    const depCount = claim.dependentSubmissions?.length || claim.dependentCount || 0;
-
-                    return (
-                      <tr
-                        key={claim.id}
-                        onClick={() => setSelectedClaim(claim)}
-                        className="hover:bg-[#181818] transition-colors cursor-pointer"
-                      >
-                        {/* Claim ID */}
-                        <td className="px-5 py-4 font-medium text-white">
-                          <span className="px-2.5 py-1 rounded-md bg-[#191919] border border-[#303030] text-xs font-semibold">
-                            {claim.claimId || "CLM-GEN"}
-                          </span>
-                        </td>
-
-                        {/* Approved Statement */}
-                        <td className="px-5 py-4 text-white max-w-md font-medium leading-relaxed">
-                          <div className="line-clamp-2 text-sm">{claim.claimText}</div>
-                          <div className="text-xs text-[#888888] mt-1 flex items-center gap-1.5">
-                            <span className="font-semibold text-[#A0A0A0]">SCOPE:</span>
-                            <span>{claim.permittedContext || "All Channels"}</span>
-                          </div>
-                        </td>
-
-                        {/* Evidence Source & DOI */}
-                        <td className="px-5 py-4 text-xs text-[#A0A0A0]">
-                          <div className="text-white font-medium truncate max-w-xs" title={claim.evidenceSource}>
-                            {claim.evidenceSource}
-                          </div>
-                          <div className="text-[#888888] text-xs mt-0.5">
-                            DOI: {claim.doi || "ISO 17025 ASSAY"}
-                          </div>
-                        </td>
-
-                        {/* Category */}
-                        <td className="px-4 py-4">
-                          <Badge variant="neutral" size="xs">
-                            {claim.category}
-                          </Badge>
-                        </td>
-
-                        {/* Proposal Central Originality: Dependent Submissions Column */}
-                        <td className="px-3 py-3.5 text-center font-mono">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedClaim(claim);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#191919] hover:bg-[#222222] border border-[#303030] text-[11px] text-[#B5B5B5] font-semibold cursor-pointer transition-colors"
-                            title="Inspect dependent submissions relying on this claim"
-                          >
-                            <Layers className="w-3 h-3 text-[#858585]" />
-                            <span>{depCount} {depCount === 1 ? "Draft" : "Drafts"}</span>
-                          </button>
-                        </td>
-
-                        {/* Expiration with Countdown Badge */}
-                        <td className="px-3 py-3.5 text-right font-mono tabular-nums text-[11px]">
-                          <div className="text-slate-300">{claim.expiresAt}</div>
-                          <div className="mt-1">
-                            {isExpired ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-300 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/30">
-                                EXPIRED
-                              </span>
-                            ) : isExpiring ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#F3BA54] bg-[#E5A93C]/10 px-1.5 py-0.2 rounded border border-[#E5A93C]/30">
-                                <span className="led-indicator led-gold" />
-                                {claim.daysRemaining}D REMAINING
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400">
-                                <span className="led-indicator led-emerald" />
-                                ACTIVE GROUNDED
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Status Badge */}
-                        <td className="px-3 py-3.5">
-                          <Badge
-                            variant={
-                              isExpired
-                                ? "violation"
-                                : isExpiring
-                                ? "warning"
-                                : "verified"
-                            }
-                            size="xs"
-                          >
-                            {isExpired
-                              ? "Expired"
-                              : isExpiring
-                              ? "Expiring Soon"
-                              : "Active Grounded"}
-                          </Badge>
-                        </td>
-
-                        {/* Action */}
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* View Dependent Drafts (Cascade) button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDependentDraftsModalClaim(claim);
-                              }}
-                              className="p-1.5 rounded-md text-[#888888] hover:text-white hover:bg-[#191919] transition-colors cursor-pointer border border-[#2E2E2E]"
-                              title="View Dependent Drafts (Cascade)"
-                            >
-                              <Layers className="w-4 h-4" />
-                            </button>
-
-                            {/* Cascade Re-Review trigger button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCascadeModalClaim(claim);
-                                setCascadeReason(
-                                  `Evidence record ${claim.claimId} expiry/change cascade triggered.`
-                                );
-                              }}
-                              className="p-1.5 rounded-md text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer border border-transparent hover:border-amber-500/30"
-                              title="Trigger Cascade Re-Review for past content"
-                            >
-                              <RefreshCw className="w-3.5 h-3.5" />
-                            </button>
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopyText(claim.claimText, claim.id);
-                              }}
-                              className="p-1.5 rounded-md text-[#858585] hover:text-white hover:bg-[#222222] transition-colors cursor-pointer border border-transparent hover:border-[#303030]"
-                              title="Copy approved phrasing"
-                            >
-                              {copiedClaimId === claim.id ? (
-                                <Check className="w-3.5 h-3.5 text-[#10B981]" />
-                              ) : (
-                                <Copy className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-4 py-10 text-center text-[#858585] text-sm"
+          {visible.length ? (
+            <ul className="-mx-3 space-y-1">
+              {visible.map((c) => {
+                const s = STATUS[statusOf(c)];
+                return (
+                  <li key={c.id}>
+                    <button
+                      type="button" onClick={() => openClaim(c)}
+                      className={`group flex w-full items-start gap-4 rounded-xl px-3 py-4 text-left transition-colors hover:bg-panel-hover ${focusRing}`}
                     >
-                      No claims found matching current filter criteria.
-                    </td>
-                  </tr>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[15px] font-medium leading-snug text-text-primary">{c.text}</p>
+                        <p className="mt-1.5 text-[13px] text-text-muted">
+                          {c.brand}, {c.type}, {expiryWords(c)}, {c.evidence.length} evidence record{c.evidence.length === 1 ? "" : "s"}
+                          {c.flaggedAt && ", drafts flagged for re-review"}
+                          {c.localOnly && ", saved on this device only"}
+                        </p>
+                      </div>
+                      <Badge variant={s.variant} size="xs" className="shrink-0">{s.label}</Badge>
+                      <ChevronRight aria-hidden="true" className="mt-0.5 hidden h-4 w-4 shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5 sm:block" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="py-10 text-center">
+              <p className="text-sm font-medium text-text-primary">No claims match these filters</p>
+              <button onClick={clearFilters} className={`mt-2 rounded text-[13px] text-text-muted underline underline-offset-4 hover:text-text-primary ${focusRing}`}>
+                Clear filters
+              </button>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Detail drawer */}
+      <dialog
+        ref={drawerRef} onClose={() => { setOpen(null); setEditing(false); }} aria-labelledby="drawer-h"
+        onClick={(e) => e.target === e.currentTarget && drawerRef.current?.close()}
+        className="m-0 ml-auto h-dvh max-h-dvh w-full max-w-xl overflow-y-auto overscroll-contain border-l border-border-default bg-canvas p-0 text-text-primary backdrop:bg-ink/30"
+      >
+        {current && (
+          <div className="space-y-8 p-5 sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] text-text-muted">{current.brand}, {current.type}, <span translate="no">{current.code}</span></p>
+                {editing ? (
+                  <form onSubmit={saveEdit} className="mt-2 space-y-3">
+                    <label className={labelCls}>Claim wording
+                      <textarea name="text" required rows={3} defaultValue={current.text} className={area} autoFocus />
+                    </label>
+                    <label className={labelCls}>Expires
+                      <input name="expires" type="date" required defaultValue={current.expiresAt} className={field} />
+                    </label>
+                    <p className="text-[13px] text-text-muted">Changing wording or expiry sends drafts that use this claim to re-review.</p>
+                    <div className="flex gap-2">
+                      <Button type="submit" size="sm" className="h-10">Save changes</Button>
+                      <Button type="button" size="sm" variant="secondary" className="h-10" onClick={() => setEditing(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <h2 id="drawer-h" className="mt-2 text-lg font-semibold leading-snug">{current.text}</h2>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px] text-text-secondary">
+                      <Badge variant={STATUS[statusOf(current)].variant} size="xs">{STATUS[statusOf(current)].label}</Badge>
+                      <span>{expiryWords(current)}</span>
+                      <button onClick={() => setEditing(true)}
+                        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-text-primary hover:bg-panel-hover ${focusRing}`}>
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Edit
+                      </button>
+                    </div>
+                  </>
                 )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Table Footer */}
-          <div className="px-4 py-3 bg-[#111111] border-t border-[#262626] flex items-center justify-between text-xs text-[#858585]">
-            <span>Indexed: {filteredClaims.length} of {claims.length} verified provenance claims</span>
-            <span className="text-[#10B981] flex items-center gap-1.5 font-medium">
-              Apex Nutrition (Strict RLS)
-            </span>
-          </div>
-        </div>
-
-        {/* Claim Provenance Inspection Drawer (Slide-Over Card) */}
-        {selectedClaim && (
-          <div className="tactile-card rounded-xl p-6 space-y-4 animate-in fade-in border-[#303030] bg-[#141414]">
-            <div className="flex items-center justify-between border-b border-[#303030] pb-3.5">
-              <div className="flex items-center gap-2.5">
-                <Database className="w-4 h-4 text-white" />
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-white font-mono">
-                  Audit Provenance Inspector — {selectedClaim.claimId}
-                </h3>
               </div>
               <button
-                onClick={() => setSelectedClaim(null)}
-                className="text-[#858585] hover:text-white p-1 rounded cursor-pointer"
+                aria-label="Close" onClick={() => drawerRef.current?.close()}
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg text-text-muted hover:bg-panel-hover hover:text-text-primary ${focusRing}`}
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-mono">
-              <div className="space-y-3.5">
-                <div>
-                  <div className="text-[10px] text-[#858585] uppercase">EXACT APPROVED PHRASING:</div>
-                  <div className="text-[#B5B5B5] mt-1 font-sans p-3 rounded-lg bg-[#0A0A0A] border border-[#303030] leading-relaxed">
-                    &ldquo;{selectedClaim.claimText}&rdquo;
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[10px] text-[#858585] uppercase">PRIMARY EVIDENCE CITATION:</div>
-                  <div className="text-white mt-1 font-medium">{selectedClaim.evidenceSource}</div>
-                  <div className="text-[#858585] text-[11px] mt-0.5">DOI: {selectedClaim.doi}</div>
-                </div>
-              </div>
-
-              <div className="space-y-3.5">
-                <div>
-                  <div className="text-[10px] text-[#858585] uppercase">VERBATIM CLINICAL ASSAY EXCERPT:</div>
-                  <div className="text-[#B5B5B5] mt-1 italic font-sans p-3 rounded-lg bg-[#0A0A0A] border border-[#303030] leading-relaxed">
-                    &ldquo;{selectedClaim.evidenceExcerpt}&rdquo;
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-[11px]">
-                  <div className="p-2.5 rounded bg-[#0A0A0A] border border-[#303030]">
-                    <span className="text-[#858585] block">AUTHORIZED OWNER:</span>
-                    <span className="text-white mt-0.5 block">{selectedClaim.owner}</span>
-                  </div>
-                  <div className="p-2.5 rounded bg-[#0A0A0A] border border-[#303030]">
-                    <span className="text-[#858585] block">VALID UNTIL:</span>
-                    <span className="text-white mt-0.5 block">{selectedClaim.expiresAt}</span>
-                  </div>
-                </div>
-
-                <div className="text-[10px] text-[#858585] truncate">
-                  SHA-256 SIGNATURE: {selectedClaim.sha256}
-                </div>
-              </div>
-            </div>
-
-            {/* Cascade Re-Review Section */}
-            <div className="border-t border-[#303030] pt-4 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-white">
-                      Cascade Re-Review Engine
-                    </span>
-                    <span className="text-xs text-[#10B981] font-medium">
-                      {selectedClaim.dependentSubmissions?.length || 2} Dependent Asset(s)
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#858585]">
-                    If this claim expires or changes, cascade re-review immediately flags all dependent marketing materials with <code className="text-[#F59E0B]">needs_re_review</code>.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setDependentDraftsModalClaim(selectedClaim)}
-                    icon={<Layers className="w-3.5 h-3.5 text-white" />}
-                  >
-                    View Dependent Drafts
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    disabled={cascadeLoading}
-                    onClick={() => handleTriggerCascade(selectedClaim.claimId || selectedClaim.id)}
-                    icon={<RefreshCw className={`w-3.5 h-3.5 ${cascadeLoading ? "animate-spin" : ""}`} />}
-                  >
-                    {cascadeLoading ? "Triggering..." : "Trigger Cascade Re-Review"}
-                  </Button>
-                </div>
-              </div>
-
-              {cascadeFeedback && (
-                <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-[#F59E0B] text-xs flex items-center gap-2 font-medium">
-                  <AlertTriangle className="w-4 h-4 text-[#F59E0B] shrink-0" />
-                  <span>{cascadeFeedback}</span>
-                </div>
-              )}
-
-              {/* Dependent Assets Preview */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {(selectedClaim.dependentSubmissions && selectedClaim.dependentSubmissions.length > 0
-                  ? selectedClaim.dependentSubmissions
-                  : [
-                      { id: "sub-1", title: "Q4 Campaign – Reel Script", channel: "Instagram Reel", authorName: "Riddhi S." },
-                      { id: "sub-2", title: "Landing Page Hero Banner", channel: "Web DTC", authorName: "Daksh A." }
-                    ]
-                ).map((sub: any, idx: number) => (
-                  <div key={idx} className="p-3 rounded-lg bg-[#191919] border border-[#303030] flex items-center justify-between">
-                    <div className="space-y-0.5 truncate pr-2">
-                      <div className="text-white font-medium truncate text-sm">{sub.title}</div>
-                      <div className="text-xs text-[#858585]">{sub.channel} · By {sub.authorName}</div>
-                    </div>
-                    <Badge variant="warning" size="xs">CITED</Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Dependent Drafts (Cascade Re-Review) Modal */}
-        {dependentDraftsModalClaim && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border-[#303030] bg-[#141414]">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-white" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-white font-mono">
-                    Dependent Marketing Drafts ({dependentDraftsModalClaim.claimId || "Claim"})
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setDependentDraftsModalClaim(null)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3.5 text-xs font-mono">
-                <div>
-                  <div className="text-[10px] text-[#858585] uppercase">SUBJECT CLAIM PROVENANCE:</div>
-                  <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-white font-sans mt-1">
-                    <span className="font-mono font-bold text-white">{dependentDraftsModalClaim.claimId}:</span> &ldquo;{dependentDraftsModalClaim.claimText}&rdquo;
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-[#858585] uppercase">CONNECTED MARKETING ASSETS:</span>
-                    <span className="text-[10px] text-[#F59E0B] font-mono">AT RISK IF EVIDENCE EXPIRES</span>
-                  </div>
-                  <div className="space-y-2">
-                    {(dependentDraftsModalClaim.dependentSubmissions && dependentDraftsModalClaim.dependentSubmissions.length > 0
-                      ? dependentDraftsModalClaim.dependentSubmissions
-                      : [
-                          { id: "sub-1", title: "Q4 Campaign – Clinical Protein Reel Script", channel: "Instagram Reel", authorName: "Riddhi S.", status: "approved" },
-                          { id: "sub-2", title: "Product Launch – Recovery Blend Carousel", channel: "Meta Paid Social", authorName: "Daksh A.", status: "approved" },
-                          { id: "sub-3", title: "Paid Social Ad Creative – Hydration Electrolytes V2", channel: "Instagram Reel", authorName: "Daksh A.", status: "approved" }
-                        ]
-                    ).map((sub: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-lg bg-[#191919] border border-[#303030] flex items-center justify-between hover:border-[#404040] transition-colors"
-                      >
-                        <div className="space-y-0.5 truncate pr-2">
-                          <div className="text-white font-sans font-medium truncate">{sub.title}</div>
-                          <div className="text-[10px] text-[#858585]">{sub.channel} · Submitter: {sub.authorName}</div>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                          sub.status === "needs_re_review"
-                            ? "bg-red-500/20 text-red-400 border-red-500/40"
-                            : "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                        }`}>
-                          {sub.status === "needs_re_review" ? "QUARANTINED" : "CITED CLAIM"}
-                        </span>
-                      </div>
+            {(statusOf(current) === "expired" || current.edited) && (
+              <section aria-labelledby="rr-h" className="rounded-xl border border-status-warning/40 bg-status-warning/10 p-4">
+                <h3 id="rr-h" className="flex items-center gap-2 text-sm font-semibold">
+                  <AlertTriangle className="h-4 w-4 text-status-warning" aria-hidden="true" />
+                  Re-review: {current.usage.length} draft{current.usage.length === 1 ? "" : "s"} use this claim
+                </h3>
+                <p className="mt-1 text-[13px] text-text-secondary">
+                  {current.edited ? "The wording or expiry changed" : "This claim has expired"}, so any ad that relies on it should be checked again before it goes out.
+                </p>
+                {current.usage.length > 0 && (
+                  <ul className="mt-3 space-y-1 text-sm">
+                    {current.usage.map((u) => (
+                      <li key={u.id}><Link href={`/submissions/${u.id}`} className={`rounded underline-offset-4 hover:underline ${focusRing}`}>{u.title}</Link> <span className="text-text-muted">({u.channel})</span></li>
                     ))}
-                  </div>
+                  </ul>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  {current.flaggedAt
+                    ? <span className="text-[13px] text-text-secondary">Flagged for re-review on {fmt(current.flaggedAt)}.</span>
+                    : <Button size="sm" className="h-10" loading={review.busy} disabled={!current.usage.length} onClick={() => flagForReview(current)}>
+                        Flag {current.usage.length} for re-review
+                      </Button>}
+                  <p aria-live="polite" className="text-[13px] text-text-secondary">{review.msg}</p>
                 </div>
+              </section>
+            )}
 
-                <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-[11px] font-sans text-[#B5B5B5] leading-relaxed">
-                  <strong>Cascade Re-Review Automation:</strong> Clicking below triggers a multi-draft cascade scan. All active marketing collateral citing this claim is quarantined with status <code className="text-[#F59E0B]">needs_re_review</code> and audit trails are logged.
-                </div>
-              </div>
+            <Section title="Allowed channels">
+              {current.channels.length ? (
+                <ul className="flex flex-wrap gap-2">
+                  {current.channels.map((ch) => <li key={ch}><Badge variant="neutral" size="sm">{ch}</Badge></li>)}
+                </ul>
+              ) : <p className="text-sm text-text-muted">None set yet.</p>}
+            </Section>
 
-              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setDependentDraftsModalClaim(null)}
-                >
-                  Close
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => handleTriggerCascadeAudit(dependentDraftsModalClaim)}
-                  loading={isCascading}
-                  icon={<RefreshCw className={`w-3.5 h-3.5 ${isCascading ? "animate-spin" : ""}`} />}
-                >
-                  Trigger Cascade Audit Now
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Proposal Cascade Re-Review Confirmation Modal */}
-        {cascadeModalClaim && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 border border-[#303030] bg-[#141414]">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-white" />
-                  <h3 className="text-sm font-semibold text-white">
-                    Trigger Cascade Re-Review
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setCascadeModalClaim(null)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-4 text-xs">
-                <div>
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Affected Evidence Record:</div>
-                  <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-white font-sans mt-1 text-sm leading-relaxed">
-                    <span className="font-semibold text-white">{cascadeModalClaim.claimId}:</span> &ldquo;{cascadeModalClaim.claimText}&rdquo;
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-xs uppercase text-[#858585] font-medium tracking-wide">Dependent Submissions to Quarantine:</div>
-                  <div className="space-y-2">
-                    {(cascadeModalClaim.dependentSubmissions && cascadeModalClaim.dependentSubmissions.length > 0
-                      ? cascadeModalClaim.dependentSubmissions
-                      : [
-                          { id: "sub-1", title: "Q4 Campaign – Reel Script", channel: "Instagram Reel", authorName: "Riddhi S." },
-                          { id: "sub-2", title: "Apex Iso-Whey E-Commerce PDP Headline", channel: "Web DTC", authorName: "Daksh A." }
-                        ]
-                    ).map((sub: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-lg bg-[#191919] border border-[#303030] flex items-center justify-between"
-                      >
-                        <div className="space-y-0.5 truncate pr-2">
-                          <div className="text-white font-sans font-medium text-sm truncate">{sub.title}</div>
-                          <div className="text-xs text-[#858585]">{sub.channel} · Submitter: {sub.authorName}</div>
-                        </div>
-                        <Badge variant="violation" size="xs">
-                          QUARANTINE
-                        </Badge>
+            <Section title={`Evidence (${current.evidence.length})`}>
+              {current.evidence.length ? (
+                <ul className="space-y-3">
+                  {current.evidence.map((ev, idx) => (
+                    <li key={`${ev.ref}-${idx}`} className="rounded-xl border border-border-default bg-panel p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium">{ev.source}</p>
+                        {ev.userAdded && (ev.verifiedBy
+                          ? <Badge variant="approved" size="xs">Verified</Badge>
+                          : <Badge variant="warning" size="xs">Unverified</Badge>)}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                      <p className="mt-1 text-[13px] text-text-muted">{ev.kind}, <span translate="no">{ev.ref}</span></p>
+                      {ev.excerpt && (
+                        <blockquote className="mt-3 border-l-2 border-border-strong pl-3 text-sm leading-relaxed text-text-secondary">
+                          &ldquo;{ev.excerpt}&rdquo;
+                        </blockquote>
+                      )}
+                      {!ev.userAdded ? (
+                        <p className="mt-3 text-[13px] text-text-muted">
+                          Version {ev.version}. Last checked by owner {fmt(ev.checkedAt)}. Not independently verified (demo).
+                        </p>
+                      ) : ev.verifiedBy ? (
+                        <p className="mt-3 flex items-center gap-1 text-[13px] text-text-secondary">
+                          <BadgeCheck className="h-4 w-4" aria-hidden="true" /> Verified by {ev.verifiedBy} on {fmt(ev.verifiedAt!)}.
+                        </p>
+                      ) : (
+                        <form onSubmit={(e) => verifyEvidence(e, current, idx)} className="mt-3 space-y-2">
+                          <p className="text-[13px] text-text-muted">Added {fmt(ev.checkedAt)}. {UNVERIFIED}.</p>
+                          <div className="flex flex-wrap gap-2">
+                            <label className="sr-only" htmlFor={`rev-${idx}`}>Reviewer name</label>
+                            <input id={`rev-${idx}`} name="reviewer" required autoComplete="name" placeholder="Reviewer name" className={`${field} min-w-0 flex-1`} />
+                            <Button type="submit" size="sm" variant="secondary" className="h-10">Mark verified</Button>
+                          </div>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-text-muted">No evidence attached. Add proof before this claim can be approved.</p>}
+              <FileDrop label="Attach a file as evidence" hint="PDF, Word, image or text. We keep the file name and a text excerpt."
+                onText={(r) => attachEvidence(current, r.text, r.fileName)} />
+            </Section>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs uppercase text-[#858585] font-medium tracking-wide">Cascade Trigger Reason:</label>
-                  <input
-                    type="text"
-                    value={cascadeReason}
-                    onChange={(e) => setCascadeReason(e.target.value)}
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-sm text-white font-sans"
-                    placeholder="e.g. Clinical trial contract expired on 2026-11-25..."
-                  />
-                </div>
+            <Section title="Wording that is not allowed">
+              {current.prohibited.length ? (
+                <ul className="space-y-2">
+                  {current.prohibited.map((p) => (
+                    <li key={p} className="flex gap-2 text-sm text-text-secondary">
+                      <X aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-status-critical" />
+                      <span><span className="sr-only">Not allowed: </span>&ldquo;{p}&rdquo;</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-text-muted">No blocked variants recorded.</p>}
+            </Section>
 
-                <div className="p-3 rounded-lg bg-[#191919] border border-[#303030] text-xs font-sans text-[#B5B5B5] leading-relaxed">
-                  <strong className="text-white">Central originality guarantee:</strong> Any change or expiry in this evidence record immediately propagates to previous content that relied on it. Creators will be notified and drafts quarantined from publication.
-                </div>
-              </div>
+            <Section title="Used in">
+              {current.usage.length ? (
+                <ul className="-mx-3 space-y-1">
+                  {current.usage.map((u) => (
+                    <li key={u.id}>
+                      <Link href={`/submissions/${u.id}`} className={`flex items-center gap-4 rounded-xl px-3 py-3 hover:bg-panel-hover ${focusRing}`}>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{u.title}</p>
+                          <p className="mt-1 text-[13px] text-text-muted">{u.channel}, {fmt(u.date)}</p>
+                        </div>
+                        <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-text-muted" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-text-muted">Not used in any submission yet.</p>}
+            </Section>
 
-              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#303030]">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setCascadeModalClaim(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => handleTriggerCascade(cascadeModalClaim.claimId || cascadeModalClaim.id)}
-                  loading={cascadeLoading}
-                  icon={<RefreshCw className="w-3.5 h-3.5" />}
-                >
-                  Confirm Cascade &amp; Quarantine Drafts
-                </Button>
-              </div>
-            </div>
+            <Section title="Owner">
+              <p className="text-sm text-text-secondary">{current.owner}</p>
+              <p className="text-[13px] text-text-muted">Last updated {fmt(current.updatedAt)}</p>
+            </Section>
           </div>
         )}
+      </dialog>
 
-        {/* Interactive "Add Approved Claim" Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="tactile-card rounded-xl max-w-xl w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-150 bg-[#141414] border border-[#303030]">
-              <div className="flex items-center justify-between border-b border-[#303030] pb-3.5">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-white" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-white">
-                    Index Grounded Claim Contract
-                  </h2>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-[#858585] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateClaim} className="space-y-4 text-xs font-mono">
-                <div>
-                  <label className="block text-[#858585] mb-1">
-                    EXACT APPROVED CLAIM STATEMENT *
-                  </label>
-                  <textarea
-                    required
-                    value={formStatement}
-                    onChange={(e) => setFormStatement(e.target.value)}
-                    rows={3}
-                    placeholder="e.g. Reduces recovery time by 18% when consumed within 45 minutes of training."
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-3 text-white placeholder:text-[#858585] resize-none font-sans leading-relaxed"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[#858585] mb-1">CATEGORY</label>
-                    <select
-                      value={formCategory}
-                      onChange={(e) => setFormCategory(e.target.value)}
-                      className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white cursor-pointer"
-                    >
-                      <option value="Performance">Performance</option>
-                      <option value="Clinical">Clinical</option>
-                      <option value="Certifications">Certifications</option>
-                      <option value="Ingredients">Ingredients</option>
-                      <option value="Safety">Safety</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[#858585] mb-1">EXPIRATION DATE</label>
-                    <input
-                      type="date"
-                      value={formExpiresAt}
-                      onChange={(e) => setFormExpiresAt(e.target.value)}
-                      className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2 text-white"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[#858585] mb-1">
-                    EVIDENCE DOCUMENT TITLE / CT REF
-                  </label>
-                  <input
-                    type="text"
-                    value={formDoc}
-                    onChange={(e) => setFormDoc(e.target.value)}
-                    placeholder="e.g. Clinical Study Report CS-2025-4A"
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[#858585] mb-1">DOI / ASSAY STANDARD</label>
-                    <input
-                      type="text"
-                      value={formDoi}
-                      onChange={(e) => setFormDoi(e.target.value)}
-                      placeholder="e.g. 10.1016/j.envres.2025.10928"
-                      className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[#858585] mb-1">AUTHORIZED OWNER</label>
-                    <input
-                      type="text"
-                      value={formOwner}
-                      onChange={(e) => setFormOwner(e.target.value)}
-                      placeholder="e.g. Dr. Aris Vance (VP Medical)"
-                      className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[#858585] mb-1">
-                    VERBATIM STUDY EXCERPT
-                  </label>
-                  <textarea
-                    value={formExcerpt}
-                    onChange={(e) => setFormExcerpt(e.target.value)}
-                    rows={2}
-                    placeholder="Exact quotation from study paper validating this claim..."
-                    className="w-full bg-[#0A0A0A] border border-[#303030] focus:border-white focus:outline-none rounded-lg p-2.5 text-white placeholder:text-[#858585] resize-none font-sans"
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2.5">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" size="sm" variant="primary">
-                    Commit to Knowledge Base
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
+      <AddClaimsDialog ref={addRef} brands={allBrands} types={types} onCreate={createClaims}
+        onImported={(m) => { flash(m); load(); }} />
+      <Toast msg={toast} />
     </AppLayout>
+  );
+}
+
+// Expiry status depends on today's date, so render per request instead of at build time.
+export default function ClaimsLibraryPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClaimsLibrary />
+    </Suspense>
   );
 }

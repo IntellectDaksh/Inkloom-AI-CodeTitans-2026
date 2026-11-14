@@ -526,6 +526,9 @@ export interface AuditEvent {
   ip_address?: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
+  /** SHA-256 over prev_hash + event body: editing any earlier event breaks the chain. */
+  hash?: string;
+  prev_hash?: string | null;
 }
 
 export interface Notification {

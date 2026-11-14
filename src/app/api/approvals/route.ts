@@ -14,66 +14,102 @@ export async function GET(req: NextRequest) {
   }
 }
 
+type Role = "creator" | "reviewer" | "admin";
+const ROLES: Role[] = ["creator", "reviewer", "admin"];
+const DECISIONS = ["approved", "rejected", "changes_requested", "override"] as const;
+type Decision = (typeof DECISIONS)[number];
+
+// Role rules enforced server-side (round 3 commitment), not only in the UI.
+function denyReason(role: Role, decision: Decision, reviewerId: string, authorId?: string, notes?: string) {
+  if (role === "creator") return "Creators can't approve or reject. Ask a reviewer.";
+  if (authorId && authorId === reviewerId) return "You can't decide on your own submission.";
+  if (decision === "override" && role !== "admin") return "Only an admin can record an override.";
+  if ((decision !== "approved") && (!notes || notes.trim().length < 5))
+    return "Add a short reason (5+ characters) for this decision.";
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
       submissionId,
-      decision, // 'approved' | 'rejected' | 'changes_requested'
+      decision,
       notes,
       reviewerId = "usr_daksh",
       reviewerName = "Daksh Agrawal",
+      reviewerRole: roleField,
+      role,
       organizationId = "org_uideas_digital",
-    } = body;
+    } = body as {
+      submissionId?: string;
+      decision?: Decision;
+      notes?: string;
+      reviewerId?: string;
+      reviewerName?: string;
+      reviewerRole?: Role;
+      role?: Role;
+      organizationId?: string;
+    };
 
-    if (!submissionId || !decision) {
+    // Approvals page sends reviewerRole; submission page sends role.
+    const reviewerRole: Role = roleField ?? role ?? "admin";
+    if (!submissionId || !decision || !DECISIONS.includes(decision)) {
       return NextResponse.json(
-        { success: false, error: "submissionId and decision are required" },
+        { success: false, error: "submissionId and a valid decision are required" },
         { status: 400 }
       );
+    }
+    if (!ROLES.includes(reviewerRole)) {
+      return NextResponse.json({ success: false, error: "Unknown role" }, { status: 400 });
     }
 
     const submission = db.getSubmission(submissionId);
     if (!submission) {
-      return NextResponse.json(
-        { success: false, error: "Submission not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Submission not found" }, { status: 404 });
     }
 
-    // 1. Record decision in DB
+    const denied = denyReason(reviewerRole, decision, reviewerId, submission.authorId, notes);
+    if (denied) {
+      db.recordAuditEvent({
+        organizationId,
+        brandId: submission.brandId,
+        userId: reviewerId,
+        action: "decision_blocked",
+        entityType: "submission",
+        entityId: submissionId,
+        metadata: { attempted: decision, reviewerName, reviewerRole, reason: denied },
+      });
+      return NextResponse.json({ success: false, error: denied }, { status: 403 });
+    }
+
+    const effective = decision === "override" ? "approved" : decision;
+    // recordApprovalDecision updates status and writes its own audit event.
     const recordedDecision = db.recordApprovalDecision({
       submissionId,
       organizationId,
       reviewerId,
       reviewerName,
-      decision,
-      notes: notes || `Submission ${decision} by ${reviewerName}`,
+      decision: effective,
+      notes: notes || `Submission ${effective} by ${reviewerName}`,
       decidedAt: new Date().toISOString(),
     });
 
-    // 2. Update submission status
-    db.updateSubmission(submissionId, {
-      status: decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : "changes_requested",
-    });
-
-    // 3. Record audit event
     db.recordAuditEvent({
       organizationId,
       brandId: submission.brandId,
       userId: reviewerId,
-      action: decision === "approved" ? "approve_submission" : decision === "rejected" ? "reject_submission" : "request_changes",
+      action: decision === "override" ? "override_recorded" : "decision_signed",
       entityType: "submission",
       entityId: submissionId,
-      metadata: { notes, reviewerName },
+      metadata: { decision, notes, reviewerName, reviewerRole },
     });
 
-    // 4. Send notification to submission author
     db.createNotification({
       organizationId,
       userId: submission.authorId,
       type: "approval_decision",
-      title: `Submission ${decision.toUpperCase().replace("_", " ")}: ${submission.title}`,
+      title: `${decision === "override" ? "Override" : effective.replace("_", " ")}: ${submission.title}`,
       message: notes || `Your submission "${submission.title}" was reviewed by ${reviewerName}.`,
       linkUrl: `/submissions/${submissionId}`,
       isRead: false,

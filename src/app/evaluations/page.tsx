@@ -1,491 +1,223 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import {
-  Scale,
-  CheckCircle2,
-  AlertOctagon,
-  ArrowRight,
-  TrendingUp,
-  FileSearch,
-  Database,
-  Play,
-  RotateCcw,
-  Download,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Play, ChevronDown } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import type { EvalReport, ItemResult } from "@/lib/eval/run";
 
-interface BenchmarkCase {
-  id: string;
-  name: string;
-  jurisdiction: string;
-  year: number;
-  statutoryRef: string;
-  category: string;
-  targetText: string;
-  detectedCategory: string;
-  detectedStatus: "detected" | "compliant";
-  confidence: number;
-  expectedSeverity: "critical" | "high" | "compliant";
-  groundTruth: "Violation" | "Compliant";
-  explanation: string;
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas";
+
+const CATEGORY: Record<string, string> = {
+  prohibited_term: "Banned words",
+  unsupported_claim: "Claims not in the approved library",
+  tone_inconsistency: "Off-brand tone",
+  missing_disclosure: "Missing required disclosure",
+  time_bound_claim: "Expired or retired claims",
+  out_of_scope: "Claim used outside allowed context",
+  readability: "Readability",
+  factual_conflict: "Conflicts with approved facts",
+};
+const label = (c: string) => CATEGORY[c] ?? c;
+const pct = (x: number | null) => (x === null ? "n/a" : `${Math.round(x * 100)}%`);
+
+function Stat({ value, label, hint }: { value: string; label: string; hint: string }) {
+  return (
+    <div className="rounded-xl border border-border-default bg-panel p-5">
+      <p className="text-[28px] font-semibold leading-tight tabular-nums text-text-primary">{value}</p>
+      <p className="mt-1 text-sm font-medium text-text-primary">{label}</p>
+      <p className="mt-1 text-[13px] text-text-muted">{hint}</p>
+    </div>
+  );
 }
 
-const BENCHMARK_CASES: BenchmarkCase[] = [
-  {
-    id: "ftc-teami-2020",
-    name: "FTC v. Teami Blends",
-    jurisdiction: "Federal Trade Commission (FTC Act § 5)",
-    year: 2020,
-    statutoryRef: "FTC Matter No. 182 3167 / 15 U.S.C. § 45(a)",
-    category: "Deceptive Health & Cancer Claims",
-    targetText:
-      "Teami 30-Day Detox naturally cures chronic migraines, unclogs arterial blockages, and prevents cancerous cell proliferation without prescription intervention.",
-    detectedCategory: "unsupported_claim / prohibited_term",
-    detectedStatus: "detected",
-    confidence: 0.99,
-    expectedSeverity: "critical",
-    groundTruth: "Violation",
-    explanation:
-      "Statutory health claim made without competent and reliable scientific evidence (CARSE standard). Banned absolute medical terms ('cures', 'prevents cancerous') triggered deterministic rule rejection.",
-  },
-  {
-    id: "adidas-boston-2017",
-    name: "Adidas Boston Marathon Incident",
-    jurisdiction: "Brand Communications & Crisis Standards",
-    year: 2017,
-    statutoryRef: "Corporate Brand Safety Standard BS-2017-04",
-    category: "Insensitive Marketing Automated Broadcast",
-    targetText:
-      "Congrats, you survived the Boston Marathon! Claim your limited edition commemorative technical pullover before supplies run out.",
-    detectedCategory: "inappropriate_content / tone_drift",
-    detectedStatus: "detected",
-    confidence: 0.94,
-    expectedSeverity: "high",
-    groundTruth: "Violation",
-    explanation:
-      "Context-blind algorithmic copywriting sent following a tragic public crisis. Flagged for catastrophic brand insensitivity and acute reputational safety failure.",
-  },
-  {
-    id: "cnet-ai-2023",
-    name: "CNET Financial AI Compound Hallucination",
-    jurisdiction: "SEC / CFPB Truth-in-Lending Disclosures",
-    year: 2023,
-    statutoryRef: "12 CFR § 1026.24 (Regulation Z)",
-    category: "AI Factual Hallucination in Public Advice",
-    targetText:
-      "Deposit $10,000 into this high-yield account with 3% annual interest, and after one year you will earn $10,300 in interest alone thanks to automated compound rate scaling.",
-    detectedCategory: "factual_inaccuracy / hallucination",
-    detectedStatus: "detected",
-    confidence: 0.98,
-    expectedSeverity: "critical",
-    groundTruth: "Violation",
-    explanation:
-      "Critical quantitative hallucination: calculated interest earned as principal + interest ($10,300 interest on $10,000 deposit instead of $300 interest). AdSnitch mathematical substantiation rule flagged the anomaly.",
-  },
-  {
-    id: "apex-control-2026",
-    name: "Compliant Baseline — Apex Nutrition Pure Whey",
-    jurisdiction: "FDA DSHEA 1994 / ISO 22196",
-    year: 2026,
-    statutoryRef: "FDA 21 CFR § 101.93 / Assay CS-2025-4A",
-    category: "Approved Substantive Marketing Copy",
-    targetText:
-      "Our ISO-tested micro-filtered whey protein supports muscle recovery and protein synthesis when consumed within 45 minutes of strenuous exercise.* *These statements have not been evaluated by the Food and Drug Administration.",
-    detectedCategory: "compliant_verified",
-    detectedStatus: "compliant",
-    confidence: 0.97,
-    expectedSeverity: "compliant",
-    groundTruth: "Compliant",
-    explanation:
-      "Correctly cited approved claim record CLM-APX-001 with active clinical trial DOI 10.1016/j.nutres.2024.108421 and verbatim statutory disclaimer.",
-  },
-];
+function ProblemRow({ r }: { r: ItemResult }) {
+  return (
+    <li>
+      <details className="group rounded-xl border border-border-default bg-panel">
+        <summary className={`flex cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3 hover:bg-panel-hover ${focusRing}`}>
+          <span className="font-mono text-xs text-text-muted">{r.id}</span>
+          <span className="min-w-0 flex-1 truncate text-sm text-text-primary">{r.text}</span>
+          {r.missed.length > 0 && <Badge variant="warning" size="xs">{r.missed.length} missed</Badge>}
+          {r.falseAlarms.length > 0 && <Badge variant="neutral" size="xs">{r.falseAlarms.length} false alarm{r.falseAlarms.length > 1 ? "s" : ""}</Badge>}
+          {r.wrongCategory.length > 0 && <Badge variant="neutral" size="xs">{r.wrongCategory.length} wrong label</Badge>}
+          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-text-muted transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="space-y-4 border-t border-border-default px-4 py-4 text-sm">
+          <p className="text-[13px] text-text-muted">{r.brand}, {r.channel.replace(/_/g, " ")}{r.note ? `. ${r.note}` : ""}</p>
+          <blockquote className="whitespace-pre-wrap rounded-lg bg-canvas px-3 py-2 text-text-primary">{r.text}</blockquote>
+          {r.error && <p className="text-status-danger">Pipeline error: {r.error}</p>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <h4 className="text-xs font-medium uppercase tracking-wide text-text-muted">Reviewer expected</h4>
+              <ul className="mt-2 space-y-1">
+                {r.expected.length === 0 && <li className="text-text-secondary">Nothing. This draft should pass.</li>}
+                {r.expected.map((e, i) => (
+                  <li key={i} className={r.missed.includes(e) ? "text-status-warning" : "text-text-secondary"}>
+                    &ldquo;{e.span}&rdquo; as {label(e.category).toLowerCase()} {r.missed.includes(e) ? "(missed)" : "(caught)"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-medium uppercase tracking-wide text-text-muted">AdSnitch flagged</h4>
+              <ul className="mt-2 space-y-1">
+                {r.found.length === 0 && <li className="text-text-secondary">Nothing.</li>}
+                {r.found.map((f, i) => (
+                  <li key={i} className="text-text-secondary">
+                    &ldquo;{f.span}&rdquo; as {label(f.category).toLowerCase()}
+                    {r.falseAlarms.includes(f) ? " (false alarm)" : r.wrongCategory.includes(f) ? " (right text, wrong label)" : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
+    </li>
+  );
+}
 
 export default function EvaluationsPage() {
-  const [activeCase, setActiveCase] = useState<BenchmarkCase>(BENCHMARK_CASES[0]);
-  const [completedCases, setCompletedCases] = useState<string[]>([
-    "ftc-teami-2020",
-    "adidas-boston-2017",
-    "cnet-ai-2023",
-    "apex-control-2026",
-  ]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [lastRunTimestamp, setLastRunTimestamp] = useState("Nov 11, 2026 · 08:35 UTC");
+  const [report, setReport] = useState<EvalReport | null>(null);
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const runBenchmarkSuite = () => {
-    setIsRunning(true);
-    setCompletedCases([]);
-
-    BENCHMARK_CASES.forEach((c, idx) => {
-      setTimeout(() => {
-        setCompletedCases((prev) => [...prev, c.id]);
-        setActiveCase(c);
-        if (idx === BENCHMARK_CASES.length - 1) {
-          setIsRunning(false);
-          setLastRunTimestamp("Just now (Verified Live)");
-        }
-      }, (idx + 1) * 450);
-    });
+  const run = async () => {
+    setRunning(true);
+    setError(null);
+    setElapsed(0);
+    const t0 = Date.now();
+    timer.current = setInterval(() => setElapsed(Math.round((Date.now() - t0) / 1000)), 500);
+    try {
+      const res = await fetch("/api/evaluations", { cache: "no-store" });
+      const d = await res.json();
+      if (!res.ok || !d.success) throw new Error(d.error ?? `Request failed (${res.status})`);
+      setReport(d.report);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Evaluation failed");
+    } finally {
+      if (timer.current) clearInterval(timer.current);
+      setRunning(false);
+    }
   };
 
-  const handleExportJson = () => {
-    const data = {
-      benchmarkSuite: "CodeTitans India 2026 — Labelled Regulatory Evaluation",
-      evaluatedAt: new Date().toISOString(),
-      metrics: {
-        precision: "97.9%",
-        recall: "100.0%",
-        falsePositiveRate: "2.1%",
-        missedIssuesRate: "0.0%",
-        f1Score: 0.989,
-        latencyP95: "420ms",
-      },
-      confusionMatrix: {
-        truePositives: 47,
-        trueNegatives: 30,
-        falsePositives: 1,
-        falseNegatives: 0,
-      },
-      cases: BENCHMARK_CASES,
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `adsnitch-evaluation-benchmark-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
+
+  const problems = report?.results.filter((r) => r.missed.length || r.falseAlarms.length || r.wrongCategory.length || r.error) ?? [];
 
   return (
-    <AppLayout
-      title="Labelled Evaluation Benchmark Suite"
-      subtitle="Quantitative proof of brand truth verification across canonical regulatory enforcement cases."
-    >
-      <div className="space-y-8 max-w-7xl mx-auto">
-        {/* Header Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#303030]">
+    <AppLayout title="Evaluations">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Evaluation Benchmark Bench
-            </h1>
-            <p className="text-sm text-[#B5B5B5] mt-1">
-              Rigorous empirical evaluation against real-world regulatory actions and controlled compliant baselines.
+            <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-primary">How accurate is AdSnitch?</h1>
+            <p className="mt-1 max-w-[62ch] text-sm text-text-secondary">
+              We run a set of drafts, each already marked up by a person, through the same checking pipeline your ads go through, then count what it caught, what it missed, and where it raised a false alarm.
             </p>
           </div>
+          <Button onClick={run} loading={running} icon={<Play className="h-4 w-4" />} className="h-10">
+            {report ? "Run again" : "Run evaluation"}
+          </Button>
+        </header>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto shrink-0">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleExportJson}
-              icon={<Download className="w-4 h-4 text-[#B5B5B5]" />}
-              className="min-h-[44px] w-full sm:w-auto justify-center"
-            >
-              Export Benchmark Data
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => runBenchmarkSuite()}
-              disabled={isRunning}
-              icon={<Play className="w-4 h-4 fill-current" />}
-              className="min-h-[44px] w-full sm:w-auto justify-center"
-            >
-              {isRunning ? "Running Suite..." : "Execute All Benchmarks"}
-            </Button>
-          </div>
+        <div aria-live="polite">
+          {running && (
+            <div role="status" className="rounded-xl border border-border-default bg-panel px-4 py-3 text-sm text-text-secondary">
+              Checking every labelled draft against the live pipeline&hellip; {elapsed}s elapsed. This can take a couple of minutes.
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-canvas">
+                <div className="h-full w-1/3 animate-pulse rounded-full bg-ink/40 motion-reduce:animate-none" />
+              </div>
+            </div>
+          )}
+          {error && <p role="alert" className="rounded-lg border border-status-danger/30 bg-status-danger/5 px-4 py-3 text-sm text-text-primary">{error}</p>}
         </div>
 
-        {/* Top Telemetry Gauges (Responsive 2-col on mobile, 3-col on tablet, 5-col on desktop) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030]">
-            <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
-              Precision
-            </div>
-            <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
-              97.9%
-            </div>
-            <div className="text-xs text-[#10B981]">2.1% False Alarm Rate</div>
-          </div>
+        {!report && !running && !error && (
+          <p className="rounded-xl border border-dashed border-border-default px-4 py-10 text-center text-sm text-text-secondary">
+            No results yet. Press &ldquo;Run evaluation&rdquo; to score the current pipeline. Nothing is cached, so the numbers always reflect the code running now.
+          </p>
+        )}
 
-          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030]">
-            <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
-              Recall
-            </div>
-            <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
-              100.0%
-            </div>
-            <div className="text-xs text-[#10B981]">0 Missed Violations</div>
-          </div>
-
-          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030]">
-            <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
-              Missed Issues
-            </div>
-            <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
-              0.0%
-            </div>
-            <div className="text-xs text-[#B5B5B5]">Zero Critical Leakage</div>
-          </div>
-
-          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030]">
-            <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
-              Latency (P95)
-            </div>
-            <div className="text-2xl sm:text-4xl font-bold text-white tracking-tight tabular-nums">
-              420ms
-            </div>
-            <div className="text-xs text-[#B5B5B5]">Deterministic Preflight</div>
-          </div>
-
-          <div className="rounded-xl p-4 sm:p-5 space-y-1 bg-[#141414] border border-[#303030] col-span-2 sm:col-span-1">
-            <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
-              Test Status
-            </div>
-            <div className="text-sm font-semibold text-[#10B981] flex items-center gap-1.5 mt-2">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>4 / 4 PASSED</span>
-            </div>
-            <div className="text-xs text-[#858585] truncate mt-1">{lastRunTimestamp}</div>
-          </div>
-        </div>
-
-        {/* Benchmark Cases Dual-Pane Inspector */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: Test Cases Directory */}
-          <div className="lg:col-span-5 space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-xs uppercase tracking-wider text-[#858585] font-semibold">
-                Landmark Test Suite (4 Cases)
-              </span>
-              <span className="text-xs text-[#10B981] font-medium">100% PASS RATE</span>
-            </div>
-
-            <div className="space-y-3">
-              {BENCHMARK_CASES.map((tCase, idx) => {
-                const isSelected = activeCase.id === tCase.id;
-                const isTested = completedCases.includes(tCase.id);
-
-                return (
-                  <div
-                    key={tCase.id}
-                    onClick={() => setActiveCase(tCase)}
-                    className={`rounded-xl p-5 cursor-pointer transition-all border ${
-                      isSelected
-                        ? "border-white bg-[#191919] shadow-sm"
-                        : "border-[#303030] hover:border-[#444444] bg-[#141414]"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-[#858585] font-mono">0{idx + 1}.</span>
-                          <span className="font-semibold text-base text-white">{tCase.name}</span>
-                          <span className="text-xs text-[#858585]">({tCase.year})</span>
-                        </div>
-                        <div className="text-xs text-[#858585] truncate max-w-xs">
-                          {tCase.jurisdiction}
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 flex flex-col items-end gap-1.5">
-                        {isTested ? (
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                              tCase.groundTruth === "Compliant"
-                                ? "bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30"
-                                : "bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30"
-                            }`}
-                          >
-                            {tCase.groundTruth === "Compliant" ? "CONTROL PASSED" : "CAUGHT"}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-[#858585]">PENDING</span>
-                        )}
-                        <span className="text-[11px] text-[#858585]">
-                          {tCase.category}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Quick Test Link */}
-            <div className="rounded-xl p-5 space-y-2 bg-[#141414] border border-[#303030]">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-white">Want to test your own copy?</span>
-                <Link
-                  href="/"
-                  className="text-xs text-white hover:underline flex items-center gap-1 font-medium"
-                >
-                  Live Sandbox &rarr;
-                </Link>
-              </div>
-              <p className="text-xs text-[#858585] leading-relaxed">
-                The live Hero Audit Sandbox on the home page lets you paste any custom draft and run
-                it through the exact same 8-stage verification pipeline.
-              </p>
-            </div>
-          </div>
-
-          {/* Right: Deep Case Inspection Dossier */}
-          <div className="lg:col-span-7 space-y-5">
-            <div className="rounded-xl p-6 sm:p-8 space-y-6 bg-[#141414] border border-[#303030]">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#303030] pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs uppercase tracking-wider text-[#858585] font-semibold">
-                      Benchmark Dossier
-                    </span>
-                    <span className="text-[#444444]">·</span>
-                    <span className="text-xs text-[#858585] font-mono">{activeCase.statutoryRef}</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-white mt-1 tracking-tight">{activeCase.name}</h2>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded bg-[#191919] border border-[#303030] text-xs text-[#B5B5B5]">
-                    {activeCase.category}
-                  </span>
-                  <span
-                    className={`px-2.5 py-1 rounded text-xs font-semibold ${
-                      activeCase.groundTruth === "Compliant"
-                        ? "bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30"
-                        : "bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30"
-                    }`}
-                  >
-                    GROUND TRUTH: {activeCase.groundTruth.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-
-              {/* Target Flagged Text */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-[#858585] uppercase tracking-wider font-medium">
-                  <span className="flex items-center gap-1.5">
-                    <FileSearch className="w-3.5 h-3.5 text-white" />
-                    <span>Audited Copy Payload</span>
-                  </span>
-                  <span>Input Sample</span>
-                </div>
-                <div className="rounded-lg p-5 font-sans text-base text-white leading-relaxed bg-[#191919] border border-[#303030]">
-                  &ldquo;{activeCase.targetText}&rdquo;
-                </div>
-              </div>
-
-              {/* Governance Engine Audit Verdict */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-[#191919] border border-[#303030] space-y-1">
-                  <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
-                    Engine Detection Result
-                  </div>
-                  <div className="text-base font-semibold text-white flex items-center gap-2">
-                    {activeCase.detectedStatus === "detected" ? (
-                      <AlertOctagon className="w-4 h-4 text-[#EF4444]" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-                    )}
-                    <span>
-                      {activeCase.detectedStatus === "detected"
-                        ? "Critical Statutory Violation Flagged"
-                        : "Approved Without Breach"}
-                    </span>
-                  </div>
-                  <div className="text-xs text-[#858585]">
-                    Category: {activeCase.detectedCategory}
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-lg bg-[#191919] border border-[#303030] space-y-1">
-                  <div className="text-xs uppercase tracking-wider text-[#858585] font-medium">
-                    Confidence Score
-                  </div>
-                  <div className="text-base font-semibold text-white font-mono">
-                    {(activeCase.confidence * 100).toFixed(1)}% Substantive Confidence
-                  </div>
-                  <div className="text-xs text-[#10B981]">
-                    Expected: {activeCase.expectedSeverity.toUpperCase()} · Matched
-                  </div>
-                </div>
-              </div>
-
-              {/* Technical Reasoning & Regulatory Rationale */}
-              <div className="space-y-2">
-                <span className="text-xs uppercase tracking-wider text-[#858585] font-semibold flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-white" />
-                  <span>Regulatory Rationale &amp; System Behavior</span>
+        {report && (
+          <>
+            <section aria-labelledby="headline" className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 id="headline" className="text-lg font-semibold text-text-primary">Latest run</h2>
+                <Badge variant={report.mode === "gemini" ? "approved" : "pending"} size="xs">
+                  {report.mode === "gemini" ? "Gemini + rules" : "Rule-only (no Gemini key)"}
+                </Badge>
+                <span className="text-[13px] text-text-muted">
+                  {report.items} drafts, {new Date(report.ranAt).toLocaleString()}
                 </span>
-                <p className="text-[15px] text-[#B5B5B5] leading-relaxed bg-[#191919] p-5 rounded-lg border border-[#303030]">
-                  {activeCase.explanation}
-                </p>
               </div>
-
-              {/* Empirical Confusion Matrix */}
-              <div className="border-t border-[#303030] pt-5 space-y-3">
-                <div className="flex items-center justify-between text-xs text-[#858585] uppercase tracking-wider font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-[#10B981]" />
-                    <span>Empirical Benchmark Matrix (CodeTitans 2026 Evaluation Set)</span>
-                  </span>
-                  <span className="text-[#10B981] font-bold">F1 SCORE: 1.000</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                  <div className="p-3.5 rounded-lg bg-[#191919] border border-[#303030]">
-                    <div className="text-xs text-[#858585] uppercase tracking-wider">True Positive</div>
-                    <div className="text-xl font-bold text-[#10B981] mt-1 tabular-nums">47</div>
-                  </div>
-                  <div className="p-3.5 rounded-lg bg-[#191919] border border-[#303030]">
-                    <div className="text-xs text-[#858585] uppercase tracking-wider">True Negative</div>
-                    <div className="text-xl font-bold text-[#10B981] mt-1 tabular-nums">30</div>
-                  </div>
-                  <div className="p-3.5 rounded-lg bg-[#191919] border border-[#303030]">
-                    <div className="text-xs text-[#858585] uppercase tracking-wider">False Positive</div>
-                    <div className="text-xl font-bold text-[#B5B5B5] mt-1 tabular-nums">1</div>
-                  </div>
-                  <div className="p-3.5 rounded-lg bg-[#191919] border border-[#303030]">
-                    <div className="text-xs text-[#858585] uppercase tracking-wider">False Negative</div>
-                    <div className="text-xl font-bold text-[#B5B5B5] mt-1 tabular-nums">0</div>
-                  </div>
-                </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Stat value={`${report.caught} of ${report.labelled}`} label="Labelled issues caught" hint={`Recall ${pct(report.recall)}. ${report.missed} missed.`} />
+                <Stat value={String(report.falseAlarms)} label={report.falseAlarms === 1 ? "False alarm" : "False alarms"} hint="Flags on text a reviewer marked as fine." />
+                <Stat value={`${report.cleanItemsPassed} of ${report.cleanItems}`} label="Clean drafts passed untouched" hint="Drafts that should get zero flags." />
+                <Stat value={pct(report.precision)} label="Flags that were right" hint={`${report.wrongCategory} flagged the right text under the wrong label.`} />
               </div>
-            </div>
-          </div>
-        </div>
+              <p className="text-[13px] text-text-muted">
+                Pipeline time per draft: median {report.latency.p50} ms, slowest 5% {report.latency.p95} ms. Model: {report.modelUsed}.
+              </p>
+            </section>
 
-        {/* Official Governance Principles Footer Callout */}
-        <div className="rounded-xl p-6 sm:p-8 bg-[#141414] border border-[#303030] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="text-xs uppercase tracking-wider text-[#858585] font-semibold">
-              Core Architectural Guarantee
-            </div>
-            <div className="text-white font-bold text-lg sm:text-xl tracking-tight">
-              &ldquo;Check the Claim. Show the Source. Keep People in Control.&rdquo;
-            </div>
-            <p className="text-sm text-[#858585]">
-              Evaluations are audited deterministically so that every legal review has mathematical
-              substantiation and tamper-proof provenance.
-            </p>
-          </div>
+            <section aria-labelledby="bycat">
+              <h2 id="bycat" className="text-lg font-semibold text-text-primary">By type of issue</h2>
+              <div className="mt-3 overflow-x-auto rounded-xl border border-border-default bg-panel">
+                <table className="w-full min-w-[560px] text-left text-sm">
+                  <thead className="text-xs uppercase tracking-wide text-text-muted">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 font-medium">Issue type</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Labelled</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Caught</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Flags raised</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">False alarms</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Right</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">Caught %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-default tabular-nums">
+                    {report.byCategory.map((c) => (
+                      <tr key={c.category}>
+                        <th scope="row" className="px-4 py-3 font-normal text-text-primary">{label(c.category)}</th>
+                        <td className="px-4 py-3 text-right text-text-secondary">{c.labelled}</td>
+                        <td className="px-4 py-3 text-right text-text-secondary">{c.caught}</td>
+                        <td className="px-4 py-3 text-right text-text-secondary">{c.raised}</td>
+                        <td className="px-4 py-3 text-right text-text-secondary">{c.falseAlarms}</td>
+                        <td className="px-4 py-3 text-right text-text-secondary">{pct(c.precision)}</td>
+                        <td className="px-4 py-3 text-right text-text-secondary">{pct(c.recall)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
-          <Link href="/submissions/new" className="w-full sm:w-auto shrink-0">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<ArrowRight className="w-4 h-4 text-black" />}
-              className="w-full sm:w-auto min-h-[44px] justify-center"
-            >
-              Submit New Content
-            </Button>
-          </Link>
-        </div>
+            <section aria-labelledby="problems">
+              <h2 id="problems" className="text-lg font-semibold text-text-primary">Every miss and false alarm ({problems.length} drafts)</h2>
+              <p className="mt-1 text-sm text-text-secondary">Open a row to see the draft, what the reviewer expected, and what AdSnitch flagged.</p>
+              <ul className="mt-3 space-y-2">
+                {problems.map((r) => <ProblemRow key={r.id} r={r} />)}
+              </ul>
+            </section>
+          </>
+        )}
+
+        <section aria-labelledby="limits" className="rounded-xl border border-border-default bg-panel p-5 text-sm text-text-secondary">
+          <h2 id="limits" className="text-base font-semibold text-text-primary">Limitations</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>The drafts are synthetic and were labelled by our own team, not an independent reviewer.</li>
+            <li>The set is small (35 drafts across three demo brands), so one draft can swing a percentage by several points.</li>
+            <li>A flag counts as caught only when it lands on the labelled text with the same issue type. Right text under the wrong label is shown separately and counts against &ldquo;flags that were right&rdquo;.</li>
+            <li>Missing disclosures have no text to point at, so they are matched on issue type alone.</li>
+            <li>Without a Gemini key the run is rule-only. Gemini results vary between runs.</li>
+          </ul>
+        </section>
       </div>
     </AppLayout>
   );

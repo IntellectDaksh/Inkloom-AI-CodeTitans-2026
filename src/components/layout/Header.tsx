@@ -1,16 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  Bell,
-  Plus,
-  Search,
-  ArrowRight,
-  Menu,
-} from "lucide-react";
-import { Button } from "../ui/Button";
+import { usePathname } from "next/navigation";
+import { Bell, Plus, Search, Menu, ChevronRight } from "lucide-react";
 import { openCommandK } from "../ui/CommandK";
+import { HelpButton } from "../guide/HelpPanel";
+import { findPage } from "../guide/nav";
+import { BRANDS, PERSONAS, ROLE_HELP, personaOf, setPrefs, usePrefs, focusRing } from "../guide/workspace";
 
 export interface HeaderBreadcrumb {
   label: string;
@@ -28,237 +25,190 @@ export interface HeaderProps {
   onToggleMobileMenu?: () => void;
 }
 
-const SAMPLE_NOTIFICATIONS = [
-  {
-    id: "notif-1",
-    title: "Unverified Multiplier Flagged",
-    message: "2x faster results flagged in Apex Summer Launch campaign.",
-    time: "8m ago",
-    type: "critical",
-    href: "/submissions/sub_mock_001",
-  },
-  {
-    id: "notif-2",
-    title: "Revision Approved by Legal",
-    message: "Zenith Cloud SOC2 Compliance post cleared all checks.",
-    time: "24m ago",
-    type: "approved",
-    href: "/submissions",
-  },
-  {
-    id: "notif-3",
-    title: "New Claim Indexed",
-    message: "Clinically proven 99.8% uptime claim added to library.",
-    time: "1h ago",
-    type: "info",
-    href: "/knowledge-base/claims",
-  },
-];
+interface Notif {
+  id: string;
+  title: string;
+  message?: string;
+  linkUrl?: string;
+  link_url?: string | null;
+  isRead?: boolean;
+  is_read?: boolean;
+}
 
-export function Header({
-  title,
-  subtitle,
-  breadcrumbs,
-  currentBrand = "Apex Nutrition",
-  unreadNotifications = 2,
-  onOpenCommandK,
-  onToggleMobileMenu,
-}: HeaderProps) {
+export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onToggleMobileMenu }: HeaderProps) {
+  const path = usePathname() ?? "";
+  const page = findPage(path);
+  const prefs = usePrefs();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(unreadNotifications);
+  const [notifs, setNotifs] = useState<Notif[] | null>(null);
+  const [notifError, setNotifError] = useState(false);
+  const [isMac, setIsMac] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
-  const handleSearchClick = () => {
-    if (onOpenCommandK) {
-      onOpenCommandK();
-    } else {
-      openCommandK();
-    }
-  };
+  useEffect(() => setIsMac(/Mac|iPhone|iPad/.test(navigator.platform)), []);
 
-  const handleClearNotifs = () => {
-    setUnreadCount(0);
-  };
+  useEffect(() => {
+    fetch("/api/notifications")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => setNotifs((d.notifications ?? []).slice(0, 5)))
+      .catch(() => setNotifError(true));
+  }, []);
+
+  useEffect(() => {
+    if (!isNotifOpen) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !notifRef.current?.contains(e.target as Node)) setIsNotifOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [isNotifOpen]);
+
+  const crumbs: HeaderBreadcrumb[] =
+    breadcrumbs && breadcrumbs.length
+      ? breadcrumbs
+      : page
+        ? [{ label: page.group, href: undefined }, { label: title ?? page.name }]
+        : [{ label: title ?? "AdSnitch" }];
+  const heading = crumbs[crumbs.length - 1].label;
+  const unread = (notifs ?? []).filter((n) => !(n.isRead ?? n.is_read)).length;
 
   return (
-    <header className="h-14 sm:h-16 border-b border-[#282828] bg-[#0A0A0A] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Left: Mobile Menu Toggle + Breadcrumbs or Title Hierarchy */}
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        {/* Mobile Hamburger Menu Toggle Button */}
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border-subtle bg-glass px-3 backdrop-blur-xl backdrop-saturate-150 sm:gap-3 sm:px-6">
+      <button
+        type="button"
+        onClick={onToggleMobileMenu}
+        aria-label="Open menu"
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-panel text-text-primary hover:bg-panel-hover md:hidden ${focusRing}`}
+      >
+        <Menu className="h-5 w-5" aria-hidden="true" />
+      </button>
+
+      {/* Title + breadcrumb */}
+      <div className="min-w-0 flex-1">
+        {crumbs.length > 1 && (
+          <nav aria-label="Breadcrumb" className="hidden items-center gap-1 text-xs text-text-muted sm:flex">
+            {crumbs.slice(0, -1).map((c) => (
+              <React.Fragment key={c.label}>
+                {c.href ? (
+                  <Link href={c.href} className={`rounded hover:text-text-primary ${focusRing}`}>{c.label}</Link>
+                ) : (
+                  <span>{c.label}</span>
+                )}
+                <ChevronRight className="h-3 w-3" aria-hidden="true" />
+              </React.Fragment>
+            ))}
+          </nav>
+        )}
+        <p className="truncate text-base font-semibold tracking-tight text-text-primary">{heading}</p>
+      </div>
+
+      {/* Brand switcher */}
+      <label className="sr-only" htmlFor="brand-switch">Brand</label>
+      <select
+        id="brand-switch"
+        value={prefs.brand}
+        onChange={(e) => {
+          setPrefs({ brand: e.target.value });
+          onBrandChange?.(e.target.value);
+        }}
+        className={`hidden h-10 max-w-44 rounded-lg border border-border-default bg-panel px-3 text-sm text-text-primary sm:block ${focusRing}`}
+        style={{ backgroundColor: "var(--color-canvas-elevated)", color: "var(--color-ink)" }}
+      >
+        {BRANDS.map((b) => <option key={b}>{b}</option>)}
+      </select>
+
+      {/* Demo persona / role switcher */}
+      <label className="sr-only" htmlFor="persona-switch">Signed in as</label>
+      <select
+        id="persona-switch"
+        value={prefs.persona}
+        onChange={(e) => setPrefs({ persona: e.target.value })}
+        title={ROLE_HELP[personaOf(prefs).role]}
+        className={`hidden h-10 max-w-48 rounded-lg border border-border-default bg-panel px-3 text-sm text-text-primary md:block ${focusRing}`}
+        style={{ backgroundColor: "var(--color-canvas-elevated)", color: "var(--color-ink)" }}
+      >
+        {PERSONAS.map((p) => (
+          <option key={p.id} value={p.id}>{p.name.split(" ")[0]} ({p.label})</option>
+        ))}
+      </select>
+
+      {/* Search */}
+      <button
+        type="button"
+        onClick={() => (onOpenCommandK ? onOpenCommandK() : openCommandK())}
+        aria-label="Search or run an action"
+        className={`flex h-10 items-center gap-2 rounded-lg border border-border-default bg-panel px-3 text-sm text-text-secondary hover:bg-panel-hover hover:text-text-primary lg:w-64 ${focusRing}`}
+      >
+        <Search className="h-4 w-4 text-text-muted" aria-hidden="true" />
+        <span className="hidden flex-1 text-left lg:inline">Search or jump to…</span>
+        <kbd className="hidden rounded border border-border-default bg-panel-hover px-1.5 py-0.5 font-sans text-xs lg:inline">
+          {isMac ? "⌘" : "Ctrl"}&nbsp;K
+        </kbd>
+      </button>
+
+      <HelpButton />
+
+      {/* Notifications */}
+      <div className="relative" ref={notifRef}>
         <button
           type="button"
-          onClick={onToggleMobileMenu}
-          className="md:hidden p-2 rounded-lg bg-[#141414] hover:bg-[#1C1C1C] border border-[#282828] text-white hover:text-white cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0 transition-colors"
-          aria-label="Open mobile navigation menu"
+          onClick={() => setIsNotifOpen((v) => !v)}
+          aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
+          aria-expanded={isNotifOpen}
+          className={`relative flex h-10 w-10 items-center justify-center rounded-lg border border-border-default bg-panel text-text-secondary hover:bg-panel-hover hover:text-text-primary ${focusRing}`}
         >
-          <Menu className="w-5 h-5 text-white" />
+          <Bell className="h-4 w-4" aria-hidden="true" />
+          {unread > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-ink ring-2 ring-canvas" aria-hidden="true" />}
         </button>
-
-        {breadcrumbs && breadcrumbs.length > 0 ? (
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
-            {breadcrumbs.map((crumb, idx) => {
-              const isLast = idx === breadcrumbs.length - 1;
-              return (
-                <React.Fragment key={crumb.label}>
-                  {idx > 0 && <span className="text-[#555555] select-none">/</span>}
-                  {crumb.href && !isLast ? (
+        {isNotifOpen && (
+          <div className="glass-strong absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl p-1">
+            <p className="px-3 py-2 text-sm font-semibold text-text-primary">Notifications</p>
+            {notifError ? (
+              <p className="px-3 py-4 text-[13px] text-text-muted">Could not load notifications. Try again later.</p>
+            ) : notifs === null ? (
+              <p className="px-3 py-4 text-[13px] text-text-muted">Loading…</p>
+            ) : notifs.length === 0 ? (
+              <p className="px-3 py-4 text-[13px] text-text-muted">Nothing new. You will be told here when an ad is approved or needs changes.</p>
+            ) : (
+              <ul>
+                {notifs.map((n) => (
+                  <li key={n.id}>
                     <Link
-                      href={crumb.href}
-                      className="text-[#A0A0A0] hover:text-white transition-colors font-medium"
+                      href={n.linkUrl || n.link_url || "/notifications"}
+                      onClick={() => setIsNotifOpen(false)}
+                      className={`block rounded-lg px-3 py-2.5 hover:bg-panel-hover ${focusRing}`}
                     >
-                      {crumb.label}
+                      <span className="block text-[13px] font-medium text-text-primary line-clamp-1">{n.title}</span>
+                      {n.message && <span className="mt-0.5 block text-xs text-text-muted line-clamp-2">{n.message}</span>}
                     </Link>
-                  ) : (
-                    <span
-                      className={`truncate font-medium ${
-                        isLast ? "text-white" : "text-[#A0A0A0]"
-                      }`}
-                    >
-                      {crumb.label}
-                    </span>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </nav>
-        ) : title ? (
-          <div className="min-w-0">
-            <h1 className="text-base font-semibold text-white tracking-tight truncate">
-              {title}
-            </h1>
-            {subtitle && (
-              <p className="text-xs text-[#999999] truncate mt-0.5">{subtitle}</p>
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5 text-sm">
-            <span className="text-[#888888] font-medium">Brand:</span>
-            <span className="px-2.5 py-1 rounded-md bg-[#161616] border border-[#2E2E2E] text-white font-medium flex items-center gap-2 text-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              {currentBrand}
-            </span>
+            <Link
+              href="/notifications"
+              onClick={() => setIsNotifOpen(false)}
+              className={`block rounded-lg px-3 py-2 text-center text-[13px] font-medium text-text-primary hover:bg-panel-hover ${focusRing}`}
+            >
+              See all
+            </Link>
           </div>
         )}
       </div>
 
-      {/* Center: Search / Command Trigger */}
-      <div className="hidden md:flex items-center flex-1 max-w-sm mx-6">
-        <button
-          onClick={handleSearchClick}
-          className="w-full flex items-center justify-between px-3.5 py-2 rounded-md bg-[#141414] hover:bg-[#1A1A1A] border border-[#2E2E2E] hover:border-[#3E3E3E] text-sm text-[#A0A0A0] hover:text-white transition-colors cursor-pointer"
+      {path !== "/submissions/new" && (
+        <Link
+          href="/submissions/new"
+          className={`hidden h-10 items-center gap-1.5 rounded-lg bg-ink px-4 text-sm font-medium text-canvas hover:opacity-90 sm:flex ${focusRing}`}
         >
-          <div className="flex items-center gap-2.5">
-            <Search className="w-4 h-4 text-[#888888]" />
-            <span className="text-sm">Search or jump to...</span>
-          </div>
-          <kbd className="text-xs text-[#A0A0A0] bg-[#1F1F1F] px-1.5 py-0.5 rounded border border-[#333333] font-sans">
-            Ctrl+K
-          </kbd>
-        </button>
-      </div>
-
-      {/* Right: Actions */}
-      <div className="flex items-center gap-3">
-        {/* Mobile Search trigger */}
-        <button
-          onClick={handleSearchClick}
-          className="md:hidden p-2 rounded-md bg-[#141414] hover:bg-[#1A1A1A] border border-[#2E2E2E] text-[#A0A0A0] hover:text-white cursor-pointer"
-          title="Search"
-        >
-          <Search className="w-4 h-4 text-white" />
-        </button>
-
-        {/* Notifications Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setIsNotifOpen(!isNotifOpen)}
-            className="relative p-2.5 rounded-md bg-[#141414] hover:bg-[#1A1A1A] border border-[#2E2E2E] hover:border-[#383838] text-[#A0A0A0] hover:text-white transition-colors cursor-pointer"
-            title="Notifications"
-          >
-            <Bell className="w-4 h-4" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-white ring-2 ring-[#0A0A0A]" />
-            )}
-          </button>
-
-          {isNotifOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setIsNotifOpen(false)}
-              />
-              <div className="absolute right-0 mt-2 w-80 sm:w-88 rounded-xl bg-[#141414] border border-[#303030] shadow-xl py-1 z-50 animate-in fade-in duration-100">
-                <div className="px-4 py-3 border-b border-[#262626] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white">
-                      Notifications
-                    </span>
-                    {unreadCount > 0 && (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#222222] text-white border border-[#333333]">
-                        {unreadCount} new
-                      </span>
-                    )}
-                  </div>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={handleClearNotifs}
-                      className="text-xs text-[#999999] hover:text-white transition-colors cursor-pointer"
-                    >
-                      Mark all read
-                    </button>
-                  )}
-                </div>
-
-                <div className="divide-y divide-[#242424] max-h-72 overflow-y-auto">
-                  {SAMPLE_NOTIFICATIONS.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={item.href}
-                      onClick={() => setIsNotifOpen(false)}
-                      className="block p-3.5 hover:bg-[#1A1A1A] transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="text-sm font-medium text-white">
-                          {item.title}
-                        </div>
-                        <span className="text-xs text-[#737373] shrink-0">
-                          {item.time}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#A0A0A0] mt-1 leading-relaxed line-clamp-2">
-                        {item.message}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-
-                <div className="p-2.5 border-t border-[#262626]">
-                  <Link
-                    href="/notifications"
-                    onClick={() => setIsNotifOpen(false)}
-                    className="flex items-center justify-center gap-1.5 py-1 text-xs text-white hover:text-neutral-300 font-medium transition-colors"
-                  >
-                    <span>View all notifications</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Quick Review / Audit Button */}
-        <Link href="/submissions/new">
-          <Button
-            size="sm"
-            variant="primary"
-            icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
-            className="min-h-[44px] px-3 sm:px-4 text-xs sm:text-sm"
-          >
-            <span className="hidden xs:inline sm:inline">Review Content</span>
-            <span className="xs:hidden sm:hidden">Review</span>
-          </Button>
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Check an ad
         </Link>
-      </div>
+      )}
     </header>
   );
 }
