@@ -608,8 +608,16 @@ export default function Home() {
             <div className="sky-copy">
               <h1 className="sky-h1">Every ad claim, checked against proof.</h1>
               <p className="sky-sub">
-                Risky lines flagged, explained and fixed, then signed off by a person before anything ships.
+                AdSnitch reads your ads, captions and landing pages before they publish. It matches
+                every claim to the proof your brand has approved, explains anything risky in plain
+                words with the rule behind it, suggests a safer line, and leaves the final call to a
+                person.
               </p>
+              <ul className="sky-points">
+                <li>Text, Word, PDF or screenshots</li>
+                <li>FTC and FDA rules built in</li>
+                <li>Nothing publishes without sign-off</li>
+              </ul>
               <div className="l-actions">
                 <ArrowLink href="#sandbox">Try a live check</ArrowLink>
                 <a className="l-textlink sky-link" href="/dashboard?workspace=pick">
@@ -620,38 +628,6 @@ export default function Home() {
 
             <HeroCharacter />
 
-            <ol className="sky-cards sky-steps" aria-label="How one claim moves through AdSnitch">
-              <li className="glass-card step-card">
-                <span className="step-n">1 · Flagged</span>
-                <p className="gf-quote">
-                  &ldquo;<u>2x faster</u> recovery&rdquo;
-                </p>
-                <p className="step-note">Numeric claim with no proof attached</p>
-              </li>
-              <li className="glass-card step-card">
-                <span className="step-n">2 · Checked</span>
-                <p className="step-big">Requires substantiation</p>
-                <p className="step-note">
-                  Rule: <a href="https://www.ecfr.gov/current/title-16/chapter-I/subchapter-B/part-255" target="_blank" rel="noreferrer">FTC 16 CFR 255</a>
-                </p>
-              </li>
-              <li className="glass-card step-card">
-                <span className="step-n">3 · Signed off</span>
-                <p className="step-big">
-                  94<small>/100</small>
-                </p>
-                <p className="step-note">Rewritten, then approved by a reviewer</p>
-              </li>
-              <li className="glass-card step-card step-proof">
-                <span className="step-n">Measured</span>
-                <p className="step-big">
-                  26<small>/30</small>
-                </p>
-                <p className="step-note">
-                  labelled issues caught · <a href="/evaluations">see report</a>
-                </p>
-              </li>
-            </ol>
           </div>
         </section>
 
