@@ -620,22 +620,38 @@ export default function Home() {
 
             <HeroCharacter />
 
-            <div className="sky-cards">
-              <div className="glass-card glass-stat">
-                <b>26 / 30</b>
-                <p>labelled issues caught</p>
-                <a href="/evaluations">Measured on our evaluation set</a>
-              </div>
-              <div className="glass-card glass-finding">
-                <small>Live finding</small>
+            <ol className="sky-cards sky-steps" aria-label="How one claim moves through AdSnitch">
+              <li className="glass-card step-card">
+                <span className="step-n">1 · Flagged</span>
                 <p className="gf-quote">
                   &ldquo;<u>2x faster</u> recovery&rdquo;
                 </p>
-                <p className="gf-out">
-                  <Icon name="arrow" size={14} /> Requires substantiation &middot; FTC 16 CFR 255
+                <p className="step-note">Numeric claim with no proof attached</p>
+              </li>
+              <li className="glass-card step-card">
+                <span className="step-n">2 · Checked</span>
+                <p className="step-big">Requires substantiation</p>
+                <p className="step-note">
+                  Rule: <a href="https://www.ecfr.gov/current/title-16/chapter-I/subchapter-B/part-255" target="_blank" rel="noreferrer">FTC 16 CFR 255</a>
                 </p>
-              </div>
-            </div>
+              </li>
+              <li className="glass-card step-card">
+                <span className="step-n">3 · Signed off</span>
+                <p className="step-big">
+                  94<small>/100</small>
+                </p>
+                <p className="step-note">Rewritten, then approved by a reviewer</p>
+              </li>
+              <li className="glass-card step-card step-proof">
+                <span className="step-n">Measured</span>
+                <p className="step-big">
+                  26<small>/30</small>
+                </p>
+                <p className="step-note">
+                  labelled issues caught · <a href="/evaluations">see report</a>
+                </p>
+              </li>
+            </ol>
           </div>
         </section>
 

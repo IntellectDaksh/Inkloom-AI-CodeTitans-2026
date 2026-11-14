@@ -8154,3 +8154,53 @@ html[data-motion="off"] .hero-char *, html[data-motion="reduced"] .hero-char * {
   .sky-h1 { font-size: clamp(40px, 4.8vw, 76px) !important; }
   .hero-char svg { max-height: calc(100dvh - 300px); }
 }
+
+/* Hero v4: bigger character, 4-card story row centred under it, slightly larger headline */
+.sky-steps { list-style: none; margin: 0; padding: 0; counter-reset: none; }
+.step-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.step-n { color: rgba(11, 22, 32, 0.62); font: 700 12px/1 "Inter", sans-serif; letter-spacing: 0.02em; }
+.step-big { margin: 0; color: #0b1620; font: 700 22px/1.15 "Space Grotesk", sans-serif; letter-spacing: -0.02em; }
+.step-big small { margin-left: 2px; color: rgba(11, 22, 32, 0.55); font-size: 13px; font-weight: 600; }
+.step-note { margin: 0; color: #26394a; font: 500 12.5px/1.35 "Inter", sans-serif; }
+.step-note a { color: #0b1620; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.sky-steps .gf-quote { margin: 0; color: #0b1620; font: 700 18px/1.2 "Space Grotesk", sans-serif; }
+.sky-steps .gf-quote u { text-decoration-color: #e5535d; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.sky-steps .glass-card {
+  color: #0b1620 !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 14px 34px rgba(14, 45, 66, 0.12);
+}
+.sky-steps .step-card:not(:last-child)::after {
+  content: "→"; position: absolute; right: -13px; top: 50%; transform: translateY(-50%);
+  color: rgba(11, 22, 32, 0.45); font: 700 14px "Inter", sans-serif;
+}
+.sky-steps .step-card { position: relative; }
+.sky-steps .step-proof::after { content: none; }
+.sky-steps .step-card:nth-child(3)::after { content: none; }
+.sky-steps .step-proof { background: rgba(11, 22, 32, 0.78) !important; border-color: rgba(255, 255, 255, 0.2) !important; }
+.sky-steps .step-proof .step-n, .sky-steps .step-proof .step-note { color: rgba(240, 247, 252, 0.8); }
+.sky-steps .step-proof .step-big { color: #fff; }
+.sky-steps .step-proof .step-big small { color: rgba(240, 247, 252, 0.6); }
+.sky-steps .step-proof .step-note a { color: #fff; }
+@media (min-width: 901px) {
+  .sky-h1 { font-size: clamp(48px, 6.2vw, 104px) !important; }
+  .sky-canvas { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr) !important; }
+  .hero-char { width: min(46vw, 720px) !important; transform: translateX(-4%); align-self: end; }
+  .hero-char svg { max-height: calc(100dvh - 300px) !important; }
+  .sky-cards.sky-steps {
+    justify-self: center; width: 100% !important; max-width: 760px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 18px !important;
+  }
+  .sky-steps .glass-card { padding: 14px 16px !important; }
+}
+@media (min-width: 901px) and (max-height: 760px) {
+  .sky-h1 { font-size: clamp(44px, 5.4vw, 84px) !important; }
+  .hero-char svg { max-height: calc(100dvh - 270px) !important; }
+}
+@media (max-width: 900px) {
+  .sky-cards.sky-steps { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+  .sky-steps .step-card::after { content: none !important; }
+}
