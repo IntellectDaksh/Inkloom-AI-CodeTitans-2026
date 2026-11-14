@@ -8232,3 +8232,13 @@ html[data-motion="off"] .hero-char *, html[data-motion="reduced"] .hero-char * {
   }
   .hero-char svg { height: 100% !important; width: auto !important; max-height: none !important; max-width: 100%; }
 }
+
+/* Hero v6: copy reads as one tight block */
+@media (min-width: 901px) {
+  .sky-copy { max-width: 720px !important; justify-self: end; padding-left: 0; }
+  .sky-h1 { line-height: 0.94 !important; margin-bottom: 0 !important; }
+  .sky-sub { margin-top: 18px !important; max-width: 52ch !important; }
+  .sky-points { margin-top: 16px !important; }
+  .sky-hero .l-actions { margin-top: 22px !important; }
+  .sky-canvas { column-gap: clamp(16px, 2vw, 40px) !important; }
+}

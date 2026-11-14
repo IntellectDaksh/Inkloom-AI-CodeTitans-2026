@@ -18,17 +18,17 @@ export function HeroCharacter() {
           </filter>
         </defs>
 
-        {/* speech bubble: "2x faster?" resolves to "Source found" */}
+        {/* speech bubble: the marketer's real question, answered once AdSnitch has checked the ad */}
         <g className="hc-bubble" filter="url(#hcShadow)">
           <path d="M150 22h170a20 20 0 0 1 20 20v26a20 20 0 0 1-20 20h-112l-18 18 2-18h-42a20 20 0 0 1-20-20V42a20 20 0 0 1 20-20Z" fill="#fbfdff" />
           <g className="hc-q-state">
-            <text x="168" y="62" fill={INK} fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="22">2x faster?</text>
-            <path d="M168 70h86" stroke={CORAL} strokeWidth="3.5" strokeLinecap="round" />
+            <text x="166" y="62" fill={INK} fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="19">Can I post this?</text>
+            <path d="M166 71h150" stroke={CORAL} strokeWidth="3" strokeLinecap="round" strokeDasharray="2 6" />
           </g>
           <g className="hc-ok-state">
             <circle cx="180" cy="55" r="12" fill="#2f9e6a" />
             <path d="m174 55 4.5 4.5 8-9" fill="none" stroke="#fbfdff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <text x="200" y="62" fill={INK} fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="19">Source found</text>
+            <text x="200" y="62" fill={INK} fontFamily="Space Grotesk, sans-serif" fontWeight="700" fontSize="19">Safe to post</text>
           </g>
         </g>
 
