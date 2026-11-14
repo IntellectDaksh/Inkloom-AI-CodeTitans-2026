@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runGovernancePipeline } from "@/lib/ai";
+import { withSources } from "../sources";
 
 export async function GET(
   req: NextRequest,
@@ -17,7 +18,7 @@ export async function GET(
       );
     }
 
-    const findings = db.listFindings(id);
+    const findings = withSources(db.listFindings(id));
     const revisions = db.listSuggestedRevisions(id);
     const brand = db.getBrand(submission.brandId);
     const auditEvents = db.listAuditForEntity(id);

@@ -28,11 +28,45 @@ export interface Prefs {
   persona: string;
   onboarded: boolean;
   checklistDismissed: boolean;
+  // Review strictness (read by verdictFor in submission/shared.ts)
+  passScore: number;
+  blockBelow: number;
+  strictness: Strictness;
+  requireDisclosure: boolean;
+  flagSuperlatives: boolean;
+  flagTimeBound: boolean;
+  requireReviewerHighRisk: boolean;
+  // AI
+  useGemini: boolean;
+  aiConfidence: number;
+  ocr: boolean;
+  // Appearance (applied to <html> by PrefsApplier)
+  motion: "full" | "reduced" | "off";
+  density: "comfortable" | "compact";
+  breathing: boolean;
+  textSize: number;
+  // Notifications
+  notifyInApp: boolean;
+  notifyEmail: boolean;
 }
 
-const KEY = "adsnitch:prefs";
+export type Strictness = "relaxed" | "balanced" | "strict";
+export const STRICTNESS_PRESETS: Record<Strictness, { passScore: number; blockBelow: number }> = {
+  relaxed: { passScore: 70, blockBelow: 40 },
+  balanced: { passScore: 80, blockBelow: 50 },
+  strict: { passScore: 90, blockBelow: 60 },
+};
+
+export const KEY = "adsnitch:prefs";
 const EVT = "adsnitch:prefs";
-const DEFAULTS: Prefs = { brand: BRANDS[0], persona: PERSONAS[0].id, onboarded: false, checklistDismissed: false };
+export const DEFAULTS: Prefs = {
+  brand: BRANDS[0], persona: PERSONAS[0].id, onboarded: false, checklistDismissed: false,
+  passScore: 80, blockBelow: 50, strictness: "balanced",
+  requireDisclosure: false, flagSuperlatives: false, flagTimeBound: false, requireReviewerHighRisk: true,
+  useGemini: true, aiConfidence: 60, ocr: true,
+  motion: "full", density: "comfortable", breathing: true, textSize: 16,
+  notifyInApp: true, notifyEmail: false,
+};
 
 export function readPrefs(): Prefs {
   try {
@@ -132,8 +166,8 @@ export const SEED_WORKSPACES: Workspace[] = [
   { name: "Lumina Labs", industry: "Beauty & skincare", channels: ["Instagram", "TikTok", "Product page"], description: "Clinical skincare and serums." },
 ];
 
-const WS_KEY = "adsnitch:workspaces";
-const WS_EVT = "adsnitch:workspaces";
+export const WS_KEY = "adsnitch:workspaces";
+export const WS_EVT = "adsnitch:workspaces";
 export const PICKER_EVT = "adsnitch:open-picker";
 export const PICKED_KEY = "adsnitch:workspace-picked";
 
@@ -155,6 +189,28 @@ export function useWorkspaces(): Workspace[] {
     return () => window.removeEventListener(WS_EVT, on);
   }, []);
   return [...SEED_WORKSPACES, ...custom];
+}
+
+/** Edits a custom workspace in place. Seeded ones are read-only. Returns an error message or null. */
+export function updateWorkspace(name: string, patch: Partial<Workspace>): string | null {
+  const list = readCustom();
+  const i = list.findIndex((w) => w.name === name);
+  if (i < 0) return "Built-in workspaces can't be edited.";
+  if (patch.name !== undefined) {
+    const n = patch.name.trim().replace(/\s+/g, " ");
+    if (n.length < 2 || n.length > 60) return "Use a name between 2 and 60 characters.";
+    if (n.toLowerCase() !== name.toLowerCase() && [...SEED_WORKSPACES, ...list].some((w) => w.name.toLowerCase() === n.toLowerCase()))
+      return `A workspace called "${n}" already exists.`;
+    patch = { ...patch, name: n };
+  }
+  list[i] = { ...list[i], ...patch };
+  try {
+    localStorage.setItem(WS_KEY, JSON.stringify(list));
+  } catch {
+    return "Your browser blocked saving.";
+  }
+  window.dispatchEvent(new Event(WS_EVT));
+  return null;
 }
 
 /** Adds a workspace and returns its name, or an error message. */

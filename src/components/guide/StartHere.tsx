@@ -39,6 +39,9 @@ export function StartHere() {
           Hide
         </button>
       </div>
+      <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+        AdSnitch checks marketing copy before it goes live: every claim is matched to approved proof, risky lines are explained with a fix, and a person signs off.
+      </p>
       <ol className="mt-4 grid gap-3 md:grid-cols-3">
         {steps.map((s, i) => {
           const current = i === next;

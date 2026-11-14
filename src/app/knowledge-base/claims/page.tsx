@@ -2,7 +2,9 @@
 
 import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { openFile, putFile } from "@/lib/files/store";
+import { AlertTriangle, BadgeCheck, ChevronRight, ExternalLink, Pencil, Plus, Search, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +25,10 @@ interface Evidence {
   fileName?: string;
   verifiedBy?: string;
   verifiedAt?: string;
+  /** Link to the source document, when one is on file. */
+  url?: string;
+  /** IndexedDB key of an uploaded original (src/lib/files/store.ts). */
+  fileId?: string;
 }
 
 interface Usage {
@@ -231,6 +237,15 @@ const BRAND_IDS: Record<string, string> = {
   "00000000-0000-4000-b000-000000000001": "Apex Nutrition",
   "00000000-0000-4000-b000-000000000002": "Zenith Cloud",
 };
+/** Direct link for an evidence item: stored URL, a DOI in its reference, or a URL reference. */
+function sourceHref(ev: Evidence): string | undefined {
+  // Demo records carry illustrative references only; linking them would lead to dead pages.
+  if (!ev.userAdded) return undefined;
+  if (ev.url) return ev.url;
+  const doi = ev.ref?.match(/10\.\d{4,9}\/[^\s,;]+/)?.[0];
+  if (doi) return `https://doi.org/${doi}`;
+  return /^https?:\/\//.test(ev.ref ?? "") ? ev.ref : undefined;
+}
 const today = () => new Date().toISOString().slice(0, 10);
 const cap = (s?: string) => (s ? s[0].toUpperCase() + s.slice(1).replace(/_/g, " ") : "General");
 
@@ -244,7 +259,7 @@ function fromApi(c: any): Claim {
     channels: String(c.permitted_context ?? "").split(/[,;]/).map((x: string) => x.trim()).filter(Boolean),
     owner: c.verifier?.full_name ?? c.owner ?? "Unassigned", prohibited: [],
     evidence: (c.evidence ?? []).map((e: any) => ({
-      source: e.title, kind: cap(e.evidence_type), ref: e.citation, excerpt: e.excerpt,
+      source: e.title, kind: cap(e.evidence_type), ref: e.citation, excerpt: e.excerpt, url: e.study_url ?? undefined,
       version: "v1", checkedAt: day(e.updated_at),
     })),
     usage: usageFromApi(c.dependent_submissions),
@@ -422,11 +437,13 @@ function ClaimsLibrary() {
     if (changed) { checkUsage(current); flash("Claim updated. Drafts that use it are listed under Re-review."); }
   }
 
-  function attachEvidence(c: Claim, text: string, fileName: string) {
+  async function attachEvidence(c: Claim, text: string, file: File) {
+    const fileName = file.name;
     const excerpt = text.replace(/\s+/g, " ").trim().slice(0, 400);
+    const fileId = (await putFile(file)) ?? undefined;
     patch(c.id, (x) => ({
       ...x,
-      evidence: [...x.evidence, { source: fileName, kind: "Uploaded file", ref: fileName, excerpt, version: "v1", checkedAt: today(), userAdded: true, fileName }],
+      evidence: [...x.evidence, { source: fileName, kind: "Uploaded file", ref: fileName, excerpt, version: "v1", checkedAt: today(), userAdded: true, fileName, fileId }],
     }));
     flash(`${fileName} attached as evidence.`);
   }
@@ -475,6 +492,20 @@ function ClaimsLibrary() {
     drawerRef.current?.showModal();
     if (statusOf(c) === "expired" || c.edited) checkUsage(c);
   };
+
+  // Deep link: /knowledge-base/claims?claim=CLM-APX-001 (code, library id or API id) opens that claim's drawer.
+  const wanted = useSearchParams().get("claim");
+  const deepLinked = useRef<string | null>(null);
+  useEffect(() => {
+    if (!wanted || deepLinked.current === wanted) return;
+    const w = wanted.toLowerCase();
+    const hit = claims.find((c) => [c.id, c.apiId, c.code].some((v) => v?.toLowerCase() === w));
+    if (!hit && loadState === "loading") return; // wait for API claims before giving up
+    deepLinked.current = wanted;
+    if (hit) openClaim(hit);
+    else flash(`Claim ${wanted} is not in the approved library.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wanted, claims, loadState]);
 
   return (
     <AppLayout>
@@ -706,9 +737,25 @@ function ClaimsLibrary() {
                           &ldquo;{ev.excerpt}&rdquo;
                         </blockquote>
                       )}
+                      {(sourceHref(ev) || ev.fileId) && (
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+                          {sourceHref(ev) && (
+                            <a href={sourceHref(ev)} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 font-medium underline underline-offset-2 ${focusRing}`}>
+                              Open source <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                            </a>
+                          )}
+                          {ev.fileId && (
+                            <button type="button" className={`font-medium underline underline-offset-2 cursor-pointer ${focusRing}`}
+                              onClick={async () => { if (!(await openFile(ev.fileId!))) flash("The original file is stored on the device it was uploaded from."); }}>
+                              Open original file
+                            </button>
+                          )}
+                        </div>
+                      )}
                       {!ev.userAdded ? (
                         <p className="mt-3 text-[13px] text-text-muted">
-                          Version {ev.version}. Last checked by owner {fmt(ev.checkedAt)}. Not independently verified (demo).
+                          <Badge variant="neutral" size="xs">Demo record</Badge>{" "}
+                          Version {ev.version}. Last checked by owner {fmt(ev.checkedAt)}. Unverified.
                         </p>
                       ) : ev.verifiedBy ? (
                         <p className="mt-3 flex items-center gap-1 text-[13px] text-text-secondary">
@@ -729,7 +776,7 @@ function ClaimsLibrary() {
                 </ul>
               ) : <p className="text-sm text-text-muted">No evidence attached. Add proof before this claim can be approved.</p>}
               <FileDrop label="Attach a file as evidence" hint="PDF, Word, image or text. We keep the file name and a text excerpt."
-                onText={(r) => attachEvidence(current, r.text, r.fileName)} />
+                onText={(r, file) => attachEvidence(current, r.text, file)} />
             </Section>
 
             <Section title="Wording that is not allowed">

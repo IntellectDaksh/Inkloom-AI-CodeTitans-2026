@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { Stepper, PipelineProgress, PIPELINE_STAGES } from "@/components/submission/Stepper";
 import { ChoiceCards } from "@/components/submission/ChoiceCards";
+import { putFile } from "@/lib/files/store";
 import { FileDropZone, UploadCard, UploadItem, extractFile } from "@/components/submission/FileUpload";
 import { BRANDS, CHANNELS, brandName } from "@/components/submission/shared";
 
@@ -43,9 +44,16 @@ const SAMPLES = [
   },
 ];
 
-type SourceFile = { fileName: string; mime: string; method?: string };
+type SourceFile = { fileName: string; mime: string; method?: string; fileId?: string; size?: number; pages?: number };
 type Draft = { title: string; content: string; sourceFile?: SourceFile };
-const src = (u: UploadItem): SourceFile => ({ fileName: u.file.name, mime: u.file.type || "application/octet-stream", method: u.method });
+const src = (u: UploadItem): SourceFile => ({
+  fileName: u.file.name,
+  mime: u.file.type || "application/octet-stream",
+  method: u.method,
+  fileId: u.fileId,
+  size: u.file.size,
+  pages: u.pages,
+});
 
 const stripExt = (n: string) => n.replace(/\.[^.]+$/, "");
 
@@ -110,6 +118,10 @@ export default function NewSubmissionPage() {
     }));
     setUploads((u) => [...u, ...items]);
     items.forEach((it) => runExtract(it.key, it.file));
+    // Keep the original on this device so it stays openable after processing.
+    items.forEach((it) =>
+      putFile(it.file).then((fileId) => fileId && setUploads((u) => u.map((x) => (x.key === it.key ? { ...x, fileId } : x))))
+    );
   };
   const readyUploads = uploads.filter((u) => u.status === "done" && u.text.trim());
   const stillReading = uploads.some((u) => u.status === "reading");

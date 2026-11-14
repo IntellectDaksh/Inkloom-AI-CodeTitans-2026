@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import "./landing.css";
+import { FloatingLayer } from "@/components/layout/FloatingLayer";
 
 type IconName =
   | "shield"
@@ -251,51 +252,6 @@ const scenarios = [
   },
 ];
 
-const comparisonRows = [
-  {
-    dimension: "Claim ground truth",
-    generic: "Can invent or misstate citations",
-    writer: "Optimises language, not proof",
-    scheduler: "Distributes whatever it receives",
-    adsnitch: "Checks claims against scoped evidence",
-  },
-  {
-    dimension: "Evidence provenance",
-    generic: "Links may be incomplete or unverifiable",
-    writer: "No assay or source validation",
-    scheduler: "No source-chain capability",
-    adsnitch: "Keeps references attached to findings",
-  },
-  {
-    dimension: "Change precision",
-    generic: "Typically rewrites full passages",
-    writer: "Replaces sentences or sections",
-    scheduler: "No copy-level correction",
-    adsnitch: "Exact token-level surgical diff",
-  },
-  {
-    dimension: "Expiry & re-review",
-    generic: "No memory across governed documents",
-    writer: "No dependent-content indexing",
-    scheduler: "No claim dependency model",
-    adsnitch: "Can cascade review when evidence expires",
-  },
-  {
-    dimension: "Human authority",
-    generic: "Prompt-level acceptance",
-    writer: "Comments and approvals vary",
-    scheduler: "Publish permissions, not legal sign-off",
-    adsnitch: "Explicit reviewer gate and override record",
-  },
-  {
-    dimension: "Channel disclosures",
-    generic: "Broad warnings without channel context",
-    writer: "Static disclaimer templates",
-    scheduler: "Character counts and scheduling rules",
-    adsnitch: "Channel-aware disclosure requirements",
-  },
-];
-
 const pipeline = [
   [
     "01",
@@ -354,6 +310,56 @@ const pipeline = [
     "Audit event + dependencies",
   ],
 ];
+
+const REPO = "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026";
+const FTC_255 = "https://www.ecfr.gov/current/title-16/chapter-I/subchapter-B/part-255";
+const FDA_DS = "https://www.fda.gov/food/dietary-supplements";
+const EVIDENCE_GATE = 4; // "Ground" gate shows the evidence packet
+
+// Links only where the URL is certain; otherwise outlet + date.
+const incidents: { category: string; title: string; impact: string; what: string; why: string; source: string; url?: string }[] = [
+  {
+    category: "Health claims + endorsements",
+    title: "FTC v. Teami (2020)",
+    impact: "$15.2M judgment",
+    what: "The FTC said Teami marketed teas with unsupported health claims (weight loss, cancer, clogged arteries) and paid Instagram influencers who did not clearly disclose it.",
+    why: "Health claims need proof and paid endorsements need disclosure. AdSnitch flags both before release.",
+    source: "FTC press release, March 2020 (Endorsement Guides: 16 CFR Part 255)",
+    url: "https://www.ftc.gov/news-events/news/press-releases/2020/03/tea-marketer-misled-consumers-didnt-adequately-disclose-payments-well-known-influencers-ftc-alleges",
+  },
+  {
+    category: "Context",
+    title: "Adidas Boston Marathon email (2017)",
+    impact: "Public apology",
+    what: "A post-race email to runners used the subject line “Congrats, you survived the Boston Marathon!”, four years after the 2013 bombing.",
+    why: "A line can be accurate and still harmful in context. A human reviewer sees flagged wording before send.",
+    source: "NPR, April 19, 2017",
+    url: "https://www.npr.org/sections/thetwo-way/2017/04/19/524692534/adidas-apologizes-for-congratulating-2017-boston-marathon-survivors",
+  },
+  {
+    category: "AI-written content",
+    title: "CNET AI finance articles (2023)",
+    impact: "41 of 77 corrected",
+    what: "CNET quietly published finance explainers written with AI. After errors were found, it reviewed all 77 and corrected 41.",
+    why: "Fluent text is not checked text. AdSnitch ties each claim to a source and keeps a person accountable.",
+    source: "The Register, January 2023 (corrections on 41 of 77 AI-written stories)",
+    url: "https://www.theregister.com/2023/01/19/cnet_reviewing_ai_authored_stories/",
+  },
+  {
+    category: "Brand approval",
+    title: "Gap logo redesign (2010)",
+    impact: "Withdrawn in ~6 days",
+    what: "Gap swapped its blue-box logo online without warning. After public backlash it returned to the original within a week.",
+    why: "Brand changes need sign-off and a record. AdSnitch keeps the approval trail.",
+    source: "Bloomberg, October 12, 2010",
+    url: "https://www.bloomberg.com/news/articles/2010-10-12/gap-scraps-new-logo-after-online-backlash-will-return-to-blue-box-design",
+  },
+];
+
+type OwnResult = {
+  submission: { id: string };
+  report: { complianceScore: number; findings: { id: string; flaggedText: string; severity: string; explanation: string }[] };
+};
 
 function Logo() {
   return (
@@ -435,108 +441,56 @@ function Contours() {
   );
 }
 
-function AuditPreview({ scenario = scenarios[0] }: { scenario?: (typeof scenarios)[number] }) {
-  return (
-    <div className="audit-preview">
-      <div className="preview-bar">
-        <div>
-          <span className="mini-logo">
-            <Icon name="shield" size={12} />
-          </span>
-          <b>Claim review</b>
-          <small>/ {scenario.brand}</small>
-        </div>
-        <div className="preview-status">
-          <i />
-          Governance engine active
-        </div>
-      </div>
-      <div className="preview-body">
-        <aside className="preview-rail">
-          <span className="active">
-            <Icon name="scan" size={16} />
-          </span>
-          <span>
-            <Icon name="database" size={16} />
-          </span>
-          <span>
-            <Icon name="branch" size={16} />
-          </span>
-          <span>
-            <Icon name="users" size={16} />
-          </span>
-        </aside>
-        <div className="preview-document">
-          <div className="ui-label">
-            <span>Campaign draft</span>
-            <span>CLM–0842</span>
-          </div>
-          <p className="preview-copy">
-            Our proprietary formula gives you <mark>2x faster</mark> muscle recovery and builds lean
-            mass in <mark>just 14 days</mark> <mark>without dietary changes</mark>.
-          </p>
-          <div className="token-legend">
-            <span>
-              <i /> 3 unsupported spans
-            </span>
-            <span>31 tokens analysed</span>
-          </div>
-          <div className="surgical-strip">
-            <div>
-              <span className="diff-sign">−</span>
-              <p>
-                gives you <del>2x faster</del> muscle recovery
-              </p>
-            </div>
-            <div>
-              <span className="diff-sign">+</span>
-              <p>
-                <ins>supports</ins> muscle recovery
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="preview-findings">
-          <div className="findings-title">
-            <span>Findings</span>
-            <b>3</b>
-          </div>
-          <div className="score-orbit">
-            <div>
-              <strong>{scenario.score}</strong>
-              <span>/100</span>
-            </div>
-            <small>Publication score</small>
-          </div>
-          {scenario.flags.map(([phrase, reason, level]) => (
-            <div className="finding" key={phrase}>
-              <RiskPill level={level} />
-              <b>“{phrase}”</b>
-              <span>{reason}</span>
-            </div>
-          ))}
-          <div className="human-gate">
-            <span>
-              <Icon name="users" size={16} />
-            </span>
-            <div>
-              <b>Human sign-off required</b>
-              <small>Legal & Regulatory</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeScenario, setActiveScenario] = useState(0);
   const [showFix, setShowFix] = useState(false);
   const [activeStage, setActiveStage] = useState(0);
 
-  const scenario = scenarios[activeScenario];
+  const isCustom = activeScenario === scenarios.length;
+  const scenario = scenarios[isCustom ? 0 : activeScenario];
+  const [ownText, setOwnText] = useState("");
+  const [busy, setBusy] = useState<null | "extract" | "ocr" | "check">(null);
+  const [ownError, setOwnError] = useState("");
+  const [ownResult, setOwnResult] = useState<OwnResult | null>(null);
+
+  const onFile = async (file?: File) => {
+    if (!file) return;
+    setOwnError("");
+    setBusy(/\.(pdf|png|jpe?g|webp)$/i.test(file.name) ? "ocr" : "extract");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/extract", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not read this file.");
+      setOwnText(data.text);
+    } catch (err) {
+      setOwnError(err instanceof Error ? err.message : "Could not read this file.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runCheck = async () => {
+    setOwnError("");
+    setBusy("check");
+    try {
+      const res = await fetch("/api/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Landing page check", text: ownText, runAnalysis: true }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.report) throw new Error(data.error || "The check failed. Try again.");
+      setOwnResult(data);
+    } catch (err) {
+      setOwnResult(null);
+      setOwnError(err instanceof Error ? err.message : "The check failed. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const selectScenario = (index: number) => {
     setActiveScenario(index);
@@ -552,7 +506,7 @@ export default function Home() {
     // Cards and rows also fade up as they enter, staggered within each group.
     document
       .querySelectorAll(
-        ".ev-card, .lab-copy, .lab-report, .pipeline-list button, .sectors-section article, .comparison-section article, .incident-section article, .security-section article, .prototype-facts span, .ev-guarantees li",
+        ".lab-copy, .lab-report, .pipeline-list button, .incident-section article, .l-card, .l-faq details, .l-team li",
       )
       .forEach((node, i) => {
         node.classList.add("reveal");
@@ -564,6 +518,7 @@ export default function Home() {
 
   return (
     <div className="site" id="top">
+      <FloatingLayer density="page" />
       <div className="global-atmosphere" aria-hidden="true">
         <i className="atmosphere-one" />
         <i className="atmosphere-two" />
@@ -573,10 +528,11 @@ export default function Home() {
         <nav className="nav-inner" aria-label="Primary navigation">
           <Logo />
           <div className="nav-center">
-            <a href="#sandbox">Workbench</a>
-            <a href="#pipeline">Architecture</a>
-            <a href="#sectors">Sectors</a>
-            <a href="/evaluations">Evaluations &amp; Benchmarks</a>
+            <a href="#problem">Problem</a>
+            <a href="#sandbox">Live check</a>
+            <a href="#pipeline">How it works</a>
+            <a href="#proof">Proof</a>
+            <a href="#faq">FAQ</a>
             <a href="/knowledge-base/claims">Claims Library</a>
           </div>
           <div className="nav-end">
@@ -598,10 +554,11 @@ export default function Home() {
         {menuOpen && (
           <div className="mobile-nav">
             {[
-              ["Workbench", "#sandbox"],
-              ["Architecture", "#pipeline"],
-              ["Sectors", "#sectors"],
-              ["Evaluations & Benchmarks", "/evaluations"],
+              ["Problem", "#problem"],
+              ["Live check", "#sandbox"],
+              ["How it works", "#pipeline"],
+              ["Proof", "#proof"],
+              ["FAQ", "#faq"],
               ["Claims Library", "/knowledge-base/claims"],
               ["Sign In", "/auth/login"],
               ["Launch App", "/dashboard"],
@@ -618,113 +575,114 @@ export default function Home() {
         <section className="hero-section">
           <div className="hero-aurora" />
           <Contours />
-          <div className="hero-content">
-            <div className="rename-note">
-              <span>Inkloom AI</span>
-              <Icon name="arrow" size={12} />
-              <b>is becoming AdSnitch</b>
-            </div>
-            <div className="hero-kicker">
-              <span>
-                <Icon name="shield" size={13} />
-              </span>
-              CodeTitans India 2026 · Working governance prototype
-            </div>
-            <h1 className="hero-doc-title">
-              Check the claim.
-              <br />
-              Show the source.
-              <br />
-              <span>Keep people in control.</span>
+          <div className="hero-content l-hero">
+            <p className="l-eyebrow">Pre-publication review for marketing teams</p>
+            <h1 className="l-h1">
+              Every ad claim, checked against <span>proof.</span>
             </h1>
-            <div className="hero-subrow">
-              <p>
-                AdSnitch reads your ad copy before it goes live. It checks every claim against
-                approved evidence and brand rules, shows the exact source, suggests a safe rewrite,
-                and sends risky lines to a person to sign off. Fewer fines, fewer takedowns, no
-                invented proof.
-              </p>
-              <div className="hero-actions">
-                <ArrowLink href="#sandbox">Try a live check</ArrowLink>
-                <div className="hero-secondary">
-                  <a href="/dashboard">Open the app</a>
-                  <a href="/evaluations">See benchmarks</a>
-                </div>
-              </div>
+            <p className="l-sub">
+              AdSnitch checks marketing copy before it goes live: every claim is matched to approved
+              proof, risky lines are explained with a fix, and a person signs off.
+            </p>
+            <div className="l-actions">
+              <ArrowLink href="#sandbox">Try a live check</ArrowLink>
+              <a className="l-textlink" href="/dashboard">
+                Open the app
+              </a>
             </div>
-            <div className="prototype-facts">
-              <span>
-                <i>01</i> Full check in under 400 ms
-              </span>
-              <span>
-                <i>02</i> FTC and FDA disclosure rules built in
-              </span>
-              <span>
-                <i>03</i> 58 of 58 automated tests passing
-              </span>
-            </div>
+            <p className="l-meta">CodeTitans India 2026 · Round 3</p>
           </div>
 
           <div className="hero-editorial reveal visible">
-            <svg className="hero-illo" viewBox="0 0 1180 590" role="img" aria-label="An ad draft's claim is checked against three evidence sources and routed to a reviewer decision">
+            <svg className="hero-illo l-illo" viewBox="0 0 1180 590" preserveAspectRatio="xMidYMid slice" role="img" aria-label="An ad draft with one flagged phrase is checked against three evidence sources and receives a reviewer's approval seal">
               <defs>
-                <linearGradient id="hiCard" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#163447" />
-                  <stop offset="1" stopColor="#0c2232" />
+                <linearGradient id="ilBg" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#0d1e2b" />
+                  <stop offset="1" stopColor="#091520" />
                 </linearGradient>
-                <pattern id="hiGrid" width="28" height="28" patternUnits="userSpaceOnUse">
-                  <path d="M28 0H0V28" fill="none" stroke="rgba(124,221,255,.06)" />
-                </pattern>
+                <linearGradient id="ilGlass" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="rgba(200,241,255,.10)" />
+                  <stop offset="1" stopColor="rgba(200,241,255,.03)" />
+                </linearGradient>
+                <radialGradient id="ilGlow" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0" stopColor="rgba(38,151,189,.28)" />
+                  <stop offset="1" stopColor="rgba(38,151,189,0)" />
+                </radialGradient>
+                <linearGradient id="ilLight" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stopColor="rgba(200,241,255,0)" />
+                  <stop offset=".5" stopColor="rgba(200,241,255,.95)" />
+                  <stop offset="1" stopColor="rgba(200,241,255,0)" />
+                </linearGradient>
+                <filter id="ilGrain">
+                  <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch" />
+                  <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .05 0" />
+                </filter>
               </defs>
-              <rect width="1180" height="590" fill="url(#hiGrid)" />
-              <circle cx="900" cy="120" r="220" fill="rgba(124,221,255,.06)" />
-              {/* draft card */}
-              <g transform="translate(70 70)">
-                <rect width="330" height="300" rx="20" fill="url(#hiCard)" stroke="rgba(200,241,255,.18)" />
-                <circle cx="26" cy="26" r="5" fill="#ff7a82" /><circle cx="44" cy="26" r="5" fill="#ffc76b" /><circle cx="62" cy="26" r="5" fill="#73e0ba" />
-                <text x="26" y="72" className="hi-label">AD DRAFT · LANDING PAGE</text>
-                <rect x="26" y="92" width="250" height="10" rx="5" fill="rgba(220,228,236,.28)" />
-                <rect x="26" y="114" width="200" height="10" rx="5" fill="rgba(220,228,236,.2)" />
-                <rect x="26" y="142" width="74" height="10" rx="5" fill="rgba(220,228,236,.2)" />
-                <rect x="108" y="134" width="112" height="26" rx="7" fill="rgba(255,122,130,.16)" stroke="#ff7a82" />
-                <text x="164" y="152" textAnchor="middle" className="hi-mark">2x faster</text>
-                <rect x="228" y="142" width="70" height="10" rx="5" fill="rgba(220,228,236,.2)" />
-                <rect x="26" y="176" width="230" height="10" rx="5" fill="rgba(220,228,236,.16)" />
-                <rect x="26" y="198" width="160" height="10" rx="5" fill="rgba(220,228,236,.12)" />
-                <rect x="26" y="240" width="120" height="34" rx="10" fill="rgba(124,221,255,.12)" />
-                <text x="86" y="262" textAnchor="middle" className="hi-chip">Score 62 / 100</text>
+              <rect width="1180" height="590" fill="url(#ilBg)" />
+              <circle className="l-drift" cx="820" cy="300" r="300" fill="url(#ilGlow)" />
+              <path d="M0 470 H1180" stroke="rgba(200,241,255,.06)" />
+              <path d="M590 0 V590" stroke="rgba(200,241,255,.04)" />
+
+              {/* back sheet, soft glass layering */}
+              <rect x="118" y="132" width="420" height="330" rx="18" fill="url(#ilGlass)" stroke="rgba(200,241,255,.08)" />
+              {/* ad card */}
+              <g transform="translate(96 108)">
+                <rect width="440" height="350" rx="18" fill="#f7f9fb" />
+                <text x="36" y="52" className="il-meta">CAMPAIGN DRAFT — LANDING PAGE</text>
+                <path d="M36 70 H404" stroke="#e1e7ec" />
+                <text x="36" y="122" className="il-head">Recover faster,</text>
+                <text x="36" y="162" className="il-head">train harder.</text>
+                <text x="36" y="214" className="il-body">Our formula gives you</text>
+                <text x="210" y="214" className="il-body il-flag">2x faster</text>
+                <path d="M210 222 H292" stroke="#d9785a" strokeWidth="1.5" />
+                <text x="300" y="214" className="il-body">recovery</text>
+                <text x="36" y="242" className="il-body">with consistent training.</text>
+                <path d="M36 292 H404" stroke="#e1e7ec" />
+                <text x="36" y="320" className="il-meta">1 CLAIM NEEDS PROOF</text>
+                <circle cx="396" cy="316" r="4" fill="#d9785a" />
               </g>
-              {/* connectors */}
-              <g fill="none" strokeWidth="2" className="hi-flow">
-                <path d="M400 217 C470 217 470 110 540 110" stroke="#7cddff" />
-                <path d="M400 217 L540 217" stroke="#7cddff" />
-                <path d="M400 217 C470 217 470 324 540 324" stroke="#7cddff" />
-                <path d="M800 110 C860 110 860 217 900 217" stroke="rgba(200,241,255,.35)" />
-                <path d="M800 217 L900 217" stroke="rgba(200,241,255,.35)" />
-                <path d="M800 324 C860 324 860 217 900 217" stroke="rgba(200,241,255,.35)" />
+
+              {/* hairline connectors with travelling light */}
+              <g fill="none" stroke="rgba(200,241,255,.22)" strokeWidth="1">
+                <path id="ilC1" d="M536 218 C 610 218, 630 170, 700 170" />
+                <path id="ilC2" d="M536 218 C 610 218, 630 270, 700 270" />
+                <path id="ilC3" d="M536 218 C 610 218, 630 370, 700 370" />
+                <path d="M950 170 C 990 170, 990 270, 1010 270 M950 270 H1010 M950 370 C 990 370, 990 270, 1010 270" stroke="rgba(200,241,255,.14)" />
               </g>
-              {/* sources */}
+              <g className="l-travel">
+                {["ilC1", "ilC2", "ilC3"].map((id, i) => (
+                  <circle key={id} r="2.2" fill="#c8f1ff">
+                    <animateMotion dur="5.5s" begin={`${i * 1.3}s`} repeatCount="indefinite">
+                      <mpath href={`#${id}`} />
+                    </animateMotion>
+                  </circle>
+                ))}
+              </g>
+
+              {/* evidence ledger */}
+              <text x="700" y="128" className="il-ledger">EVIDENCE LEDGER</text>
               {[
-                [80, "Clinical trial registry", "No matching outcome", "#ff7a82", "✕"],
-                [187, "Published research", "Insufficient support", "#ffc76b", "~"],
-                [294, "Brand guidelines", "Rule matched", "#73e0ba", "✓"],
-              ].map(([y, t, d, c, g]) => (
-                <g key={t as string} transform={`translate(540 ${y})`}>
-                  <rect width="260" height="60" rx="14" fill="url(#hiCard)" stroke="rgba(200,241,255,.16)" />
-                  <circle cx="30" cy="30" r="14" fill="none" stroke={c as string} strokeWidth="2" />
-                  <text x="30" y="35" textAnchor="middle" fill={c as string} className="hi-glyph">{g}</text>
-                  <text x="56" y="26" className="hi-title">{t}</text>
-                  <text x="56" y="44" className="hi-sub">{d}</text>
+                [170, "Trial registry", "No matching outcome", "#d9785a"],
+                [270, "Approved claims", "Support language only", "#c8f1ff"],
+                [370, "Brand rules", "Absolutes prohibited", "#2697bd"],
+              ].map(([y, t, d, c]) => (
+                <g key={t as string} transform={`translate(700 ${(y as number) - 30})`}>
+                  <rect width="250" height="60" rx="12" fill="url(#ilGlass)" stroke="rgba(200,241,255,.16)" />
+                  <rect x="0" y="18" width="2" height="24" rx="1" fill={c as string} />
+                  <text x="22" y="27" className="il-chip">{t}</text>
+                  <text x="22" y="45" className="il-chip-sub">{d}</text>
                 </g>
               ))}
-              {/* decision */}
-              <g transform="translate(900 132)">
-                <rect width="210" height="170" rx="20" fill="#f7f9ff" />
-                <path d="M105 26 l30 11 v22 c0 20 -13 33 -30 40 c-17 -7 -30 -20 -30 -40 v-22z" fill="rgba(75,199,244,.16)" stroke="#2697bd" strokeWidth="2" />
-                <path d="M93 58 l9 9 17 -18" fill="none" stroke="#2697bd" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                <text x="105" y="128" textAnchor="middle" className="hi-dec">Revise claim</text>
-                <text x="105" y="148" textAnchor="middle" className="hi-dec-sub">Routed to legal review</text>
+
+              {/* approval seal */}
+              <g transform="translate(1060 270)" className="l-seal">
+                <circle r="58" fill="none" stroke="rgba(200,241,255,.18)" />
+                <circle r="46" fill="#2697bd" fillOpacity=".14" stroke="#2697bd" />
+                <circle r="38" fill="none" stroke="rgba(200,241,255,.4)" strokeDasharray="1 4" />
+                <path d="M-12 1 l8 8 16 -18" fill="none" stroke="#c8f1ff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                <text y="82" textAnchor="middle" className="il-ledger">SIGNED OFF</text>
               </g>
+              <rect width="1180" height="590" filter="url(#ilGrain)" />
             </svg>
             <div className="editorial-caption">
               <span className="caption-mark">
@@ -742,175 +700,56 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="signal-rail" aria-label="Platform capabilities">
-          <div className="signal-marquee">
-            {[0, 1].map((set) => (
-              <div key={set}>
-                <span>Clinical claims</span>
-                <i>✦</i>
-                <span>Trademark risk</span>
-                <i>✦</i>
-                <span>SEC disclosures</span>
-                <i>✦</i>
-                <span>Brand voice</span>
-                <i>✦</i>
-                <span>ISO standards</span>
-                <i>✦</i>
-                <span>Human approval</span>
-                <i>✦</i>
-                <span>CodeTitans 2026</span>
-                <i>✦</i>
-              </div>
-            ))}
-          </div>
-        </section>
+        <ul className="l-tags" aria-label="What AdSnitch checks">
+          {["Health claims", "Endorsement disclosures", "Superlatives", "Security & SLA promises", "Brand voice", "Human sign-off"].map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
 
-        <section className="intro-section">
-          <div className="intro-index reveal">01 / THE CONTROL GAP</div>
-          <div className="intro-statement reveal">
-            <p className="intro-lead">
-              Marketing tools help teams <span>publish faster.</span>
-            </p>
-            <p>
-              AdSnitch helps them know whether they <em>should.</em>
-            </p>
-          </div>
-          <div className="intro-aside reveal">
-            <p>
-              The initial use case is a digital marketing agency reviewing captions, ads and
-              campaign drafts across multiple client brands. An account manager needs to find the
-              current approved claim, verify its permitted use, resolve disclosures and route
-              high-risk copy without searching across PDFs, spreadsheets and informal sign-offs.
-            </p>
-            <div className="control-list">
-              <span>
-                <Icon name="check" size={13} /> Claim-level, not document-level
-              </span>
-              <span>
-                <Icon name="check" size={13} /> Grounded, not generated
-              </span>
-              <span>
-                <Icon name="check" size={13} /> Human-controlled, never auto-published
-              </span>
-            </div>
-          </div>
-        </section>
-
-        <section className="comparison-section" id="benchmarks">
-          <div className="comparison-heading reveal">
+        <section className="incident-section" id="problem">
+          <div className="incident-head reveal">
             <div>
-              <Eyebrow>The missing control layer</Eyebrow>
-              <h2>
-                Content moves fast.
-                <br />
-                Proof should move
-                <br />
-                <span>with it.</span>
-              </h2>
+              <Eyebrow>The problem</Eyebrow>
+              <h2>One unchecked sentence can cost a brand.</h2>
             </div>
             <p>
-              Creation and scheduling tools move content toward publication. AdSnitch creates a
-              deliberate boundary before release—where claims meet evidence, rules and accountable
-              human judgment.
+              These are real, publicly reported cases. Each one started as a line of copy, a claim or
+              a release that nobody checked against proof or context before it shipped.
             </p>
           </div>
-          <div className="proof-composition reveal">
-            <div className="proof-image">
-              <span className="proof-image-index">THE CLAIM REGISTER / 01</span>
-              <div
-                className="register-art"
-                role="img"
-                aria-label="Abstract stack of versioned claim records with approved language, source, scope, owner and review date"
-              >
-                <span className="register-axis axis-source">Source</span>
-                <span className="register-axis axis-scope">Scope</span>
-                <span className="register-axis axis-owner">Owner</span>
-                <span className="register-axis axis-expiry">Review</span>
-                <div className="register-sheet register-sheet-back" />
-                <div className="register-sheet register-sheet-mid" />
-                <div className="register-sheet register-sheet-front">
-                  <div className="register-sheet-head">
-                    <span>CLM–APX–001</span>
-                    <b>Approved</b>
-                  </div>
-                  <small>Permitted language / Website and paid social</small>
-                  <p>Supports muscle recovery when paired with consistent resistance training.</p>
-                  <div className="register-sheet-meta">
-                    <span>
-                      <small>Source</small>
-                      Trial record v3
-                    </span>
-                    <span>
-                      <small>Owner</small>
-                      Regulatory
-                    </span>
-                    <span>
-                      <small>Review</small>
-                      18 Jun 2026
-                    </span>
-                  </div>
+          <div className="incident-ledger reveal">
+            {incidents.map((item, i) => (
+              <article key={item.title}>
+                <span className="incident-number">{String(i + 1).padStart(2, "0")}</span>
+                <div className="incident-tags">
+                  <span className="incident-category">{item.category}</span>
+                  <span className="incident-impact">{item.impact}</span>
                 </div>
-                <i className="register-thread" />
-              </div>
-              <blockquote>
-                Not a slogan library.
-                <strong>A living register of what your brand can actually say.</strong>
-              </blockquote>
-            </div>
-            <div className="proof-principles">
-              {[
-                [
-                  "01",
-                  "Structured claims",
-                  "Approved wording, source evidence, permitted use, owner and review date live in one record.",
-                ],
-                [
-                  "02",
-                  "Correct brand. Current proof.",
-                  "Retrieval stays inside the selected brand and rejects expired or mismatched evidence.",
-                ],
-                [
-                  "03",
-                  "Fix only what failed",
-                  "Risky tokens are replaced precisely, preserving the campaign voice around them.",
-                ],
-                [
-                  "04",
-                  "Re-review by design",
-                  "When evidence changes or expires, dependent content can return to the review queue.",
-                ],
-              ].map(([number, title, copy]) => (
-                <article key={number}>
-                  <span>{number}</span>
-                  <h3>{title}</h3>
-                  <p>{copy}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-          <div className="telemetry-band reveal">
-            <div className="telemetry-intro">
-              <span>Curated evaluation snapshot</span>
-              <p>Project-reported results from the labelled benchmark set.</p>
-            </div>
-            {[
-              ["97.9%", "Precision", "47 true positives"],
-              ["100%", "Statutory recall", "0 critical misses"],
-              ["420ms", "P95 pipeline", "Regex + Gemini path"],
-              ["58/58", "Test assertions", "Passing in submission"],
-            ].map(([value, label, note]) => (
-              <div className="telemetry-stat" key={label}>
-                <strong>{value}</strong>
-                <span>{label}</span>
-                <small>{note}</small>
-              </div>
+                <div className="incident-detail">
+                  <h3>{item.title}</h3>
+                  <p>{item.what}</p>
+                </div>
+                <div className="incident-control">
+                  <span>Why it matters</span>
+                  <p>{item.why}</p>
+                  <small className="l-source">
+                    Source:{" "}
+                    {item.url ? (
+                      <a href={item.url} target="_blank" rel="noreferrer">
+                        {item.source}
+                      </a>
+                    ) : (
+                      item.source
+                    )}
+                  </small>
+                </div>
+              </article>
             ))}
-            <p className="telemetry-disclosure">
-              Dataset: 47 TP, 30 TN, 1 FP, 0 FN. These prototype results demonstrate the submitted
-              architecture on a curated benchmark; they are not legal certification or a guarantee
-              of regulatory compliance.
-            </p>
           </div>
+          <p className="case-note">
+            Public examples of the failure modes AdSnitch targets. None of these companies are
+            AdSnitch customers.
+          </p>
         </section>
 
         <section className="lab" id="sandbox">
@@ -919,8 +758,8 @@ export default function Home() {
               <Eyebrow>Live check</Eyebrow>
               <h2>Watch it catch a risky ad before a regulator does.</h2>
               <p>
-                Pick a real-world style example. AdSnitch marks the exact words that could get you
-                fined, explains why in plain language, and writes a version you can publish.
+                Pick an example. AdSnitch marks the exact words that could get you fined, explains
+                why in plain language, and writes a version you can publish.
               </p>
             </header>
 
@@ -936,8 +775,110 @@ export default function Home() {
                   {item.short}
                 </button>
               ))}
+              <button
+                role="tab"
+                aria-selected={isCustom}
+                className={isCustom ? "active" : ""}
+                onClick={() => selectScenario(scenarios.length)}
+              >
+                Try your own ad
+              </button>
             </div>
 
+            {isCustom ? (
+              <div className="lab-board">
+                <div className="lab-copy">
+                  <div className="lab-copy-top">
+                    <span className="lab-brand">Your draft · Apex Nutrition demo workspace</span>
+                  </div>
+                  <label className="l-label" htmlFor="own-ad">
+                    Paste ad copy, or upload a file
+                  </label>
+                  <textarea
+                    id="own-ad"
+                    className="l-textarea"
+                    rows={6}
+                    value={ownText}
+                    onChange={(e) => setOwnText(e.target.value)}
+                    placeholder="e.g. Clinically proven to double your energy in 7 days…"
+                  />
+                  <div className="l-file-row">
+                    <input
+                      type="file"
+                      aria-label="Upload a file to extract text from"
+                      accept=".txt,.md,.html,.json,.rtf,.docx,.pdf,.png,.jpg,.jpeg,.webp"
+                      onChange={(e) => onFile(e.target.files?.[0])}
+                      disabled={busy !== null}
+                    />
+                    <button
+                      className="lab-cta"
+                      onClick={runCheck}
+                      disabled={busy !== null || !ownText.trim()}
+                    >
+                      {busy === "check" ? "Checking…" : "Check it"} <Icon name="arrow" size={15} />
+                    </button>
+                  </div>
+                  <p className="lab-hint" role="status">
+                    {busy === "ocr"
+                      ? "Scanning with OCR…"
+                      : busy === "extract"
+                        ? "Reading file…"
+                        : ownError || "Text is checked against the demo brand's rules and evidence."}
+                  </p>
+                </div>
+                <aside className="lab-report" aria-live="polite">
+                  {ownResult ? (
+                    <>
+                      <div className="lab-score">
+                        <div
+                          className="lab-ring"
+                          style={
+                            {
+                              "--p": ownResult.report.complianceScore,
+                              "--ring": ownResult.report.complianceScore >= 70 ? "#2fb487" : "#e5535d",
+                            } as CSSProperties
+                          }
+                        >
+                          <strong>{ownResult.report.complianceScore}</strong>
+                        </div>
+                        <div>
+                          <b>
+                            {ownResult.report.findings.length === 0
+                              ? "No issues found"
+                              : `${ownResult.report.findings.length} issue${ownResult.report.findings.length > 1 ? "s" : ""} found`}
+                          </b>
+                          <small>Compliance score out of 100</small>
+                        </div>
+                      </div>
+                      <h3>What we found</h3>
+                      <ul className="lab-findings">
+                        {ownResult.report.findings.slice(0, 5).map((f) => (
+                          <li key={f.id}>
+                            <div className="lab-finding-top">
+                              <span className="lab-phrase">“{f.flaggedText}”</span>
+                              <RiskPill level={f.severity} />
+                            </div>
+                            <p>{f.explanation}</p>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="lab-next">
+                        <Icon name="file" size={16} />
+                        <span>
+                          <a href={`/submissions/${ownResult.submission.id}`}>Open full review</a>{" "}
+                          for sources, fixes and sign-off.
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="lab-next">
+                      <Icon name="scan" size={16} />
+                      <span>Your score and findings appear here. Nothing is published.</span>
+                    </div>
+                  )}
+                </aside>
+              </div>
+            ) : (
             <div className="lab-board">
               <div className="lab-copy">
                 <div className="lab-copy-top">
@@ -1012,96 +953,27 @@ export default function Home() {
                 </div>
               </aside>
             </div>
-            <p className="ev-note">Demonstration data from seeded brand workspaces.</p>
-          </div>
-        </section>
-
-        <section className="incident-section">
-          <div className="incident-head reveal">
-            <div>
-              <Eyebrow>Why this exists</Eyebrow>
-              <h2>Public mistakes begin as private sentences.</h2>
-            </div>
-            <p>
-              A claim can become a regulatory event, a brand crisis or a costly rollback in a single
-              publish action. Governance belongs before that action—not in the post-mortem.
+            )}
+            <p className="ev-note">
+              Demo data from seeded brand workspaces. Rule references:{" "}
+              <a href={FTC_255} target="_blank" rel="noreferrer">
+                FTC 16 CFR Part 255
+              </a>{" "}
+              ·{" "}
+              <a href={FDA_DS} target="_blank" rel="noreferrer">
+                FDA dietary supplements (DSHEA)
+              </a>
             </p>
           </div>
-          <div className="incident-ledger reveal">
-            {[
-              [
-                "01",
-                "Health endorsements",
-                "FTC v. Teami Lifestyle",
-                "Promotional health claims and influencer disclosures can create exposure when substantiation and review are missing.",
-                "FTC Act §5 / endorsement guidance",
-                "Block therapeutic superlatives, require the evidence record and route disclosure checks before release.",
-                "$15.2M FTC order",
-              ],
-              [
-                "02",
-                "Context sensitivity",
-                "Adidas / Boston Marathon",
-                "Scheduled language can become harmful when it ignores the emotional and historical context around an event.",
-                "Brand tone / crisis-context guidance",
-                "Evaluate emotional valence, timing and event context before scheduled dissemination.",
-                "Public apology",
-              ],
-              [
-                "03",
-                "Generated misinformation",
-                "CNET financial AI",
-                "Fluent financial content can still contain elementary factual or calculation errors when no grounded review exists.",
-                "Financial content review / source validation",
-                "Require source-linked findings, deterministic checks and accountable human approval.",
-                "77 articles corrected",
-              ],
-              [
-                "04",
-                "Brand-system break",
-                "Gap rebrand rollback",
-                "A public identity change can fail operationally when distribution moves ahead of cross-functional brand approval.",
-                "Asset governance / brand approval policy",
-                "Attach approved brand assets, reviewer ownership and decision history to every release.",
-                "6-day rollback",
-              ],
-            ].map(([number, category, title, copy, rule, remedy, impact]) => (
-              <article key={number}>
-                <span className="incident-number">{number}</span>
-                <div className="incident-tags">
-                  <span className="incident-category">{category}</span>
-                  <span className="incident-impact">{impact}</span>
-                </div>
-                <div className="incident-detail">
-                  <h3>{title}</h3>
-                  <p>{copy}</p>
-                </div>
-                <div className="incident-control">
-                  <span>{rule}</span>
-                  <p>
-                    <b>Governance response:</b> {remedy}
-                  </p>
-                </div>
-                <i>
-                  <Icon name="arrow" size={16} />
-                </i>
-              </article>
-            ))}
-          </div>
-          <p className="case-note">
-            Cases shown as public examples of governance failure modes, not as AdSnitch customers or
-            prevented incidents.
-          </p>
         </section>
 
         <section className="pipeline-section" id="pipeline">
           <div className="pipeline-sticky">
-            <Eyebrow>Deterministic governance pipeline</Eyebrow>
+            <Eyebrow>How it works</Eyebrow>
             <h2>Eight gates. One accountable decision.</h2>
             <p>
-              The original six analytical stages are shown here as the full eight-stage lifecycle:
-              ingestion begins the flow, and the audit ledger with cascade re-review closes it.
-              Nothing is silently rewritten, and the final authority belongs to a person.
+              Every draft passes the same eight checks. Nothing is silently rewritten, and a person
+              makes the final call. Select a gate to see what it produces.
             </p>
             <div className="pipeline-engine">
               <div className="engine-rings">
@@ -1120,10 +992,29 @@ export default function Home() {
               <div className="engine-output">
                 <span>Stage output</span>
                 <b>{pipeline[activeStage][4]}</b>
-                <small>
-                  <i /> Ready for gate {String(Math.min(activeStage + 2, 8)).padStart(2, "0")}
-                </small>
               </div>
+              {activeStage === EVIDENCE_GATE && (
+                <div className="l-evidence">
+                  <span className="ev-step">Evidence packet · demo record</span>
+                  <ul className="ev-sources">
+                    {[
+                      ["Clinical trial registry", "No matching 2x outcome", "No match", "bad"],
+                      ["Published research", "Related recovery studies", "Insufficient", "warn"],
+                      ["Approved claims register", "Support language only", "Partial", "warn"],
+                      ["Brand guidelines", "Absolute claims prohibited", "Matched", "ok"],
+                    ].map(([title, detail, status, tone]) => (
+                      <li key={title}>
+                        <i className={`ev-dot ev-${tone}`} />
+                        <div>
+                          <b>{title}</b>
+                          <small>{detail}</small>
+                        </div>
+                        <em className={`ev-${tone}`}>{status}</em>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div className="pipeline-progress">
                 <span style={{ width: `${((activeStage + 1) / 8) * 100}%` }} />
               </div>
@@ -1131,14 +1022,6 @@ export default function Home() {
                 <span>Draft</span>
                 <span>Evidence-linked decision</span>
               </div>
-            </div>
-            <div className="pipeline-trust">
-              <span>
-                <Icon name="clock" size={15} /> Sub-5ms deterministic preflight
-              </span>
-              <span>
-                <Icon name="users" size={15} /> Human approval remains final
-              </span>
             </div>
           </div>
           <div className="pipeline-list">
@@ -1168,241 +1051,148 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="ev" id="evidence">
-          <div className="ev-wrap reveal">
-            <header className="ev-head">
-              <Eyebrow>Evidence intelligence</Eyebrow>
-              <h2>Evidence changes the review, not just the score.</h2>
-              <p>
-                AdSnitch pulls records from the selected brand workspace, checks they are current
-                and permitted for the claim, then hands the reviewer one traceable packet.
-              </p>
-            </header>
-
-            <ol className="ev-board">
-              <li className="ev-card">
-                <span className="ev-step">01 · Claim</span>
-                <h3>The exact sentence</h3>
-                <blockquote>
-                  “Our proprietary formula gives you <mark>2x faster</mark> muscle recovery.”
-                </blockquote>
-                <dl className="ev-scope">
-                  <div><dt>Workspace</dt><dd>Apex Nutrition</dd></div>
-                  <div><dt>Channel</dt><dd>Landing page</dd></div>
-                  <div><dt>Type</dt><dd>Quantified efficacy</dd></div>
-                </dl>
-              </li>
-
-              <li className="ev-card">
-                <span className="ev-step">02 · Evidence</span>
-                <h3>What the sources say</h3>
-                <ul className="ev-sources">
-                  {[
-                    ["Clinical trial registry", "No matching 2x outcome", "No match", "bad"],
-                    ["Published research", "Related recovery studies", "Insufficient", "warn"],
-                    ["Approved claims register", "Support language only", "Partial", "warn"],
-                    ["Brand guidelines", "Absolute claims prohibited", "Matched", "ok"],
-                  ].map(([title, detail, status, tone]) => (
-                    <li key={title}>
-                      <i className={`ev-dot ev-${tone}`} />
-                      <div>
-                        <b>{title}</b>
-                        <small>{detail}</small>
-                      </div>
-                      <em className={`ev-${tone}`}>{status}</em>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-
-              <li className="ev-card ev-card-dark">
-                <span className="ev-step">03 · Decision</span>
-                <h3>Revise claim or attach counter-evidence</h3>
-                <p>
-                  Quantified performance claims need competent substantiation. No current record
-                  supports the stated multiplier.
-                </p>
-                <div className="ev-owner">
-                  <span>SL</span>
-                  <div>
-                    <b>Legal review</b>
-                    <small>Signed decision required</small>
-                  </div>
-                </div>
-              </li>
-            </ol>
-
-            <ul className="ev-guarantees">
-              <li><Icon name="lock" size={15} /> Correct workspace only</li>
-              <li><Icon name="branch" size={15} /> Source and version attached</li>
-              <li><Icon name="clock" size={15} /> Expiry-aware re-review</li>
-              <li><Icon name="users" size={15} /> Human decision recorded</li>
-            </ul>
-            <p className="ev-note">Seeded prototype record. No fictional source is shown as independently verified.</p>
+        <section className="l-section" id="proof">
+          <div className="l-head reveal">
+            <Eyebrow>Proof</Eyebrow>
+            <h2>Measured, not promised.</h2>
           </div>
+          <div className="l-grid l-grid-2">
+            <a className="l-card l-stat" href="/evaluations">
+              <strong>26 / 30</strong>
+              <span>Labelled issues caught in rule-only mode</span>
+              <small>See the evaluation →</small>
+            </a>
+            <a className="l-card l-stat" href={`${REPO}/tree/main/tests`} target="_blank" rel="noreferrer">
+              <strong>58</strong>
+              <span>Automated tests: end-to-end, review features, AI pipeline</span>
+              <small>View tests on GitHub →</small>
+            </a>
+          </div>
+          <div className="l-table-wrap reveal">
+            <table className="l-table">
+              <thead>
+                <tr>
+                  <th scope="col" />
+                  <th scope="col">ChatGPT alone</th>
+                  <th scope="col">Manual review</th>
+                  <th scope="col">AdSnitch</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Checks claims against your own proof", "No, may invent sources", "Yes, slowly", "Yes, brand-scoped"],
+                  ["Shows the source for each finding", "Not reliably", "If someone writes it down", "Always attached"],
+                  ["Edits only the risky words", "Rewrites whole passages", "Depends on reviewer", "Word-level diff"],
+                  ["Records who approved what", "No", "Email threads", "Audit log"],
+                ].map(([row, a, b, c]) => (
+                  <tr key={row}>
+                    <th scope="row">{row}</th>
+                    <td>{a}</td>
+                    <td>{b}</td>
+                    <td>{c}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="case-note">
+            Limitations: results come from a small labelled set, not a legal certification. AI mode
+            needs a Gemini API key; video and image-brand review are not built yet.
+          </p>
         </section>
 
-        <section className="sectors-section" id="sectors">
-          <div className="sectors-head reveal">
-            <div>
-              <Eyebrow>Regulated sector playbooks</Eyebrow>
-              <h2>
-                One firewall.
-                <br />
-                Different rules of proof.
-              </h2>
-            </div>
-            <p>
-              <strong>Rules change by market.</strong>
-              Each workspace adapts evidence requirements, prohibited language and reviewer routing
-              to the market it serves.
-            </p>
+        <section className="l-section" id="who">
+          <div className="l-head reveal">
+            <Eyebrow>Who it&rsquo;s for</Eyebrow>
+            <h2>Anyone who signs off on what a brand says.</h2>
           </div>
-          <div className="sector-bands reveal">
+          <div className="l-grid l-grid-3">
             {[
-              [
-                "Health, supplements & nutrition",
-                "Clinical outcomes · Structure/function language · Required disclaimers",
-                "FDA / FTC",
-                "01",
-              ],
-              [
-                "Enterprise cloud & FinTech",
-                "SLA promises · Security language · Financial disclosures",
-                "SEC / SOC",
-                "02",
-              ],
-              [
-                "Cosmetics & personal care",
-                "Anatomical claims · Instrumental testing · Before/after evidence",
-                "FD&C / MoCRA",
-                "03",
-              ],
-              [
-                "Direct-to-consumer commerce",
-                "Testimonials · Price comparisons · Material connections",
-                "Truth in Ads",
-                "04",
-              ],
-            ].map(([title, copy, meta, number]) => (
-              <article key={number}>
-                <span>{number}</span>
-                <div className="sector-copy">
-                  <h3>{title}</h3>
-                  <small>Review controls</small>
-                  <p>{copy}</p>
-                </div>
-                <div className="sector-meta">
-                  <small>Regulatory frame</small>
-                  <b>{meta}</b>
-                </div>
-                <i>
-                  <Icon name="arrow" size={18} />
-                </i>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="security-section" id="security">
-          <div className="security-heading reveal">
-            <div className="security-symbol">
-              <Icon name="lock" size={25} />
-              <span className="radar-line" />
-            </div>
-            <Eyebrow light>Responsible AI safeguards</Eyebrow>
-            <h2>
-              Built to govern the system,
-              <br />
-              not ask you to trust it.
-            </h2>
-            <p>
-              Controls are visible, decisions are attributable and publication remains outside the
-              machine’s authority.
-            </p>
-          </div>
-          <div className="security-grid reveal">
-            {[
-              [
-                "Zero public training",
-                "Customer drafts and evidence stay outside public model training.",
-                "lock",
-              ],
-              [
-                "Tenant-scoped retrieval",
-                "Brand knowledge is isolated to the workspace requesting the review.",
-                "database",
-              ],
-              [
-                "Strict anti-auto-publishing",
-                "Every publication decision requires an explicit human action.",
-                "users",
-              ],
-              [
-                "Offline heuristic resilience",
-                "Deterministic preflight rules continue when model endpoints do not.",
-                "code",
-              ],
-              [
-                "Decision audit trails",
-                "Reviewers, overrides, sources and changes remain inspectable.",
-                "branch",
-              ],
-              [
-                "Cascade re-review",
-                "Expired evidence can trigger a new review of affected content.",
-                "layers",
-              ],
-            ].map(([title, copy, icon], index) => (
-              <article key={title}>
-                <div>
-                  <span>0{index + 1}</span>
-                  <Icon name={icon as IconName} size={19} />
-                </div>
+              ["Content creator", "Paste a caption or script, see which lines need proof or a disclosure before you post.", "spark"],
+              ["Agency account manager", "Review copy across client brands, each with its own approved claims and rules.", "users"],
+              ["Legal / compliance reviewer", "Get one packet per claim: finding, source, suggested fix, and a place to sign.", "scale"],
+            ].map(([title, copy, icon]) => (
+              <article className="l-card" key={title}>
+                <Icon name={icon as IconName} size={20} />
                 <h3>{title}</h3>
                 <p>{copy}</p>
               </article>
             ))}
           </div>
-          <div className="prototype-status reveal" id="status">
-            <div className="status-heading">
-              <Eyebrow light>Hackathon build status</Eyebrow>
-              <h3>
-                A complete core workflow.
-                <br />
-                Clear prototype boundaries.
-              </h3>
-              <p>
-                The submission prioritises a dependable text-first review journey over a wide set of
-                partially implemented integrations.
-              </p>
-            </div>
-            <div className="status-columns">
-              <div>
-                <span className="status-column-label">
-                  <Icon name="check" size={13} /> Demonstrated in the build
+          <ul className="l-strip reveal" aria-label="Sectors">
+            {[
+              ["Health & supplements", "FDA / FTC"],
+              ["Cloud & FinTech", "SLA, security, SEC"],
+              ["Cosmetics", "FD&C / MoCRA"],
+              ["D2C commerce", "Testimonials, pricing"],
+            ].map(([sector, frame]) => (
+              <li key={sector}>
+                <b>{sector}</b>
+                <small>{frame}</small>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="l-section" id="trust">
+          <div className="l-head reveal">
+            <Eyebrow>Trust &amp; team</Eyebrow>
+            <h2>The machine flags. People decide.</h2>
+          </div>
+          <div className="l-grid l-grid-4">
+            {[
+              ["Never auto-publishes", "AdSnitch has no publish button. Output goes back to you.", "shield"],
+              ["Human sign-off", "Every risky claim needs a named reviewer to approve or override.", "users"],
+              ["Tamper-evident audit log", "Decisions, overrides and sources are recorded in order.", "branch"],
+              ["Brand data isolated", "Each workspace only searches its own evidence and rules.", "lock"],
+            ].map(([title, copy, icon]) => (
+              <article className="l-card" key={title}>
+                <Icon name={icon as IconName} size={20} />
+                <h3>{title}</h3>
+                <p>{copy}</p>
+              </article>
+            ))}
+          </div>
+          <ul className="l-team reveal" aria-label="Team">
+            {[
+              ["Daksh Agrawal", "Lead, product & integration"],
+              ["Laksh Khatri", "Backend & AI"],
+              ["Riddhi Shah", "Frontend & UX"],
+              ["Mansoor Rupawala", "Testing & reliability"],
+            ].map(([name, role]) => (
+              <li key={name}>
+                <span aria-hidden="true">
+                  {name
+                    .split(" ")
+                    .map((w) => w[0])
+                    .join("")}
                 </span>
-                <ul>
-                  <li>Claims registry with source and expiry metadata</li>
-                  <li>Deterministic preflight and AI-assisted review</li>
-                  <li>Word-level diff, disputes and reviewer overrides</li>
-                  <li>Multi-brand isolation and role-based access</li>
-                  <li>Audit history and expiry-triggered cascade review</li>
-                </ul>
-              </div>
-              <div>
-                <span className="status-column-label deferred">
-                  <Icon name="clock" size={13} /> Deliberately deferred
-                </span>
-                <ul>
-                  <li>Production SAML / enterprise SSO</li>
-                  <li>Raw scanned-document OCR</li>
-                  <li>Multimodal video and visual-identity review</li>
-                  <li>Native CMS and collaboration integrations</li>
-                  <li>Direct auto-publishing—excluded by design</li>
-                </ul>
-              </div>
-            </div>
+                <div>
+                  <b>{name}</b>
+                  <small>{role}</small>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="l-section" id="faq">
+          <div className="l-head reveal">
+            <Eyebrow>FAQ</Eyebrow>
+            <h2>Straight answers.</h2>
+          </div>
+          <div className="l-faq reveal">
+            {[
+              ["Does AdSnitch publish anything?", "No. It reviews and suggests. Publishing stays with you, after a person signs off."],
+              ["Where does my data go?", "Your workspace data lives in the app's database. For AI analysis and OCR, the relevant text or file is sent to Google's Gemini API."],
+              ["Which AI does it use?", "Google Gemini for analysis and OCR, plus deterministic rules that run first and still work without the API (rule-only mode)."],
+              ["Is the evidence on this page real?", "The brands and evidence records shown here are demo data and labelled as such. The regulations and incidents are real and linked to their sources."],
+            ].map(([q, a]) => (
+              <details key={q}>
+                <summary>{q}</summary>
+                <p>{a}</p>
+              </details>
+            ))}
           </div>
         </section>
 
@@ -1412,17 +1202,14 @@ export default function Home() {
           <div className="final-content reveal">
             <span className="final-overline">From Inkloom AI to AdSnitch</span>
             <h2>
-              Built to ask:
+              Before it goes live,
               <br />
-              what supports this?
+              ask: what supports this?
             </h2>
-            <p>
-              Explore the CodeTitans prototype and follow a draft from risky claim to
-              evidence-linked, human-controlled decision.
-            </p>
+            <p>Paste a draft and see every claim matched to proof, with a fix and a sign-off step.</p>
             <div>
-              <ArrowLink href="#sandbox">Launch the seeded sandbox</ArrowLink>
-              <a href="#status">Review project scope</a>
+              <ArrowLink href="/submissions/new">Check your own ad</ArrowLink>
+              <a href="#sandbox">Try the live demo</a>
             </div>
           </div>
           <div className="final-stamp">
@@ -1440,6 +1227,7 @@ export default function Home() {
         </section>
       </main>
 
+
       <footer id="footer">
         <div className="footer-top">
           <div className="footer-brand">
@@ -1448,7 +1236,7 @@ export default function Home() {
             <span>Formerly Inkloom AI</span>
           </div>
           {[
-            ["Product", "Workbench", "Approvals", "Audit log", "Benchmarks"],
+            ["Product", "Live check", "How it works", "Proof", "FAQ"],
             ["Knowledge", "Claims library", "Brand guidelines", "Terminology", "Evidence assets"],
             ["Governance", "Rule engine", "Sector playbooks", "Analytics", "Security"],
             ["Company", "About", "Contact", "Privacy", "Legal"],

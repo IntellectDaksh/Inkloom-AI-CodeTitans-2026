@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import { RouteProgress } from "@/components/layout/Motion";
+import { PrefsApplier } from "@/components/settings/PrefsApplier";
 
 export const metadata: Metadata = {
   title: "AdSnitch — Pre-Publication Marketing Claim & Brand Governance Firewall",
@@ -23,6 +24,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <RouteProgress />
         </Suspense>
+        <PrefsApplier />
         {children}
       </body>
     </html>

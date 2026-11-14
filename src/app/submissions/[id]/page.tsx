@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { VerdictBanner } from "@/components/submission/VerdictBanner";
 import { HighlightedCopy, DiffView } from "@/components/submission/HighlightedCopy";
 import { FindingCard } from "@/components/submission/FindingCard";
+import { SourcePanel } from "@/components/submission/SourcePanel";
 import { EvidenceModal, Modal, ReasonKind, ReasonModal } from "@/components/submission/FindingModals";
 import {
   FindingItem,
@@ -21,6 +22,7 @@ import {
   replaceOnce,
   sevOf,
   verdictFor,
+  localFlags,
   VERDICT,
 } from "@/components/submission/shared";
 import { PERSONAS, personaOf, setPrefs, usePrefs, Role } from "@/components/guide/workspace";
@@ -138,7 +140,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   const estimate = estimateScore(findings, liveText);
   const useServer = serverScore !== null && !editing && content === submission?.currentContent;
   const score = useServer ? serverScore! : estimate;
-  const verdict = verdictFor(score, findings, liveText);
+  const verdict = verdictFor(score, findings, liveText, prefs);
   const highRisk = openFindings.filter((f) => f.severity === "critical" || f.severity === "high");
   const safeFixes = openFindings.filter((f) => f.suggestedCorrection && replaceOnce(content, f.flaggedText, f.suggestedCorrection) !== null);
   const pendingRevision = revisions.find((r) => !r.isApplied && r.revisedText && r.revisedText !== content);
@@ -394,7 +396,13 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
           </p>
         </header>
 
-        <VerdictBanner verdict={verdict} score={score} openCount={openFindings.length} estimated={!useServer} checking={checking} />
+        <p className="rounded-xl border border-border-default bg-panel px-4 py-3 text-sm leading-relaxed text-text-secondary">
+          <span className="font-medium text-text-primary">What this page tells you: </span>
+          the verdict says whether this ad can go live ({VERDICT[verdict].title.toLowerCase()}), each issue shows the risky line, why it was flagged and the source it was checked against, and your next step is to{" "}
+          {verdict === "safe" ? "send it for sign-off." : "apply or dismiss each fix, then send it for sign-off."}
+        </p>
+
+        <VerdictBanner notes={localFlags(liveText, prefs)} verdict={verdict} score={score} openCount={openFindings.length} estimated={!useServer} checking={checking} />
 
         {/* Primary action bar */}
         <div className="glass flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -541,6 +549,8 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
                 </div>
               </div>
             </div>
+
+            {sourceFile?.fileName && <SourcePanel src={sourceFile} />}
 
             {pendingRevision && (
               <div className="glass space-y-3 rounded-2xl p-5">

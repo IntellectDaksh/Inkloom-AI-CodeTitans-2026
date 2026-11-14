@@ -1,299 +1,131 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Plus,
-  Check,
-  ShieldCheck,
-  ChevronRight,
-  ArrowLeft,
-  Building2,
-  Database,
-  ArrowRight,
-  X,
-  CheckCircle2,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Check } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { InfoTip } from "@/components/guide/HelpPanel";
+import { usePrefs, setPrefs, useWorkspaces, openWorkspacePicker, focusRing } from "@/components/guide/workspace";
 
-interface BrandItem {
-  id: string;
-  name: string;
-  slug: string;
-  category: string;
-  activeClaims: number;
-  submissionsCount: number;
-  isActive: boolean;
-  description: string;
-}
-
-const INITIAL_BRANDS: BrandItem[] = [
-  {
-    id: "brand_apex",
-    name: "Apex Nutrition",
-    slug: "apex-nutrition",
-    category: "Health, Fitness & Supplements",
-    activeClaims: 7,
-    submissionsCount: 4,
-    isActive: true,
-    description: "Clean plant-based athletic recovery and performance nutrition grounded in ISO-22196 double-blind clinical trials.",
-  },
-  {
-    id: "brand_zenith",
-    name: "Zenith Cloud SaaS",
-    slug: "zenith-cloud",
-    category: "Enterprise Cloud Infrastructure",
-    activeClaims: 2,
-    submissionsCount: 1,
-    isActive: false,
-    description: "Low-latency distributed database orchestration and four-nines (99.99%) contractual uptime SLAs with SOC 2 Type II attestation.",
-  },
-  {
-    id: "brand_lumina",
-    name: "Lumina Clinical Dermatology",
-    slug: "lumina-skincare",
-    category: "Consumer Cosmetics & OTC",
-    activeClaims: 3,
-    submissionsCount: 2,
-    isActive: false,
-    description: "Dermatologist-tested topical bio-peptides for fine surface line reduction complying with FD&C Act and MoCRA guidelines.",
-  },
-];
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const get = (u: string) => fetch(u, { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))));
+const REVIEW = ["submitted", "under_review", "resubmitted", "needs_re_review"];
 
 export default function BrandsPage() {
-  const [brands, setBrands] = useState<BrandItem[]>(INITIAL_BRANDS);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [nameInput, setNameInput] = useState("");
-  const [categoryInput, setCategoryInput] = useState("Health & Performance");
-  const [descriptionInput, setDescriptionInput] = useState("");
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const router = useRouter();
+  const prefs = usePrefs();
+  const workspaces = useWorkspaces();
+  const [data, setData] = useState<{ subs: any[]; claims: any[] } | null>(null);
+  const [error, setError] = useState(false);
 
-  const handleCreateBrand = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nameInput.trim()) return;
-
-    const newBrand: BrandItem = {
-      id: `brand_${Date.now()}`,
-      name: nameInput.trim(),
-      slug: nameInput.trim().toLowerCase().replace(/\s+/g, "-"),
-      category: categoryInput,
-      activeClaims: 0,
-      submissionsCount: 0,
-      isActive: false,
-      description: descriptionInput.trim() || "Brand workspace governed by AdSnitch claims repository.",
+  useEffect(() => {
+    let alive = true;
+    Promise.all([get("/api/submissions"), get("/api/claims")])
+      .then(([s, c]) => alive && setData({ subs: s.submissions ?? [], claims: c.claims ?? [] }))
+      .catch(() => alive && setError(true));
+    return () => {
+      alive = false;
     };
+  }, []);
 
-    setBrands([...brands, newBrand]);
-    setIsModalOpen(false);
-    setNameInput("");
-    setDescriptionInput("");
-    setToastMessage(`Brand workspace "${newBrand.name}" deployed with isolated PostgreSQL Row-Level Security.`);
-    setTimeout(() => setToastMessage(null), 4000);
+  // Claims only carry brand_id; learn id -> name from the submissions.
+  const idToName = new Map<string, string>();
+  for (const s of data?.subs ?? []) if (s.brand?.id) idToName.set(s.brand.id, s.brand.name);
+
+  const counts = (name: string) => {
+    const subs = (data?.subs ?? []).filter((s) => s.brand?.name === name);
+    return {
+      ads: subs.length,
+      review: subs.filter((s) => REVIEW.includes(s.status)).length,
+      approved: subs.filter((s) => s.status === "approved").length,
+      claims: (data?.claims ?? []).filter((c) => idToName.get(c.brand_id) === name).length,
+    };
   };
 
-  const handleSetActive = (id: string, name: string) => {
-    setBrands(brands.map((b) => ({ ...b, isActive: b.id === id })));
-    setToastMessage(`Switched active workspace scope to ${name}.`);
-    setTimeout(() => setToastMessage(null), 3500);
+  const open = (name: string) => {
+    setPrefs({ brand: name });
+    router.push("/dashboard");
   };
 
   return (
-    <AppLayout
-      title="Multi-Brand Workspaces & Tenant Partitioning"
-      subtitle="Strict Row-Level Security isolation separating claim repositories, voice guidelines, and approval hierarchies between brands."
-    >
-      <div className="space-y-6">
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="led-indicator led-turquoise" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-text-primary">
-                Brand Workspaces &amp; Tenancy
-              </h1>
-              <Badge variant="verified" size="xs">
-                {brands.length} WORKSPACES
-              </Badge>
-              <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
-                ZERO DATA LEAKAGE GUARANTEED
-              </span>
-            </div>
-            <p className="text-xs text-text-secondary max-w-2xl leading-relaxed">
-              Row-Level Security (RLS) guarantees that claims, assay reports, and trial excerpts belonging to Brand A are walled off from Brand B.
+    <AppLayout title="Brands">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-primary">Brands</h1>
+            <p className="mt-1.5 text-sm text-text-secondary">
+              Each brand is a separate workspace with its own claims, rules and reviews. Open one to work in it.
             </p>
           </div>
+          <button
+            type="button"
+            onClick={openWorkspacePicker}
+            className={`inline-flex h-10 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-medium text-canvas hover:opacity-90 ${focusRing}`}
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Create workspace
+          </button>
+        </header>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Button
-              size="sm"
-              variant="gold"
-              icon={<Plus className="w-3.5 h-3.5 text-ghost" />}
-              onClick={() => setIsModalOpen(true)}
-            >
-              Create Brand Workspace
-            </Button>
-          </div>
-        </div>
-
-        {/* Feedback Alert Toast */}
-        {toastMessage && (
-          <div className="p-3.5 rounded-xl bg-status-success/10 border border-status-success/30 text-status-success text-xs flex items-center justify-between gap-3 animate-in fade-in">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-status-success shrink-0" />
-              <span className="font-sans font-medium">{toastMessage}</span>
-            </div>
-            <button
-              onClick={() => setToastMessage(null)}
-              className="text-status-success hover:text-text-primary cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+        {error && (
+          <p role="alert" className="rounded-lg border border-status-warning/30 bg-status-warning/5 px-4 py-3 text-[13px] text-text-secondary">
+            Could not load counts from the server. You can still open any workspace.
+          </p>
         )}
 
-        {/* Brand Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {brands.map((b) => (
-            <div
-              key={b.id}
-              className={`glass rounded-xl p-5 flex flex-col justify-between space-y-4 transition-all ${
-                b.isActive ? "border-blue bg-panel-hover" : "border-border-default bg-panel"
-              }`}
-            >
-              <div className="space-y-3.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-panel border border-border-default text-text-primary font-bold text-sm flex items-center justify-center font-mono shadow-inner">
-                      {b.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h2 className="text-sm font-bold text-text-primary">{b.name}</h2>
-                      <div className="text-[10px] font-mono text-text-muted">{b.category}</div>
-                    </div>
+        <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {workspaces.map((w) => {
+            const active = w.name === prefs.brand;
+            const c = counts(w.name);
+            const rows = [
+              { label: "Ads checked", value: c.ads, href: "/submissions", tip: "All ads submitted for this brand." },
+              { label: "In review", value: c.review, href: "/submissions?status=under_review", tip: "Checked and waiting for a person to sign off." },
+              { label: "Approved", value: c.approved, href: "/submissions?status=approved", tip: "Signed off and safe to publish." },
+              { label: "Claims", value: c.claims, href: "/knowledge-base/claims", tip: "Approved statements with proof, used to check this brand's ads." },
+            ];
+            return (
+              <li key={w.name} className={`glass flex flex-col rounded-2xl p-5 ${active ? "ring-1 ring-ink/30" : ""}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="truncate text-base font-semibold text-text-primary">{w.name}</h2>
+                    <p className="mt-0.5 text-[13px] text-text-muted">{w.industry}</p>
                   </div>
-                  {b.isActive ? (
-                    <Badge variant="verified" size="xs">
-                      Active
-                    </Badge>
-                  ) : (
-                    <button
-                      onClick={() => handleSetActive(b.id, b.name)}
-                      className="text-[10px] font-mono text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                    >
-                      Set Active
-                    </button>
+                  {active && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border-default px-2 py-0.5 text-xs text-text-secondary">
+                      <Check className="h-3 w-3" aria-hidden="true" /> Current
+                    </span>
                   )}
                 </div>
+                {w.description && <p className="mt-3 text-[13px] leading-relaxed text-text-secondary">{w.description}</p>}
+                {w.channels.length > 0 && <p className="mt-2 text-xs text-text-muted">Channels: {w.channels.join(", ")}</p>}
 
-                <p className="text-xs text-text-secondary leading-relaxed font-sans">{b.description}</p>
+                <dl className="mt-4 grid grid-cols-2 gap-2">
+                  {rows.map((r) => (
+                    <div key={r.label} className="relative rounded-xl border border-border-subtle">
+                      <Link href={r.href} onClick={() => setPrefs({ brand: w.name })} className={`block rounded-xl p-3 hover:bg-panel-hover ${focusRing}`}>
+                        <dt className="pr-5 text-xs text-text-muted">{r.label}</dt>
+                        <dd className="mt-1 text-lg font-semibold tabular-nums text-text-primary">
+                          {data === null && !error ? <span className="inline-block h-5 w-6 animate-pulse rounded bg-panel-hover align-middle" /> : error ? "-" : r.value}
+                        </dd>
+                      </Link>
+                      <span className="absolute right-1 top-1"><InfoTip label={r.label}>{r.tip}</InfoTip></span>
+                    </div>
+                  ))}
+                </dl>
+                {w.custom && <p className="mt-3 text-xs text-text-muted">Saved in this browser only until accounts are connected.</p>}
 
-                <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-canvas border border-border-default text-xs font-mono">
-                  <div>
-                    <span className="text-text-muted block text-[10px]">ACTIVE CLAIMS</span>
-                    <span className="text-status-success font-semibold mt-0.5 block font-mono">
-                      {b.activeClaims} verified
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-text-muted block text-[10px]">SUBMISSIONS</span>
-                    <span className="text-text-primary font-semibold mt-0.5 block font-mono">
-                      {b.submissionsCount} drafts
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-border-default flex items-center justify-between">
-                <Link
-                  href="/knowledge-base/guidelines"
-                  className="text-xs text-text-primary hover:underline font-mono"
-                >
-                  Voice Rules &rarr;
-                </Link>
-                <Link href="/submissions">
-                  <Button size="xs" variant={b.isActive ? "primary" : "secondary"}>
-                    Open Desk
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Create Brand Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 bg-ink/25 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="glass-strong rounded-xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-border-default pb-3">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-text-primary" />
-                  <h3 className="eyebrow text-text-primary">
-                    Deploy Brand Workspace
-                  </h3>
-                </div>
                 <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-text-muted hover:text-text-primary cursor-pointer"
+                  type="button"
+                  onClick={() => open(w.name)}
+                  className={`mt-4 h-10 rounded-lg border border-border-default bg-panel text-sm font-medium text-text-primary hover:bg-panel-hover ${focusRing}`}
                 >
-                  <X className="w-4 h-4" />
+                  {active ? "Go to dashboard" : `Open ${w.name}`}
                 </button>
-              </div>
-
-              <form onSubmit={handleCreateBrand} className="space-y-3.5 text-xs font-mono">
-                <div>
-                  <label className="block text-text-muted mb-1">BRAND NAME *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Apex Performance Labs"
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-primary font-sans"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-text-muted mb-1">INDUSTRY / SECTOR</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Clinical Nutrition & Dietary Supplements"
-                    value={categoryInput}
-                    onChange={(e) => setCategoryInput(e.target.value)}
-                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-primary font-sans"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-text-muted mb-1">BRAND DESCRIPTION</label>
-                  <textarea
-                    rows={3}
-                    placeholder="Mission, product line, and regulatory requirements..."
-                    value={descriptionInput}
-                    onChange={(e) => setDescriptionInput(e.target.value)}
-                    className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-lg p-2.5 text-text-secondary font-sans resize-none"
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-border-default">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" size="sm" variant="gold">
-                    Deploy Tenant Workspace
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </AppLayout>
   );

@@ -25,7 +25,45 @@ export interface FindingItem {
   dismissal_reason?: string;
   dismissed_by?: string;
   dispute_reason?: string;
+  /** Approved-library record this finding was checked against (added by GET /api/submissions/[id]). */
+  source?: EvidenceSource;
 }
+
+/** Where a finding's proof lives in the approved library. */
+export interface EvidenceSource {
+  claimCode: string;
+  title: string;
+  type: string;
+  date?: string;
+  url?: string;
+  excerpt?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  demo: boolean;
+}
+
+// Only official texts we are sure of. Anything else is named without a link.
+const REGULATIONS: { test: RegExp; label: string; href: string }[] = [
+  { test: /16[\s-]*CFR|\b255\b|endorsement/i, label: "FTC 16 CFR Part 255 (Endorsement Guides)", href: "https://www.ecfr.gov/current/title-16/chapter-I/subchapter-B/part-255" },
+  { test: /DSHEA/i, label: "DSHEA 1994 (Dietary Supplement Health and Education Act)", href: "https://ods.od.nih.gov/About/DSHEA_Wording.aspx" },
+  { test: /FTC Act|Section 5|§\s*5\b|\bFTC\b/i, label: "FTC Act, Section 5", href: "https://www.ftc.gov/legal-library/browse/statutes/federal-trade-commission-act" },
+];
+
+export type RuleSource = { label: string; href: string; external: boolean };
+
+/** The regulation or brand rule a rule-based finding cites, or null when nothing is on file. */
+export function ruleSourceOf(f: FindingItem): RuleSource | null {
+  const hay = `${f.rule_ref || ""} ${f.ruleId || ""} ${f.explanation || ""}`;
+  const reg = REGULATIONS.find((r) => r.test.test(hay));
+  if (reg) return { label: reg.label, href: reg.href, external: true };
+  const rule = f.ruleId || f.rule_ref || "";
+  if (/^pt_|PROHIB|TERM/i.test(rule)) return { label: "Brand wording rules", href: "/knowledge-base/terminology", external: false };
+  if (/^(rp_|bg_)|GUIDE|REG-DISC/i.test(rule) || f.category === "missing_disclosure")
+    return { label: "Brand guidelines", href: "/knowledge-base/guidelines", external: false };
+  return null;
+}
+
+export const claimHref = (code: string) => `/knowledge-base/claims?claim=${encodeURIComponent(code)}`;
 
 export interface RevisionItem {
   id: string;
@@ -98,10 +136,32 @@ export function estimateScore(findings: FindingItem[], content: string): number 
 
 export type Verdict = "safe" | "changes" | "blocked";
 
-export function verdictFor(score: number, findings: FindingItem[], content: string): Verdict {
+export interface VerdictOpts {
+  passScore?: number;
+  blockBelow?: number;
+  requireDisclosure?: boolean;
+  flagSuperlatives?: boolean;
+  flagTimeBound?: boolean;
+}
+
+/** Workspace checks run on this device (Settings > Review strictness). Empty when all are off. */
+export function localFlags(content: string, o: VerdictOpts = {}): string[] {
+  const out: string[] = [];
+  if (o.requireDisclosure && content.trim() && !/#(ad|sponsored|paidpartnership)\b/i.test(content))
+    out.push("No disclosure tag (#ad or #sponsored).");
+  if (o.flagSuperlatives && /\b(best|number one|strongest|fastest|guaranteed|unbeatable)\b|#1\b/i.test(content))
+    out.push("Uses a superlative like \"best\" or \"guaranteed\".");
+  if (o.flagTimeBound && /\b(today only|limited time|ends (today|tonight|soon)|last chance|hurry|only \d+ left)\b/i.test(content))
+    out.push("Has a time-bound claim like \"limited time\".");
+  return out;
+}
+
+export function verdictFor(score: number, findings: FindingItem[], content: string, o: VerdictOpts = {}): Verdict {
+  const pass = o.passScore ?? 80;
+  const block = o.blockBelow ?? 50;
   const open = findings.filter((f) => effectiveStatus(f, content) === "open");
-  if (open.some((f) => f.severity === "critical") || score < 50) return "blocked";
-  if (open.some((f) => f.severity === "high") || score < 80 || open.length > 0) return "changes";
+  if (open.some((f) => f.severity === "critical") || score < block) return "blocked";
+  if (open.some((f) => f.severity === "high") || score < pass || open.length > 0 || localFlags(content, o).length) return "changes";
   return "safe";
 }
 

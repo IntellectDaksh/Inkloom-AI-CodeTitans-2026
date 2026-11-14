@@ -1,433 +1,103 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
-import {
-  ShieldCheck,
-  ArrowLeft,
-  KeyRound,
-  Building2,
-  CheckCircle2,
-  Lock,
-  Server,
-  Layers,
-  ArrowRight,
-  Send,
-  Fingerprint,
-  Terminal,
-  UserCheck,
-} from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Check, Clock } from "lucide-react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { focusRing } from "@/components/guide/workspace";
 
-function PrototypeNoticeContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const feature = searchParams.get("feature") || "pilot";
+const FEATURE: Record<string, string> = {
+  certified_pdf_engine: "Signed PDF export",
+  password: "Password reset",
+  "password-recovery": "Password reset",
+  sso: "Company single sign-on (SSO)",
+};
 
-  const [emailInput, setEmailInput] = useState("daksh@uideas.digital");
-  const [companyName, setCompanyName] = useState("Acme Global Health");
-  const [submitted, setSubmitted] = useState(false);
+const REAL = [
+  ["Checking an ad", "Paste copy or upload a file. Each risky line is flagged with the reason, the rule and a safer wording."],
+  ["Claims library", "Approved claims with their proof and expiry dates. Ads are matched against these."],
+  ["Approvals", "A reviewer or admin signs off. Creators cannot approve their own ads; overrides need a reason."],
+  ["Audit trail", "Every check, decision and override is recorded with who did it and when."],
+  ["Checker accuracy tests", "The checker is scored on known test ads. Results are on the Evaluations page."],
+];
 
-  const setDemoSession = (user: { name: string; role: string; email: string; userId: string }) => {
-    try {
-      localStorage.setItem("inkloom:session", JSON.stringify(user));
-    } catch {}
-    router.push("/dashboard");
-  };
+const NEXT = [
+  ["Accounts and a permanent database (Supabase)", "Today data lives on the demo server and can reset. Supabase adds real sign-in, saved data and per-brand access rules."],
+  ["Inviting teammates", "Depends on accounts. Until then the three demo people stand in for a team."],
+  ["Email notifications", "Notifications show inside the app only. Email for review requests and expiring claims comes next."],
+  ["Custom domain", "The app runs on a Vercel preview address. A proper domain follows the database move."],
+  ["Signed PDF export, password reset, SSO", "Need accounts first. CSV and JSON export already work from the dashboard."],
+];
 
-  const getFeatureDetails = () => {
-    switch (feature) {
-      case "sso":
-        return {
-          title: "Enterprise SSO & SAML 2.0 Gateway",
-          subtitle: "Single Sign-On federation for enterprise brand, legal, and compliance teams.",
-          badge: "IDENTITY SPECIFICATION · SAML 2.0 / OIDC",
-          icon: KeyRound,
-        };
-      case "password-recovery":
-        return {
-          title: "Sovereign Key & Password Recovery",
-          subtitle: "Hardware-enforced cryptographic dual-factor credential reset.",
-          badge: "SECURITY PROTOCOL · ZERO KNOWLEDGE",
-          icon: Lock,
-        };
-      case "rules":
-        return {
-          title: "Statutory Regulatory Rule Engine Ingestion",
-          subtitle: "Direct ingestion of CFR guidelines, FTC precedents, and FDA statutory codes.",
-          badge: "GOVERNANCE COMPILER · DETERMINISTIC REGEX",
-          icon: Server,
-        };
-      case "soc2":
-        return {
-          title: "SOC 2 Type II Compliance & Audit Package",
-          subtitle: "Institutional security controls, encryption keys, and third-party auditor reports.",
-          badge: "AUDIT ASSURANCE · AICPA TRUST PRINCIPLES",
-          icon: ShieldCheck,
-        };
-      case "privacy":
-        return {
-          title: "Zero-Retention Privacy & Sovereign Data Custody",
-          subtitle: "Guaranteed zero-training policy with hardware-level PostgreSQL tenant barriers.",
-          badge: "PRIVACY PLEDGE · TENANT RLS ISOLATION",
-          icon: Fingerprint,
-        };
-      case "github":
-        return {
-          title: "GitHub Enterprise Repository & CI/CD Actions",
-          subtitle: "Automated pre-flight compliance linting for content repositories and marketing pipelines.",
-          badge: "DEVSECOPS PIPELINE · CLI & GITHUB ACTIONS",
-          icon: Terminal,
-        };
-      case "proposal":
-        return {
-          title: "Technical Proposal & Specification Whitepaper",
-          subtitle: "Mathematical proofs of deterministic compliance verification and clinical assay ground truth.",
-          badge: "RESEARCH WHITE-PAPER · CODETITANS INDIA 2026",
-          icon: Layers,
-        };
-      case "veeva-sync":
-        return {
-          title: "Veeva Vault & SAP PharmaSync Integration",
-          subtitle: "Automated bidirectional sync for enterprise medical, legal, and regulatory (MLR) approvals.",
-          badge: "ENTERPRISE CONNECTOR · VEEVA PROMO MATS / SAP",
-          icon: Server,
-        };
-      case "certified_pdf_engine":
-        return {
-          title: "Cryptographically Signed Audit Certificate PDF",
-          subtitle: "Automated export of ISO/IEC 27001 verified compliance certificates with SHA-256 seal.",
-          badge: "COMPLIANCE EXPORT · 21 CFR PART 11 SEAL",
-          icon: ShieldCheck,
-        };
-      case "create-brand":
-        return {
-          title: "Dedicated Tenant & Brand Workspace Provisioning",
-          subtitle: "Automated PostgreSQL Row-Level Security tenant partition deployment with custom clinical truth library.",
-          badge: "MULTI-TENANCY · ISOLATED RLS CONTAINER",
-          icon: Building2,
-        };
-      case "team-invite":
-        return {
-          title: "Enterprise Directory & RBAC Provisioning",
-          subtitle: "SCIM / Active Directory team onboarding with cryptographic role gating and audit logging.",
-          badge: "RBAC DIRECTORY · SCIM 2.0 / OKTA",
-          icon: UserCheck,
-        };
-      case "pilot":
-      default:
-        return {
-          title: "Book Enterprise Pilot Program",
-          subtitle: "30-Day managed deployment with custom clinical trial ingestion and SLA guarantees.",
-          badge: "ENTERPRISE PROOF OF CONCEPT · MANAGED DEPLOYMENT",
-          icon: Building2,
-        };
-    }
-  };
+function Notice() {
+  const feature = useSearchParams().get("feature");
+  const name = feature ? FEATURE[feature] ?? feature.replace(/[_-]/g, " ") : null;
+  return name ? (
+    <p role="status" className="rounded-lg border border-status-warning/30 bg-status-warning/5 px-4 py-3 text-sm text-text-primary">
+      <span className="font-medium">{name}</span> is not built yet. It is listed below under &ldquo;Coming next&rdquo;.
+    </p>
+  ) : null;
+}
 
-  const details = getFeatureDetails();
-  const Icon = details.icon;
-
+function List({ items, done }: { items: string[][]; done: boolean }) {
   return (
-    <div className="relative isolate min-h-screen bg-canvas text-text-primary flex flex-col justify-between font-sans selection:bg-ice selection:text-text-primary">
-      <div className="atmosphere -z-10" aria-hidden><i /><i /><i /></div>
-      {/* Precision Chrome Nav */}
-      <nav className="glass rounded-none border-x-0 border-t-0 px-6 sm:px-8 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="app-brand-mark" aria-hidden>
-            <ShieldCheck className="w-4 h-4" />
+    <ul className="space-y-4">
+      {items.map(([t, b]) => (
+        <li key={t} className="flex gap-3">
+          {done
+            ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-status-success" aria-hidden="true" />
+            : <Clock className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" aria-hidden="true" />}
+          <div>
+            <p className="text-sm font-medium text-text-primary">{t}</p>
+            <p className="mt-0.5 text-[13px] leading-relaxed text-text-secondary">{b}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-base tracking-tight text-text-primary">
-              AdSnitch
-            </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink/5 text-text-secondary border border-border-default">
-              SYSTEM NOTICE
-            </span>
-          </div>
-        </Link>
-
-        <div className="flex items-center gap-4 text-xs font-mono">
-          <Link
-            href="/dashboard"
-            className="text-text-primary hover:underline flex items-center gap-1.5"
-          >
-            <span>Return to Application</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </nav>
-
-      {/* Main Container */}
-      <main className="max-w-4xl mx-auto px-6 py-12 w-full space-y-6">
-        <div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>RETURN TO OVERVIEW</span>
-          </Link>
-        </div>
-
-        {/* Main Monochromatic Milled Card */}
-        <div className="glass-strong rounded-2xl p-6 sm:p-8 space-y-8 relative">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4 border-b border-border-default pb-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded glass-inset text-[10px] font-mono text-status-success">
-                <span className="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse" />
-                <span>SYSTEM PROTOTYPE NOTICE · CODETITANS 2026</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
-                {details.title}
-              </h1>
-              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed max-w-xl">
-                This feature is currently in the development phase of the AdSnitch prototype and
-                requires enterprise cloud backend provisioning. All core compliance inspection and
-                claim verification features are live in the interactive sandbox and workspace.
-              </p>
-            </div>
-
-            <div className="w-12 h-12 rounded-lg glass-inset flex items-center justify-center shrink-0 text-text-primary">
-              <Icon className="w-6 h-6" />
-            </div>
-          </div>
-
-          {/* 1-Click Persona Access Bypass Buttons */}
-          <div className="p-5 rounded-lg glass-inset space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-semibold text-text-primary uppercase flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-status-success" />
-                <span>1-Click Hackathon Persona Bypass (Instant Access)</span>
-              </span>
-              <span className="text-[10px] font-mono text-text-secondary">NO PASSWORD REQUIRED</span>
-            </div>
-            <p className="text-xs text-text-secondary">
-              To evaluate the live dashboard, approvals queue, and clinical claims library immediately,
-              select any pre-provisioned role below:
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <button
-                onClick={() =>
-                  setDemoSession({
-                    name: "Daksh Agrawal",
-                    role: "Admin",
-                    email: "daksh@uideas.digital",
-                    userId: "00000000-0000-4000-a000-000000000010",
-                  })
-                }
-                className="p-3.5 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-left transition-all cursor-pointer group"
-              >
-                <div className="text-[10px] font-mono font-bold text-status-success uppercase">
-                  ADMIN / ARCHITECT
-                </div>
-                <div className="text-xs font-semibold text-text-primary group-hover:underline">
-                  Daksh Agrawal
-                </div>
-                <div className="text-[10px] font-mono text-text-secondary truncate">
-                  Full Policy Control
-                </div>
-              </button>
-
-              <button
-                onClick={() =>
-                  setDemoSession({
-                    name: "Laksh Khatri",
-                    role: "Reviewer",
-                    email: "laksh@uideas.digital",
-                    userId: "00000000-0000-4000-a000-000000000012",
-                  })
-                }
-                className="p-3.5 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-left transition-all cursor-pointer group"
-              >
-                <div className="text-[10px] font-mono font-bold text-text-primary uppercase">
-                  REVIEWER / LEGAL
-                </div>
-                <div className="text-xs font-semibold text-text-primary group-hover:underline">
-                  Laksh Khatri
-                </div>
-                <div className="text-[10px] font-mono text-text-secondary truncate">
-                  Approvals &amp; Overrides
-                </div>
-              </button>
-
-              <button
-                onClick={() =>
-                  setDemoSession({
-                    name: "Riddhi Shah",
-                    role: "Creator",
-                    email: "riddhi@uideas.digital",
-                    userId: "00000000-0000-4000-a000-000000000011",
-                  })
-                }
-                className="p-3.5 rounded bg-panel hover:bg-panel-hover border border-border-default hover:border-border-strong text-left transition-all cursor-pointer group"
-              >
-                <div className="text-[10px] font-mono font-bold text-text-secondary uppercase">
-                  CREATOR / WRITER
-                </div>
-                <div className="text-xs font-semibold text-text-primary group-hover:underline">
-                  Riddhi Shah
-                </div>
-                <div className="text-[10px] font-mono text-text-secondary truncate">
-                  Submission &amp; Diffs
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Feature-Specific Interactive Simulation */}
-          {feature === "pilot" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 rounded glass-inset space-y-1">
-                  <div className="text-[10px] font-mono text-text-secondary uppercase">DURATION</div>
-                  <div className="text-sm font-semibold text-text-primary">30-Day Managed PoC</div>
-                  <div className="text-[11px] text-text-secondary">Dedicated compliance architect</div>
-                </div>
-                <div className="p-3 rounded glass-inset space-y-1">
-                  <div className="text-[10px] font-mono text-text-secondary uppercase">ISOLATION</div>
-                  <div className="text-sm font-semibold text-status-success">PostgreSQL Dedicated RLS</div>
-                  <div className="text-[11px] text-text-secondary">Zero cross-tenant leakage</div>
-                </div>
-                <div className="p-3 rounded glass-inset space-y-1">
-                  <div className="text-[10px] font-mono text-text-secondary uppercase">SLA COMMITMENT</div>
-                  <div className="text-sm font-semibold text-text-primary">99.99% Uptime</div>
-                  <div className="text-[11px] text-text-secondary">Sub-500ms P95 latency</div>
-                </div>
-              </div>
-
-              {!submitted ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    setSubmitted(true);
-                  }}
-                  className="space-y-4 p-5 rounded-lg glass-inset"
-                >
-                  <div className="text-xs font-mono font-semibold text-text-primary uppercase tracking-wider flex items-center gap-2">
-                    <Fingerprint className="w-4 h-4 text-text-primary" />
-                    <span>Request Institutional White-Glove Trial</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[11px] font-mono text-text-secondary mb-1">
-                        ENTERPRISE EMAIL:
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={emailInput}
-                        onChange={(e) => setEmailInput(e.target.value)}
-                        className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-md px-3 py-2 text-xs font-mono text-text-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-mono text-text-secondary mb-1">
-                        ORGANIZATION:
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full glass-inset border border-border-default focus:border-blue focus:ring-2 focus:ring-blue/25 focus:outline-none rounded-md px-3 py-2 text-xs font-mono text-text-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between">
-                    <span className="text-[11px] text-text-muted font-mono">
-                      Includes 10,000 monthly claim audits &amp; custom assay parsing.
-                    </span>
-                    <button
-                      type="submit"
-                      className="bg-ink hover:bg-navy-soft text-ghost px-4 py-2 rounded text-xs font-semibold flex items-center gap-2 cursor-pointer"
-                    >
-                      <span>Submit Pilot Request</span>
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="p-4 rounded-lg bg-status-success/10 border border-status-success/30 text-status-success space-y-1 text-xs">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <CheckCircle2 className="w-4 h-4 text-status-success" />
-                    <span>Pilot Request Received</span>
-                  </div>
-                  <p className="text-text-secondary">
-                    A compliance engineer has reserved a dedicated tenant sandbox for {companyName}.
-                    Confirmation sent to {emailInput}.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Diagnostic Terminal Telemetry Box */}
-          <div className="p-4 rounded-lg glass-inset font-mono text-xs space-y-2 text-text-secondary">
-            <div className="flex items-center justify-between text-text-primary border-b border-border-default pb-2">
-              <span className="text-[11px] flex items-center gap-1.5">
-                <Terminal className="w-3.5 h-3.5 text-status-success" />
-                <span>DIAGNOSTIC TERMINAL TELEMETRY</span>
-              </span>
-              <span className="text-[10px] text-status-success">TEST STATUS: 54/54 PASSING</span>
-            </div>
-            <div className="text-[11px] space-y-1">
-              <div>
-                [ENV]: production-turbopack · [ISOLATION]: PostgreSQL RLS · [TENANT]:
-                00000000-0000-4000-a000-000000000001
-              </div>
-              <div>
-                [FEATURE_SCOPE]: {feature.toUpperCase()} · [FALLBACK_ENGINE]: Active Heuristics
-              </div>
-              <div>
-                [SEED_VERIFICATION]: 8 Approved Claims, 5 Submissions, 32 Audit Ledger Events Loaded
-              </div>
-            </div>
-          </div>
-
-          {/* Action Navigation Footer */}
-          <div className="pt-4 border-t border-border-default flex flex-wrap items-center justify-between gap-4">
-            <Link
-              href="/"
-              className="text-xs font-mono text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Landing Page</span>
-            </Link>
-
-            <Link
-              href="/dashboard"
-              className="bg-ink hover:bg-navy-soft text-ghost px-5 py-2.5 rounded text-xs font-semibold flex items-center gap-2 transition-all active:scale-95"
-            >
-              <span>Return to Application Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-      </main>
-
-      {/* Minimal Footer */}
-      <footer className="border-t border-border-subtle py-6 text-center text-xs font-mono text-text-muted">
-        AdSnitch · Sovereign Pre-Publication Brand Truth Governance · CodeTitans India 2026
-      </footer>
-    </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export default function PrototypeNoticePage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-canvas flex items-center justify-center text-xs font-mono text-text-secondary">
-          Loading governance module...
+    <AppLayout title="What is real">
+      <div className="mx-auto max-w-5xl space-y-8">
+        <header>
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-primary">What works today, and what is next</h1>
+          <p className="mt-1.5 max-w-[70ch] text-sm text-text-secondary">
+            AdSnitch is a working prototype. This page says plainly which parts are real and which are still being built.
+          </p>
+        </header>
+
+        <Suspense fallback={null}>
+          <Notice />
+        </Suspense>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <section aria-labelledby="real-h" className="glass rounded-2xl p-5 sm:p-6">
+            <h2 id="real-h" className="mb-4 text-base font-semibold text-text-primary">Works today</h2>
+            <List items={REAL} done />
+          </section>
+          <section aria-labelledby="next-h" className="glass rounded-2xl p-5 sm:p-6">
+            <h2 id="next-h" className="mb-4 text-base font-semibold text-text-primary">Coming next</h2>
+            <List items={NEXT} done={false} />
+          </section>
         </div>
-      }
-    >
-      <PrototypeNoticeContent />
-    </Suspense>
+
+        <p className="text-[13px] text-text-muted">
+          Demo evidence in the library is labelled as demo and is not real study data.{" "}
+          <a
+            href="https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`rounded text-text-primary underline underline-offset-4 ${focusRing}`}
+          >
+            Source code on GitHub
+          </a>
+          {" · "}
+          <Link href="/dashboard" className={`rounded text-text-primary underline underline-offset-4 ${focusRing}`}>Back to dashboard</Link>
+        </p>
+      </div>
+    </AppLayout>
   );
 }

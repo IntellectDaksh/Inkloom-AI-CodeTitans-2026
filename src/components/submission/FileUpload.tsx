@@ -3,6 +3,8 @@
 import React, { useRef, useState } from "react";
 import { AlertCircle, FileImage, FileText, FileType2, Loader2, RotateCcw, Upload, X } from "lucide-react";
 import { ACCEPTED_EXT, MAX_FILE_BYTES, formatBytes, isOcrFile } from "./shared";
+import { readPrefs } from "../guide/workspace";
+import { SourcePanel } from "./SourcePanel";
 
 export interface UploadItem {
   key: string;
@@ -13,12 +15,16 @@ export interface UploadItem {
   error?: string;
   method?: string;
   pages?: number;
+  /** IndexedDB key of the original (src/lib/files/store.ts); absent if the browser can't store files. */
+  fileId?: string;
 }
 
 /** Calls POST /api/extract (contract in docs/REVAMP-BRIEF.md). Throws a plain-language Error. */
 export async function extractFile(file: File): Promise<Pick<UploadItem, "text" | "warnings" | "method" | "pages">> {
   const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
   if (!ACCEPTED_EXT.includes(ext)) throw new Error(`${ext || "This file type"} is not supported. Try PDF, Word, an image or plain text.`);
+  if (isOcrFile(file.name) && !readPrefs().ocr)
+    throw new Error("Reading PDFs and images is turned off in Settings. Turn on OCR, or paste the text instead.");
   if (file.size > MAX_FILE_BYTES) throw new Error(`File is ${formatBytes(file.size)}. The limit is 15 MB.`);
   const fd = new FormData();
   fd.append("file", file);
@@ -173,6 +179,9 @@ export function UploadCard({
             onChange={(e) => onText(e.target.value)}
             rows={6}
             className="w-full resize-y rounded-lg glass-inset p-3 font-sans text-sm leading-relaxed text-text-primary focus:outline-none focus:ring-2 focus:ring-blue/50"
+          />
+          <SourcePanel
+            src={{ fileName: item.file.name, mime: item.file.type, size: item.file.size, pages: item.pages, method: item.method, fileId: item.fileId }}
           />
         </div>
       )}

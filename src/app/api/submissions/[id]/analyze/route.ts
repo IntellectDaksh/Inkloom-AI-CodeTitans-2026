@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runGovernancePipeline } from "@/lib/ai";
+import { withSources } from "../../sources";
 
 export async function POST(
   req: NextRequest,
@@ -98,7 +99,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       report,
-      findings: db.listFindings(id),
+      findings: withSources(db.listFindings(id)),
       revisions: db.listSuggestedRevisions(id),
     });
   } catch (err: any) {

@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, Check, ChevronDown, Database, Scale, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Scale, X } from "lucide-react";
+import { FindingSource } from "./FindingSource";
 import { Button } from "@/components/ui/Button";
 import { FindingItem, FindingStatus, SEVERITY, evidenceOf, humanize, sevOf } from "./shared";
 
@@ -91,27 +92,12 @@ export function FindingCard({
             </div>
           </dl>
 
-          <section className="rounded-lg border border-border-default bg-panel-elevated p-3">
-            <h4 className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
-              <Database className="h-3.5 w-3.5" aria-hidden /> Evidence
-            </h4>
-            {ev ? (
-              <>
-                <blockquote className="mt-1.5 text-sm italic leading-relaxed text-text-primary">“{ev.excerpt}”</blockquote>
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
-                  <span>
-                    {ev.citation ? `${ev.citation} · ` : ""}
-                    {f.isVerified ? "On file and verified" : "On file, not independently verified"}
-                  </span>
-                  <button type="button" onClick={onEvidence} className="font-medium text-text-primary underline-offset-2 hover:underline cursor-pointer">
-                    View source
-                  </button>
-                </div>
-              </>
-            ) : (
-              <p className="mt-1.5 text-sm text-text-secondary">No evidence on file. Not found in the approved library, so this claim requires substantiation.</p>
-            )}
-          </section>
+          <FindingSource f={f} />
+          {(f.source || ev) && (
+            <button type="button" onClick={onEvidence} className="text-[13px] font-medium text-text-primary underline-offset-2 hover:underline cursor-pointer">
+              Compare with flagged phrase
+            </button>
+          )}
 
           {f.suggestedCorrection && (
             <section>

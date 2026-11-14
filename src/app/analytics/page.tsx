@@ -1,539 +1,248 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  BarChart3,
-  TrendingUp,
-  AlertOctagon,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Calendar,
-  ShieldAlert,
-  ArrowUpRight,
-  ArrowDownRight,
-  Layers,
-  Scale,
-  ShieldCheck,
-  ChevronRight,
-  Database,
-  Activity,
-  FileText,
-  Download,
-  Lock,
-  Sparkles,
-} from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { InfoTip } from "@/components/guide/HelpPanel";
+import { usePrefs, focusRing } from "@/components/guide/workspace";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Sub = any;
+type Claim = any;
+
+const CATEGORY: Record<string, string> = {
+  unsupported_claim: "Claim without proof",
+  time_bound_claim: "Claim with expired proof",
+  tone_inconsistency: "Off-brand tone",
+  prohibited_term: "Banned word",
+  missing_disclosure: "Missing disclosure",
+  out_of_scope: "Claim used outside its approved context",
+};
+
+const DAY = 86_400_000;
+const get = (u: string) => fetch(u, { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))));
+
+function median(xs: number[]) {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+const hrs = (h: number) => (h < 1 ? `${Math.max(1, Math.round(h * 60))} min` : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} days`);
+
+function Section({ id, title, tip, href, linkLabel, children }: { id: string; title: string; tip: string; href: string; linkLabel: string; children: React.ReactNode }) {
+  return (
+    <section aria-labelledby={id} className="glass rounded-2xl p-5 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id={id} className="flex items-center gap-1 text-base font-semibold text-text-primary">
+          {title}
+          <InfoTip label={title}>{tip}</InfoTip>
+        </h2>
+        <Link href={href} className={`rounded text-[13px] text-text-muted underline-offset-4 hover:text-text-primary hover:underline ${focusRing}`}>{linkLabel}</Link>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="py-6 text-center text-[13px] text-text-muted">{children}</p>;
+}
 
 export default function AnalyticsPage() {
-  const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d");
-  const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const prefs = usePrefs();
+  const [subs, setSubs] = useState<Sub[] | null>(null);
+  const [claims, setClaims] = useState<Claim[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+  const [now, setNow] = useState(0);
 
-  const severityBreakdown = [
-    { label: "Critical Statutory Violations", count: 2, percentage: 7, color: "bg-status-critical", standard: "FTC § 255 / FDA" },
-    { label: "High Risk Claims (Ungrounded)", count: 8, percentage: 29, color: "bg-status-warning", standard: "NAD Substantiation" },
-    { label: "Medium Warnings (Disclaimers)", count: 12, percentage: 43, color: "bg-status-warning/60", standard: "DSHEA § 403(r)" },
-    { label: "Low (Tone & Style Deviations)", count: 6, percentage: 21, color: "bg-text-dim", standard: "Brand Voice Guide" },
-  ];
-
-  const recurringIssues = [
-    { name: "Unverified Multiplier Metric ('2x faster')", category: "FTC § 255.2", count: 12, trend: "+2", isUp: true },
-    { name: "Aggressive / Over-Promising Tone", category: "Brand Voice Guild-04", count: 7, trend: "-3", isUp: false },
-    { name: "Missing Statutory FDA Disclaimer Notice", category: "FDA 21 CFR § 101.93", count: 5, trend: "0", isUp: false },
-    { name: "Out-of-Scope Geographic / Channel Context", category: "Legal Distribution", count: 4, trend: "-1", isUp: false },
-    { name: "Prohibited 'Miracle / Cure' Terminology", category: "FD&C Act § 201", count: 2, trend: "-5", isUp: false },
-  ];
-
-  const weeklyTrendData = [
-    { week: "W41", reviewed: 22, score: 71, violations: 9 },
-    { week: "W42", reviewed: 28, score: 76, violations: 7 },
-    { week: "W43", reviewed: 31, score: 81, violations: 5 },
-    { week: "W44", reviewed: 36, score: 84, violations: 4 },
-  ];
-
-  const expiringClaims = [
-    {
-      code: "CLM-APX-002",
-      text: "100% Informed-Sport certified, tested for over 250 WADA-prohibited substances.",
-      evidence: "LGC Informed-Sport Certificate #IS-8921",
-      daysLeft: 17,
-      owner: "Mansoor R. (QA Director)",
-      expiresAt: "2026-11-25",
-    },
-    {
-      code: "CLM-APX-003",
-      text: "Clinically shown to increase peak VO2 max output and time-to-exhaustion by 14.3% in trained endurance athletes.",
-      evidence: "CPET Protocol CPET-2024-B",
-      daysLeft: 27,
-      owner: "Dr. Aris Vance (VP Medical)",
-      expiresAt: "2026-12-05",
-    },
-  ];
-
-  const handleExportTelemetry = () => {
-    const data = {
-      report: "AdSnitch Governance Telemetry",
-      period: timeRange,
-      generatedAt: new Date().toISOString(),
-      organization: "Apex Nutrition (brand_apex)",
-      metrics: {
-        complianceHealthScore: 84.2,
-        firstPassRate: 77.8,
-        turnaroundLatencyHours: 1.2,
-        expiringCount: 2,
-      },
-      weeklyProgression: weeklyTrendData,
-      severityBreakdown,
-      topViolations: recurringIssues,
+  useEffect(() => {
+    let alive = true;
+    setError(null);
+    setSubs(null);
+    Promise.all([get("/api/submissions"), get("/api/claims")])
+      .then(([s, c]) => {
+        if (!alive) return;
+        setNow(Date.now());
+        setSubs(s.submissions ?? []);
+        setClaims(c.claims ?? []);
+      })
+      .catch((e) => alive && setError(e.message));
+    return () => {
+      alive = false;
     };
+  }, [tick]);
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `adsnitch-telemetry-${timeRange}-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setExportNotice("Compliance telemetry dataset exported as JSON.");
-    setTimeout(() => setExportNotice(null), 3500);
-  };
+  const word = prefs.brand.split(" ")[0].toLowerCase();
+  const mine = (subs ?? []).filter((s) => !s.brand?.name || s.brand.name.toLowerCase().startsWith(word));
+  const brandIds = new Set(mine.map((s) => s.brand_id));
+  const myClaims = (claims ?? []).filter((c) => !c.brand_id || brandIds.size === 0 || brandIds.has(c.brand_id));
+
+  // Flags by category
+  const flagCounts: Record<string, number> = {};
+  for (const s of mine) for (const f of s.findings ?? []) flagCounts[f.category] = (flagCounts[f.category] ?? 0) + 1;
+  const flags = Object.entries(flagCounts).sort((a, b) => b[1] - a[1]);
+  const maxFlag = flags[0]?.[1] ?? 1;
+
+  // Claims expiring in 90 days (or already expired)
+  const expiring = myClaims
+    .filter((c) => c.expires_at)
+    .map((c) => ({ c, days: Math.ceil((Date.parse(c.expires_at) - now) / DAY) }))
+    .filter((x) => x.days <= 90)
+    .sort((a, b) => a.days - b.days);
+
+  // Time from submission to the latest decision
+  const signoffs = mine
+    .filter((s) => s.latest_decision?.decided_at)
+    .map((s) => ({ s, h: (Date.parse(s.latest_decision.decided_at) - Date.parse(s.created_at)) / 3_600_000 }))
+    .filter((x) => x.h >= 0)
+    .sort((a, b) => b.h - a.h);
+  const med = median(signoffs.map((x) => x.h));
+  const maxH = signoffs[0]?.h || 1;
+
+  // Score trend, oldest first
+  const scored = mine
+    .filter((s) => typeof s.latest_analysis?.overall_score === "number")
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+
+  const approved = mine.filter((s) => s.status === "approved").length;
+  const decided = mine.filter((s) => ["approved", "changes_requested", "rejected"].includes(s.status)).length;
+  const avg = scored.length ? Math.round(scored.reduce((n, s) => n + s.latest_analysis.overall_score, 0) / scored.length) : null;
+
+  const stats = [
+    { label: "Ads checked", value: String(mine.length), href: "/submissions", tip: `Every ad submitted for ${prefs.brand}, in any status.` },
+    { label: "First-time pass rate", value: decided ? `${Math.round((approved / decided) * 100)}%` : "-", href: "/submissions?status=approved", tip: "Approved ads divided by all ads that got a decision (approved, sent back or rejected)." },
+    { label: "Average score", value: avg === null ? "-" : `${avg}/100`, href: "/submissions", tip: "Mean of the latest check score on each ad. 100 means nothing was flagged." },
+    { label: "Median sign-off time", value: med === null ? "-" : hrs(med), href: "/approvals", tip: "Middle value of the time between an ad being submitted and its latest approval decision." },
+  ];
+
+  const loading = subs === null && !error;
 
   return (
-    <AppLayout
-      title="Compliance & Risk Analytics"
-      subtitle="Aggregated governance intelligence across brands, claims repositories, and reviewer sign-off velocity."
-    >
-      <div className="space-y-6">
-        {/* Header & Filter Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="led-indicator led-turquoise" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-text-primary">
-                Governance &amp; Risk Analytics
-              </h1>
-              <Badge variant="verified" size="xs">
-                TELEMETRY ACTIVE
-              </Badge>
-              <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
-                ORGANIZATION: APEX NUTRITION
-              </span>
-            </div>
-            <p className="text-xs text-text-muted max-w-2xl leading-relaxed">
-              Empirical multi-factor breakdown and compliance risk velocity across marketing, packaging, and regulatory assets.
-            </p>
-          </div>
+    <AppLayout title="Analytics">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <header>
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-primary">Analytics</h1>
+          <p className="mt-1.5 text-sm text-text-secondary">
+            What your writers keep getting flagged for, which proof runs out soon and how long sign-off takes, for {prefs.brand}.
+          </p>
+        </header>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            {/* Time range selector */}
-            <div className="flex items-center bg-panel border border-border-subtle rounded-lg p-0.5 text-xs font-mono">
-              {(["7d", "30d", "90d"] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setTimeRange(r)}
-                  className={`px-3 py-1.5 rounded-md transition-all cursor-pointer font-medium ${
-                    timeRange === r
-                      ? "bg-panel-elevated text-text-primary border border-border-default shadow-xs"
-                      : "text-text-muted hover:text-text-primary"
-                  }`}
-                >
-                  {r === "7d" ? "Past 7 Days" : r === "30d" ? "Past 30 Days" : "Past Quarter"}
-                </button>
-              ))}
-            </div>
-
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Download className="w-3.5 h-3.5 text-text-primary" />}
-              onClick={handleExportTelemetry}
-            >
-              Export Dataset
-            </Button>
-
-            <Link href="/evaluations">
-              <Button
-                size="sm"
-                variant="gold"
-                icon={<Scale className="w-3.5 h-3.5" />}
-              >
-                Benchmark Suite
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Feedback Alert */}
-        {exportNotice && (
-          <div className="p-3.5 rounded-lg bg-status-success/10 border border-status-success/30 text-status-success text-xs flex items-center justify-between animate-in fade-in">
-            <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-status-success shrink-0" />
-              <span>{exportNotice}</span>
-            </span>
-            <button
-              onClick={() => setExportNotice(null)}
-              className="text-status-success hover:text-text-primary font-mono text-xs"
-            >
-              DISMISS
-            </button>
+        {error && (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-critical/30 bg-status-critical/5 px-4 py-3 text-sm text-text-primary">
+            <span>Could not load analytics ({error}). Nothing below is made up, so it stays empty until this works.</span>
+            <button onClick={() => setTick((t) => t + 1)} className={`rounded-lg border border-border-default bg-panel px-3 py-1.5 text-[13px] font-medium hover:bg-panel-hover ${focusRing}`}>Try again</button>
           </div>
         )}
 
-        {/* 4 Tactile Skeuomorphic Stat Cards with Monospace Tabular Numbers */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1 */}
-          <div className="glass rounded-xl p-5 space-y-3.5">
-            <div className="flex items-center justify-between text-text-muted">
-              <div className="flex items-center gap-2">
-                <span className="led-indicator led-emerald" />
-                <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary font-semibold">
-                  Compliance Health Score
-                </span>
-              </div>
-              <ShieldCheck className="w-4 h-4 text-status-success" />
-            </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-status-success tracking-tight">
-                84.2%
-              </span>
-              <span className="text-xs font-mono font-medium text-status-success flex items-center gap-0.5">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +6.4%
-              </span>
-            </div>
-            <div className="text-[11px] font-mono text-text-primary0 border-t border-border-subtle pt-2.5 flex items-center justify-between">
-              <span>GROUNDED CLAIMS</span>
-              <span className="text-text-primary font-semibold">32 TOTAL</span>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-          <div className="glass rounded-xl p-5 space-y-3.5">
-            <div className="flex items-center justify-between text-text-muted">
-              <div className="flex items-center gap-2">
-                <span className="led-indicator led-emerald" />
-                <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary font-semibold">
-                  First-Pass Approval Rate
-                </span>
-              </div>
-              <CheckCircle2 className="w-4 h-4 text-status-success" />
-            </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-text-primary tracking-tight">
-                77.8%
-              </span>
-              <span className="text-xs font-mono font-medium text-status-success flex items-center gap-0.5">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +18.2%
-              </span>
-            </div>
-            <div className="text-[11px] font-mono text-text-primary0 border-t border-border-subtle pt-2.5 flex items-center justify-between">
-              <span>VS PREVIOUS PERIOD</span>
-              <span className="text-text-muted font-mono">59.6% PREV</span>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="glass rounded-xl p-5 space-y-3.5">
-            <div className="flex items-center justify-between text-text-muted">
-              <div className="flex items-center gap-2">
-                <span className="led-indicator led-gold" />
-                <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary font-semibold">
-                  Turnaround Latency
-                </span>
-              </div>
-              <Clock className="w-4 h-4 text-status-warning" />
-            </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-text-primary tracking-tight">
-                1.2 hrs
-              </span>
-              <span className="text-xs font-mono font-medium text-status-success flex items-center gap-0.5">
-                <ArrowDownRight className="w-3.5 h-3.5" /> -42m
-              </span>
-            </div>
-            <div className="text-[11px] font-mono text-text-primary0 border-t border-border-subtle pt-2.5 flex items-center justify-between">
-              <span>SLA TARGET</span>
-              <span className="text-text-primary font-semibold">&lt; 4.0 HRS</span>
-            </div>
-          </div>
-
-          {/* Card 4 */}
-          <div className="glass rounded-xl p-5 space-y-3.5">
-            <div className="flex items-center justify-between text-text-muted">
-              <div className="flex items-center gap-2">
-                <span className="led-indicator led-amber" />
-                <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary font-semibold">
-                  Claims Expiring &lt;30d
-                </span>
-              </div>
-              <AlertTriangle className="w-4 h-4 text-status-warning" />
-            </div>
-            <div className="flex items-baseline justify-between pt-1">
-              <span className="text-3xl font-bold font-mono tabular-nums text-status-warning tracking-tight">
-                2
-              </span>
-              <span className="text-[11px] font-mono text-status-warning font-semibold bg-status-warning/10 px-2 py-0.5 rounded border border-status-warning/25">
-                Action Required
-              </span>
-            </div>
-            <div className="text-[11px] font-mono text-text-primary0 border-t border-border-subtle pt-2.5 flex items-center justify-between">
-              <span>NEXT EXPIRATION</span>
-              <span className="text-status-warning font-semibold">17 DAYS</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Weekly Trend Chart & Severity Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column (7 cols): 4-Week Compliance Velocity */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="glass rounded-xl overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-border-subtle bg-panel flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-text-primary">
-                    Compliance Velocity &amp; Score Progression
-                  </h3>
-                  <p className="text-[10px] font-mono text-text-primary0 mt-0.5">
-                    4-WEEK TRAJECTORY (WEEK 41 TO WEEK 44)
-                  </p>
-                </div>
-                <Badge variant="verified" size="xs">
-                  VELOCITY: +13% GAIN
-                </Badge>
-              </div>
-
-              <div className="p-5 space-y-5">
-                <div className="grid grid-cols-4 gap-3 text-center">
-                  {weeklyTrendData.map((d) => (
-                    <div
-                      key={d.week}
-                      className="p-3.5 rounded-lg bg-panel border border-border-subtle space-y-2.5"
-                    >
-                      <div className="text-[11px] font-mono text-text-muted font-semibold">
-                        {d.week}
-                      </div>
-
-                      {/* Bar Visualization Monochromatic & Functional Accents */}
-                      <div className="h-28 flex items-end justify-center gap-2 px-1">
-                        <div
-                          className="w-5 bg-ink rounded-t transition-all duration-300"
-                          style={{ height: `${(d.score / 100) * 90}px` }}
-                          title={`Compliance Score: ${d.score}%`}
-                        />
-                        <div
-                          className="w-3 bg-status-critical rounded-t transition-all duration-300"
-                          style={{ height: `${d.violations * 9}px` }}
-                          title={`Statutory Violations: ${d.violations}`}
-                        />
-                      </div>
-
-                      <div className="text-xs font-mono font-bold tabular-nums text-text-primary">
-                        {d.score}%
-                      </div>
-                      <div className="text-[10px] font-mono text-text-muted">
-                        {d.violations} Flags
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] font-mono text-text-muted pt-2 border-t border-border-default">
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-xs bg-ink inline-block" />
-                      <span>Compliance Score (%)</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-xs bg-status-critical inline-block" />
-                      <span>Statutory Flags</span>
-                    </span>
-                  </div>
-                  <span className="text-status-success font-semibold">+13% Score Gain over 30d</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Recurring Violations Frequency Table */}
-            <div className="glass rounded-xl overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-border-subtle bg-panel flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-text-primary">
-                  Most Common Statutory Flags
-                </h3>
-                <span className="text-[10px] font-mono text-text-primary0">
-                  ACTIVE RULE ENFORCEMENT
-                </span>
-              </div>
-
-              <div className="p-4 space-y-3">
-                {recurringIssues.map((item, idx) => (
-                  <div
-                    key={item.name}
-                    className="p-3 rounded-lg bg-panel border border-border-subtle flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-status-warning w-4 text-center">
-                        {idx + 1}
-                      </span>
-                      <div className="space-y-0.5">
-                        <div className="font-medium text-text-primary">{item.name}</div>
-                        <div className="text-[10px] font-mono text-text-primary0">{item.category}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 font-mono">
-                      <span className="font-bold tabular-nums text-text-primary">{item.count}</span>
-                      <span
-                        className={`text-[10px] font-semibold ${
-                          item.isUp ? "text-status-critical" : "text-status-success"
-                        }`}
-                      >
-                        {item.trend}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column (5 cols): Severity Distribution & Expiring Watchlist */}
-          <div className="lg:col-span-5 space-y-4">
-            {/* Severity Breakdown Card */}
-            <div className="glass rounded-xl overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-border-subtle bg-panel flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-text-primary">
-                  Findings by Severity Level
-                </h3>
-                <span className="text-[10px] font-mono text-status-warning">
-                  28 TOTAL FLAGS
-                </span>
-              </div>
-
-              <div className="p-4 space-y-4">
-                {severityBreakdown.map((s) => (
-                  <div key={s.label} className="space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between text-text-primary">
-                      <div>
-                        <span className="font-medium">{s.label}</span>
-                        <div className="text-[10px] font-mono text-text-primary0">{s.standard}</div>
-                      </div>
-                      <span className="font-mono font-semibold tabular-nums">
-                        {s.count} ({s.percentage}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-panel rounded-full overflow-hidden border border-border-subtle">
-                      <div
-                        className={`h-full ${s.color} rounded-full`}
-                        style={{ width: `${s.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Claims Approaching Expiry Watchlist */}
-            <div className="glass rounded-xl overflow-hidden border-status-warning/40">
-              <div className="px-4 py-3.5 border-b border-status-warning/25 bg-status-warning/5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-status-warning" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-status-warning">
-                    Claims Expiry Watchlist (&lt; 30d)
-                  </h3>
-                </div>
-                <Badge variant="warning" size="xs">
-                  2 CLAIMS
-                </Badge>
-              </div>
-
-              <div className="p-4 space-y-3.5 text-xs">
-                {expiringClaims.map((claim) => (
-                  <div
-                    key={claim.code}
-                    className="p-3.5 rounded-lg bg-panel-hover border border-border-default space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-mono text-text-primary text-[11px] font-semibold">
-                        {claim.code}
-                      </span>
-                      <span className="font-mono text-status-warning font-semibold text-[11px] flex items-center gap-1">
-                        <span className="led-indicator led-amber" />
-                        {claim.daysLeft} DAYS LEFT
-                      </span>
-                    </div>
-
-                    <p className="text-text-secondary text-xs font-sans leading-relaxed">
-                      &ldquo;{claim.text}&rdquo;
-                    </p>
-
-                    <div className="pt-1.5 flex items-center justify-between text-[10px] font-mono text-text-muted border-t border-border-default">
-                      <span>{claim.evidence}</span>
-                      <span className="text-text-secondary">{claim.owner}</span>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="pt-2">
-                  <Link
-                    href="/knowledge-base/claims"
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-panel-hover hover:bg-panel-elevated border border-border-default text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
-                  >
-                    <span>Manage All Claims in Truth Library</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-text-muted" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Labelled Evaluation Benchmark Card linking to /evaluations */}
-            <div className="glass rounded-xl p-5 space-y-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-panel-hover border border-border-default flex items-center justify-center text-text-primary">
-                    <Scale className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-text-primary">
-                      Evaluation Benchmark Bench
-                    </h3>
-                    <div className="text-[10px] font-mono text-text-muted">ROUND 3 DELIVERABLE #3</div>
-                  </div>
-                </div>
-                <Badge variant="verified" size="xs">
-                  97.9% PRECISION
-                </Badge>
-              </div>
-
-              <p className="text-xs text-text-secondary leading-relaxed font-sans">
-                Continuous empirical validation suite running the 4 canonical proposal case studies: FTC/Teami (2020), Adidas (2017), CNET AI (2023), and Clinical Baseline Control.
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 text-center font-mono text-xs">
-                <div className="p-2 rounded bg-panel-hover border border-border-default">
-                  <div className="text-[10px] text-text-muted">FALSE-POSITIVE</div>
-                  <div className="text-sm font-bold text-text-primary">2.1%</div>
-                </div>
-                <div className="p-2 rounded bg-panel-hover border border-border-default">
-                  <div className="text-[10px] text-text-muted">MISSED-ISSUE</div>
-                  <div className="text-sm font-bold text-status-success">0.0%</div>
-                </div>
-              </div>
-
-              <Link
-                href="/evaluations"
-                className="btn-secondary w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold"
-              >
-                <span>Launch Interactive Benchmark Suite</span>
-                <ChevronRight className="w-4 h-4" />
+        <section aria-label="Summary" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="glass relative rounded-2xl transition-colors hover:bg-panel-hover">
+              <Link href={s.href} className={`block rounded-2xl p-5 ${focusRing}`}>
+                <p className="pr-6 text-[13px] text-text-muted">{s.label}</p>
+                <p className="mt-2 text-2xl font-semibold tabular-nums text-text-primary">
+                  {loading ? <span className="inline-block h-7 w-12 animate-pulse rounded bg-panel-hover align-middle" /> : error ? "-" : s.value}
+                </p>
+                <p className="mt-1 text-xs text-text-muted">View list</p>
               </Link>
+              <span className="absolute right-3 top-3"><InfoTip label={s.label}>{s.tip}</InfoTip></span>
             </div>
-          </div>
+          ))}
+        </section>
+
+        <div className="grid gap-8 lg:grid-cols-2">
+          <Section id="flags-h" title="What gets flagged most?" href="/submissions" linkLabel="See flagged ads"
+            tip="Every issue AdSnitch raised on this brand's ads, grouped by type. One ad can have several.">
+            {loading ? <div className="h-40 animate-pulse rounded-xl bg-panel-hover" /> : flags.length === 0 ? (
+              <Empty>No issues flagged yet. Check an ad to start seeing patterns.</Empty>
+            ) : (
+              <ul className="space-y-3">
+                {flags.map(([cat, n]) => (
+                  <li key={cat}>
+                    <div className="flex justify-between text-[13px]">
+                      <span className="text-text-primary">{CATEGORY[cat] ?? cat.replace(/_/g, " ")}</span>
+                      <span className="tabular-nums text-text-secondary">{n}</span>
+                    </div>
+                    <div className="mt-1 h-2 rounded-full bg-panel-hover" aria-hidden="true">
+                      <div className="h-2 rounded-full bg-text-primary/70" style={{ width: `${(n / maxFlag) * 100}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+
+          <Section id="expiry-h" title="Which claims expire soon?" href="/knowledge-base/claims" linkLabel="Open claims"
+            tip="Approved claims whose proof expires within 90 days, or already has. An expired claim gets flagged in every ad that uses it.">
+            {loading ? <div className="h-40 animate-pulse rounded-xl bg-panel-hover" /> : expiring.length === 0 ? (
+              <Empty>No claim proof expires in the next 90 days.</Empty>
+            ) : (
+              <ul className="-mx-3 space-y-1">
+                {expiring.slice(0, 6).map(({ c, days }) => (
+                  <li key={c.id}>
+                    <Link href="/knowledge-base/claims" className={`flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-panel-hover ${focusRing}`}>
+                      <span className="min-w-0 flex-1 truncate text-sm text-text-primary">{c.claim_text}</span>
+                      <span className={`shrink-0 text-[13px] tabular-nums ${days < 0 ? "text-status-critical" : days <= 30 ? "text-status-warning" : "text-text-secondary"}`}>
+                        {days < 0 ? `Expired ${-days} days ago` : days === 0 ? "Expires today" : `${days} days left`}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+
+          <Section id="speed-h" title="How fast are reviews signed off?" href="/approvals" linkLabel="Open approvals"
+            tip="Time from an ad being submitted to its latest decision by a reviewer. Longest first, so slow ones stand out.">
+            {loading ? <div className="h-40 animate-pulse rounded-xl bg-panel-hover" /> : signoffs.length === 0 ? (
+              <Empty>No ad has been signed off yet.</Empty>
+            ) : (
+              <ul className="space-y-3">
+                {signoffs.slice(0, 6).map(({ s, h }) => (
+                  <li key={s.id}>
+                    <Link href={`/submissions/${s.id}`} className={`block rounded ${focusRing}`}>
+                      <div className="flex justify-between gap-3 text-[13px]">
+                        <span className="truncate text-text-primary">{s.title}</span>
+                        <span className="shrink-0 tabular-nums text-text-secondary">{hrs(h)}</span>
+                      </div>
+                      <div className="mt-1 h-2 rounded-full bg-panel-hover" aria-hidden="true">
+                        <div className="h-2 rounded-full bg-[#1f7fa3]/70" style={{ width: `${Math.max(4, (h / maxH) * 100)}%` }} />
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+
+          <Section id="trend-h" title="Are ads getting safer over time?" href="/submissions" linkLabel="See all ads"
+            tip="Latest check score of each ad, in the order they were submitted. Higher is safer.">
+            {loading ? <div className="h-40 animate-pulse rounded-xl bg-panel-hover" /> : scored.length < 2 ? (
+              <Empty>Need at least two scored ads to draw a trend.</Empty>
+            ) : (
+              <figure>
+                <svg viewBox="0 0 300 120" className="h-40 w-full" role="img" aria-label={`Scores from ${scored[0].latest_analysis.overall_score} to ${scored[scored.length - 1].latest_analysis.overall_score}`}>
+                  {[0, 50, 100].map((y) => (
+                    <g key={y}>
+                      <line x1="24" x2="296" y1={110 - y} y2={110 - y} stroke="currentColor" className="text-border-default" strokeWidth="1" />
+                      <text x="0" y={114 - y} className="fill-current text-text-muted" fontSize="10">{y}</text>
+                    </g>
+                  ))}
+                  <polyline
+                    fill="none" stroke="currentColor" strokeWidth="2" className="text-text-primary"
+                    points={scored.map((s, i) => `${24 + (i / (scored.length - 1)) * 272},${110 - s.latest_analysis.overall_score}`).join(" ")}
+                  />
+                  {scored.map((s, i) => (
+                    <circle key={s.id} cx={24 + (i / (scored.length - 1)) * 272} cy={110 - s.latest_analysis.overall_score} r="3" className="fill-current text-text-primary">
+                      <title>{`${s.title}: ${Math.round(s.latest_analysis.overall_score)}/100`}</title>
+                    </circle>
+                  ))}
+                </svg>
+                <figcaption className="mt-2 text-xs text-text-muted">Oldest on the left. Hover a dot for the ad.</figcaption>
+              </figure>
+            )}
+          </Section>
         </div>
       </div>
     </AppLayout>

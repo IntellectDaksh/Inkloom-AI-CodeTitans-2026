@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FindingItem, evidenceOf, humanize } from "./shared";
+import { FindingSource } from "./FindingSource";
 
 /** Native <dialog>: focus trap, Esc to close and inert background for free. */
 export function Modal({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer: React.ReactNode }) {
@@ -203,34 +204,25 @@ export function EvidenceModal({ finding, onClose, onApply }: { finding: FindingI
         <p className="text-xs text-text-muted">Flagged phrase</p>
         <p className="rounded-lg border border-border-default bg-panel p-3 text-sm">“{finding.flaggedText}”</p>
       </div>
-      <div className="space-y-1">
-        <p className="text-xs text-text-muted">Excerpt on file</p>
-        <blockquote className="rounded-lg border border-border-default bg-panel p-3 text-sm italic leading-relaxed">
-          {ev ? `“${ev.excerpt}”` : "No evidence on file."}
-        </blockquote>
-      </div>
-      <dl className="grid grid-cols-2 gap-3 text-[13px]">
-        <div>
-          <dt className="text-xs text-text-muted">Claim / source</dt>
-          <dd className="mt-0.5 break-words">{ev?.citation || "None"}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-text-muted">Status</dt>
-          <dd className="mt-0.5">{finding.isVerified ? "Verified" : "Not independently verified"}</dd>
-        </div>
-        {finding.doi && (
-          <div>
-            <dt className="text-xs text-text-muted">DOI</dt>
-            <dd className="mt-0.5 break-words">{finding.doi}</dd>
-          </div>
-        )}
-        {finding.assayStandard && (
-          <div>
-            <dt className="text-xs text-text-muted">Standard</dt>
-            <dd className="mt-0.5">{finding.assayStandard}</dd>
-          </div>
-        )}
-      </dl>
+      <FindingSource f={finding} />
+      {(finding.doi || finding.assayStandard) && (
+        <dl className="grid grid-cols-2 gap-3 text-[13px]">
+          {finding.doi && (
+            <div>
+              <dt className="text-xs text-text-muted">DOI</dt>
+              <dd className="mt-0.5 break-words">
+                {finding.doi} <span className="text-text-muted">(demo reference, not linked)</span>
+              </dd>
+            </div>
+          )}
+          {finding.assayStandard && (
+            <div>
+              <dt className="text-xs text-text-muted">Standard</dt>
+              <dd className="mt-0.5">{finding.assayStandard}</dd>
+            </div>
+          )}
+        </dl>
+      )}
       {ev && (
         <button type="button" onClick={copy} className="inline-flex items-center gap-1.5 text-sm font-medium text-text-primary hover:underline cursor-pointer">
           {copied ? <Check className="h-4 w-4 text-status-success" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}

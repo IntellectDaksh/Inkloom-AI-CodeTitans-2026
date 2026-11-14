@@ -67,6 +67,10 @@ export async function POST(req: NextRequest) {
               mime: typeof sourceFile.mime === "string" ? sourceFile.mime.slice(0, 120) : undefined,
               method: ["plain", "docx", "gemini-ocr", "paste"].includes(sourceFile.method) ? sourceFile.method : undefined,
               ocrUnverified: sourceFile.method === "gemini-ocr" || undefined,
+              // Original bytes live in the uploader's IndexedDB under this id (src/lib/files/store.ts).
+              fileId: typeof sourceFile.fileId === "string" ? sourceFile.fileId.slice(0, 80) : undefined,
+              size: Number.isFinite(sourceFile.size) ? Number(sourceFile.size) : undefined,
+              pages: Number.isFinite(sourceFile.pages) ? Number(sourceFile.pages) : undefined,
             },
           }
         : undefined,

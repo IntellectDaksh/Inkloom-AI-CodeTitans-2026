@@ -12,6 +12,26 @@ const FALLBACK: [string, string, string] = [
   "A person always makes the final call in Approvals.",
 ];
 
+const FTC_255 = { label: "FTC Guides on endorsements, 16 CFR Part 255", url: "https://www.ecfr.gov/current/title-16/chapter-I/subchapter-B/part-255" };
+const FTC_HEALTH = { label: "FTC Health Products Compliance Guidance", url: "https://www.ftc.gov/business-guidance/resources/health-products-compliance-guidance" };
+const REPO = { label: "AdSnitch source and tests on GitHub", url: "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026" };
+
+// Per-page "why this matters", keyed by nav href. Sources only where we are sure the link is right.
+const WHY: Record<string, { text: string; source?: { label: string; url: string } }> = {
+  "/dashboard": { text: "Ads that go out with unproven claims can be challenged by regulators and platforms. Catching them before launch is far cheaper than pulling them after." },
+  "/submissions/new": { text: "US law expects advertisers to hold proof for objective claims before they run, especially health claims.", source: FTC_HEALTH },
+  "/submissions": { text: "A record of every check shows what was reviewed and when, which matters if a claim is ever questioned." },
+  "/approvals": { text: "A second person signing off stops one writer's mistake from going live, and the note explains the decision later." },
+  "/knowledge-base/claims": { text: "Health and performance claims need competent and reliable evidence. Keeping the proof next to the claim makes that easy to show.", source: FTC_HEALTH },
+  "/knowledge-base/guidelines": { text: "Endorsements and testimonials must reflect honest experience and disclose material connections.", source: FTC_255 },
+  "/knowledge-base/terminology": { text: "Words like \"cure\" or \"clinically proven\" turn a soft message into a claim that needs proof. Swapping them early avoids rework." },
+  "/knowledge-base/assets": { text: "Using the approved version of a label or product sheet keeps images in line with what the claims say." },
+  "/analytics": { text: "Repeated flags point to a rule writers do not know about. Fixing the rule or the brief saves every later review." },
+  "/evaluations": { text: "You should know how often the checker misses or over-flags before trusting it. These numbers come from the test suite.", source: REPO },
+  "/brands": { text: "Each brand has different proof and rules. Keeping them apart stops one brand's claim being approved for another." },
+  "/team": { text: "Separating who writes from who approves is a basic control: nobody signs off their own work." },
+};
+
 /** "?" button + slide-over explaining the current page in three bullets. */
 export function HelpButton() {
   const path = usePathname() ?? "/";
@@ -34,6 +54,7 @@ export function HelpButton() {
   useEffect(() => setOpen(false), [path]);
 
   const bullets = page?.help ?? FALLBACK;
+  const why = page ? WHY[page.href] : undefined;
 
   return (
     <>
@@ -54,7 +75,7 @@ export function HelpButton() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="help-title"
-            className="glass-strong absolute inset-y-0 right-0 flex w-full max-w-sm flex-col rounded-none border-l border-border-subtle p-6 shadow-2xl overscroll-contain"
+            className="glass-strong absolute inset-y-0 right-0 flex w-full max-w-sm flex-col rounded-none border-l border-border-subtle p-6 shadow-2xl overflow-y-auto overscroll-contain"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -83,6 +104,17 @@ export function HelpButton() {
                 </li>
               ))}
             </ol>
+            {why && (
+              <section aria-labelledby="why-h" className="mt-6 rounded-xl border border-border-subtle p-4">
+                <h3 id="why-h" className="text-sm font-semibold text-text-primary">Why this matters</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">{why.text}</p>
+                {why.source && (
+                  <a href={why.source.url} target="_blank" rel="noopener noreferrer" className={`mt-2 inline-block rounded text-[13px] text-text-primary underline underline-offset-4 ${focusRing}`}>
+                    Source: {why.source.label}
+                  </a>
+                )}
+              </section>
+            )}
             <p className="mt-auto border-t border-border-subtle pt-4 text-[13px] text-text-muted">
               Press Ctrl+K (or Cmd+K) anywhere to search or jump to an action.
             </p>

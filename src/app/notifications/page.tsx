@@ -1,257 +1,177 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Bell,
-  Check,
-  Clock,
-  ShieldAlert,
-  FileText,
-  CheckCircle2,
-  Filter,
-  ArrowRight,
-  ExternalLink,
-  ShieldCheck,
-  AlertTriangle,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { usePrefs, personaOf, focusRing } from "@/components/guide/workspace";
 
-interface NotificationItem {
+interface Note {
   id: string;
   title: string;
   message: string;
-  time: string;
-  type: "submission" | "claim_expiry" | "approval" | "guidelines";
-  isRead: boolean;
-  link: string;
-  severity: "critical" | "warning" | "success" | "info";
+  notification_type: string;
+  link_url?: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "notif_1",
-    title: "New Submission Ingested — Pre-flight Violations Flagged",
-    message: "Riddhi S. submitted 'Q4 Campaign – Clinical Protein Reel Script' with 3 flagged statutory compliance issues.",
-    time: "10m ago",
-    type: "submission",
-    isRead: false,
-    link: "/submissions/sub_reel_script",
-    severity: "critical",
-  },
-  {
-    id: "notif_2",
-    title: "Impending Claims Expiration Watchlist (<30 Days)",
-    message: "Approved Claim CLM-APX-002 ('Informed-Sport Certified') expires in 17 days. 1 active draft depends on this record.",
-    time: "42m ago",
-    type: "claim_expiry",
-    isRead: false,
-    link: "/knowledge-base/claims",
-    severity: "warning",
-  },
-  {
-    id: "notif_3",
-    title: "Submission Cleared & Approved by Legal",
-    message: "Laksh K. approved 'Product Launch – Recovery Blend Carousel' for publication with ISO-21CFR digital signature.",
-    time: "2h ago",
-    type: "approval",
-    isRead: false,
-    link: "/submissions/sub_insta_launch",
-    severity: "success",
-  },
-  {
-    id: "notif_4",
-    title: "Dynamic Cascade Re-Review Notice",
-    message: "Cascade re-audit triggered for CLM-APX-003: 1 dependent draft queued for reviewer sign-off.",
-    time: "4h ago",
-    type: "claim_expiry",
-    isRead: true,
-    link: "/knowledge-base/claims",
-    severity: "info",
-  },
-  {
-    id: "notif_5",
-    title: "Brand Voice Guidelines Updated",
-    message: "Mansoor R. updated prohibited vocabulary for Apex Nutrition (added 'cheat code' and 'magic bullet').",
-    time: "1d ago",
-    type: "guidelines",
-    isRead: true,
-    link: "/knowledge-base/guidelines",
-    severity: "info",
-  },
-];
+const TYPES: Record<string, string> = {
+  analysis_completed: "Check finished",
+  review_assigned: "Review assigned",
+  changes_requested: "Changes requested",
+  claim_expiring: "Claim expiring",
+  approval_granted: "Approved",
+  finding_disputed: "Issue disputed",
+  finding_overridden: "Issue overridden",
+  cascade_re_review: "Needs re-review",
+};
+
+// Seeded links use /claims/<code>; the claims library lives under /knowledge-base.
+const deepLink = (u?: string | null) => (!u ? null : u.startsWith("/claims") ? "/knowledge-base/claims" : u);
+
+const fmt = (iso: string) => {
+  const d = new Date(iso);
+  return isNaN(+d) ? "" : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+};
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
-  const [filterType, setFilterType] = useState<string>("all");
+  const prefs = usePrefs();
+  const me = personaOf(prefs);
+  const [notes, setNotes] = useState<Note[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>("all");
+  const [tick, setTick] = useState(0);
 
-  const markAllRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
+  useEffect(() => {
+    let alive = true;
+    setNotes(null);
+    setError(null);
+    fetch(`/api/notifications?userId=${encodeURIComponent(me.userId)}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((d) => alive && setNotes(d.notifications ?? []))
+      .catch((e) => alive && setError(e.message));
+    return () => {
+      alive = false;
+    };
+  }, [me.userId, tick]);
+
+  const markRead = async (ids: string[]) => {
+    if (!ids.length) return;
+    const prev = notes;
+    setNotes((n) => n?.map((x) => (ids.includes(x.id) ? { ...x, is_read: true } : x)) ?? n);
+    try {
+      const res = await Promise.all(
+        ids.map((id) => fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notificationId: id }) }))
+      );
+      if (res.some((r) => !r.ok)) throw new Error();
+    } catch {
+      setNotes(prev);
+      setError("Could not mark as read. Try again.");
+    }
   };
 
-  const markSingleRead = (id: string) => {
-    setNotifications(
-      notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-  };
-
-  const filteredNotifications = notifications.filter((n) => {
-    if (filterType === "all") return true;
-    if (filterType === "unread") return !n.isRead;
-    return n.type === filterType;
-  });
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const all = notes ?? [];
+  const unread = all.filter((n) => !n.is_read);
+  const types = [...new Set(all.map((n) => n.notification_type))];
+  const shown = all.filter((n) => (filter === "all" ? true : filter === "unread" ? !n.is_read : n.notification_type === filter));
+  const filters = [
+    { id: "all", label: `All (${all.length})` },
+    { id: "unread", label: `Unread (${unread.length})` },
+    ...types.map((t) => ({ id: t, label: TYPES[t] ?? t.replace(/_/g, " ") })),
+  ];
 
   return (
-    <AppLayout
-      title="Compliance Notifications & Alert Feed"
-      subtitle="Operational telemetry alerts for pre-flight findings, expiring claims, cascade re-audits, and reviewer decisions."
-    >
-      <div className="space-y-6">
-        {/* Header & Mark All Read */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="led-indicator led-turquoise" />
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-text-primary">
-                Governance Alert Feed
-              </h1>
-              {unreadCount > 0 && (
-                <span className="gold-badge text-[10px] font-mono font-semibold px-2 py-0.5 rounded uppercase">
-                  {unreadCount} UNREAD ALERTS
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-text-muted max-w-2xl leading-relaxed">
-              Real-time audit triage alerts for regulatory safe-harbor breaches, impending claim expirations, and cascade review triggers.
+    <AppLayout title="Notifications">
+      <div className="mx-auto max-w-3xl space-y-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-primary">Notifications</h1>
+            <p className="mt-1.5 text-sm text-text-secondary">
+              Things that need {me.name.split(" ")[0]}: finished checks, ads to review, decisions and claims running out.
             </p>
           </div>
+          <button
+            type="button"
+            disabled={!unread.length}
+            onClick={() => markRead(unread.map((n) => n.id))}
+            className={`h-10 rounded-lg border border-border-default bg-panel px-4 text-sm font-medium text-text-primary hover:bg-panel-hover disabled:opacity-50 ${focusRing}`}
+          >
+            Mark all as read
+          </button>
+        </header>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            {unreadCount > 0 && (
-              <Button size="sm" variant="secondary" onClick={markAllRead}>
-                Mark All as Read
-              </Button>
-            )}
+        {error && (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-critical/30 bg-status-critical/5 px-4 py-3 text-sm text-text-primary">
+            <span>{error.startsWith("HTTP") ? `Could not load notifications (${error}).` : error}</span>
+            <button onClick={() => setTick((t) => t + 1)} className={`rounded-lg border border-border-default bg-panel px-3 py-1.5 text-[13px] font-medium hover:bg-panel-hover ${focusRing}`}>Reload</button>
           </div>
+        )}
+
+        <div className="flex gap-1 overflow-x-auto rounded-lg border border-border-default bg-panel p-1" role="group" aria-label="Filter notifications">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              aria-pressed={filter === f.id}
+              onClick={() => setFilter(f.id)}
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${focusRing} ${
+                filter === f.id ? "bg-panel-elevated text-text-primary" : "text-text-muted hover:text-text-primary"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
 
-        {/* Filter Toolbar Tabs */}
-        <div className="glass rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center bg-panel border border-border-subtle rounded-lg p-0.5 text-xs font-mono">
-            {[
-              { id: "all", label: `All (${notifications.length})` },
-              { id: "unread", label: `Unread (${unreadCount})` },
-              { id: "submission", label: "Submissions" },
-              { id: "claim_expiry", label: "Claims & Expiry" },
-              { id: "approval", label: "Approvals" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setFilterType(tab.id)}
-                className={`px-3 py-1.5 rounded-md transition-all cursor-pointer font-medium ${
-                  filterType === tab.id
-                    ? "bg-panel-elevated text-text-primary border border-border-default shadow-xs"
-                    : "text-text-muted hover:text-text-primary"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <span className="text-[11px] font-mono text-text-primary0">
-            SHOWING {filteredNotifications.length} OF {notifications.length} ALERTS
-          </span>
-        </div>
-
-        {/* Notification Cards List */}
-        <div className="glass rounded-xl overflow-hidden">
-          <div className="divide-y divide-border-subtle">
-            {filteredNotifications.length > 0 ? (
-              filteredNotifications.map((n) => (
-                <div
-                  key={n.id}
-                  className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
-                    n.isRead
-                      ? "hover:bg-panel-hover bg-panel"
-                      : "bg-panel-hover hover:bg-panel-elevated border-l-2 border-l-blue"
-                  }`}
-                >
-                  <div className="flex items-start gap-3.5">
-                    {/* Severity Icon */}
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border shadow-inner ${
-                        n.severity === "critical"
-                          ? "bg-status-critical/10 border-status-critical/30 text-status-critical"
-                          : n.severity === "warning"
-                          ? "bg-status-warning/10 border-status-warning/30 text-status-warning"
-                          : n.severity === "success"
-                          ? "bg-status-success/10 border-status-success/30 text-status-success"
-                          : "bg-panel-hover border-border-default text-text-secondary"
-                      }`}
-                    >
-                      {n.type === "submission" ? (
-                        <FileText className="w-4 h-4" />
-                      ) : n.type === "claim_expiry" ? (
-                        <ShieldAlert className="w-4 h-4" />
-                      ) : n.type === "approval" ? (
-                        <CheckCircle2 className="w-4 h-4" />
-                      ) : (
-                        <ShieldCheck className="w-4 h-4" />
-                      )}
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-text-primary text-xs">
-                          {n.title}
-                        </span>
-                        {!n.isRead && (
-                          <span className="led-indicator led-turquoise" title="Unread" />
-                        )}
-                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-panel border border-border-subtle text-text-muted">
-                          {n.type.replace("_", " ")}
-                        </span>
-                      </div>
-                      <p className="text-xs text-text-secondary leading-relaxed font-sans max-w-2xl">
-                        {n.message}
-                      </p>
-                      <div className="text-[10px] font-mono text-text-primary0 flex items-center gap-1.5 pt-0.5">
-                        <Clock className="w-3 h-3 text-text-muted" />
-                        <span>{n.time}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                    {!n.isRead && (
+        <section aria-label="Notifications" className="glass rounded-2xl p-2 sm:p-3">
+          {notes === null && !error ? (
+            <ul className="space-y-2 p-2" aria-busy="true">{[0, 1, 2].map((i) => <li key={i} className="h-16 animate-pulse rounded-xl bg-panel-hover" />)}</ul>
+          ) : shown.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-sm font-medium text-text-primary">{filter === "unread" ? "You have read everything" : "Nothing here yet"}</p>
+              <p className="mt-1 text-[13px] text-text-muted">New notifications appear when an ad is checked, reviewed or a claim nears expiry.</p>
+            </div>
+          ) : (
+            <ul className="space-y-1">
+              {shown.map((n) => {
+                const href = deepLink(n.link_url);
+                const body = (
+                  <>
+                    <span aria-hidden="true" className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.is_read ? "bg-transparent" : "bg-[#1f7fa3]"}`} />
+                    <span className="min-w-0 flex-1">
+                      <span className={`block text-sm ${n.is_read ? "text-text-secondary" : "font-medium text-text-primary"}`}>
+                        {n.title}{!n.is_read && <span className="sr-only"> (unread)</span>}
+                      </span>
+                      <span className="mt-0.5 block text-[13px] leading-relaxed text-text-secondary">{n.message}</span>
+                      <span className="mt-1 block text-xs text-text-muted">{[TYPES[n.notification_type], fmt(n.created_at)].filter(Boolean).join(", ")}</span>
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={n.id} className="flex items-start gap-2 rounded-xl hover:bg-panel-hover">
+                    {href ? (
+                      <Link href={href} onClick={() => !n.is_read && markRead([n.id])} className={`group flex min-w-0 flex-1 items-start gap-3 rounded-xl px-3 py-3 ${focusRing}`}>
+                        {body}
+                        <ChevronRight aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-text-muted" />
+                      </Link>
+                    ) : (
+                      <div className="flex min-w-0 flex-1 items-start gap-3 px-3 py-3">{body}</div>
+                    )}
+                    {!n.is_read && (
                       <button
-                        onClick={() => markSingleRead(n.id)}
-                        className="text-[10px] font-mono text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-panel-hover transition-colors cursor-pointer"
+                        type="button"
+                        onClick={() => markRead([n.id])}
+                        className={`my-2 mr-2 shrink-0 rounded-lg px-2.5 py-1.5 text-xs text-text-muted hover:bg-panel hover:text-text-primary ${focusRing}`}
                       >
-                        Dismiss
+                        Mark read
                       </button>
                     )}
-                    <Link href={n.link}>
-                      <Button size="xs" variant={n.isRead ? "secondary" : "turquoise"}>
-                        <span>Inspect</span>
-                        <ArrowRight className="w-3 h-3 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="p-12 text-center text-text-primary0 font-mono text-xs">
-                NO NOTIFICATIONS FOUND IN CURRENT FILTER
-              </div>
-            )}
-          </div>
-        </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
     </AppLayout>
   );

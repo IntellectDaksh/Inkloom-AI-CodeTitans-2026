@@ -5,6 +5,7 @@ import { Sidebar } from "./Sidebar";
 import { Header, HeaderBreadcrumb } from "./Header";
 import { CommandK } from "../ui/CommandK";
 import { PageMotion } from "./Motion";
+import { FloatingLayer } from "./FloatingLayer";
 import { WorkspacePicker } from "../guide/WorkspacePicker";
 
 export interface AppLayoutProps {
@@ -64,6 +65,7 @@ export function AppLayout({
         <i />
       </div>
 
+      <FloatingLayer density="app" />
       <WorkspacePicker />
 
       {/* Global CommandK Quick Switcher Dialog */}
