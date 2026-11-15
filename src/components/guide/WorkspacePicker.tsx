@@ -5,14 +5,12 @@ import { ArrowLeft, ArrowRight, Check, Plus } from "lucide-react";
 import {
   PICKED_KEY,
   PICKER_EVT,
-  addWorkspace,
   focusRing,
   setPrefs,
   usePrefs,
-  useWorkspaces,
   useWorkspaceCounts,
-  type Workspace,
 } from "./workspace";
+import { createWorkspace, useWorkspaces } from "@/lib/workspaces/client";
 
 const INDUSTRIES = ["Health & nutrition", "Beauty & skincare", "Software", "Finance", "Food & drink", "Other"];
 const CHANNELS = ["Instagram", "TikTok", "LinkedIn", "Landing page", "Product page", "Email", "Ads"];
@@ -98,20 +96,24 @@ export function WorkspacePicker() {
     }, 220);
   };
 
-  const create = (e: React.FormEvent) => {
+  const [saving, setSaving] = useState(false);
+  const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (channels.length === 0) {
       setError("Pick at least one channel you publish on.");
       return;
     }
-    const res = addWorkspace({ name, industry, channels, description: description.trim() || undefined } as Workspace);
+    setSaving(true);
+    const res = await createWorkspace({ name, industry, channels, description: description.trim() || undefined });
+    setSaving(false);
     if (!res.ok) {
       setError(res.error);
       return;
     }
     setName("");
     setDescription("");
-    choose(res.name);
+    choose(res.workspace.name);
   };
 
   const toggleChannel = (c: string) =>
@@ -146,7 +148,7 @@ export function WorkspacePicker() {
               {workspaces.map((w, i) => {
                 const active = w.name === prefs.brand;
                 return (
-                  <li key={w.name} className="ws-item" style={{ animationDelay: `${80 + i * 60}ms` }}>
+                  <li key={w.id} className="ws-item" style={{ animationDelay: `${80 + i * 60}ms` }}>
                     <button
                       onClick={() => choose(w.name)}
                       className={`ws-card group ${active ? "ws-card-active" : ""} ${focusRing}`}
@@ -312,9 +314,10 @@ export function WorkspacePicker() {
             <div className="mt-2 flex items-center justify-end gap-2">
               <button
                 type="submit"
-                className={`inline-flex h-11 items-center gap-2 rounded-xl bg-text-primary px-5 text-sm font-semibold text-canvas transition-transform hover:-translate-y-px ${focusRing}`}
+                disabled={saving}
+                className={`inline-flex h-11 disabled:opacity-60 items-center gap-2 rounded-xl bg-text-primary px-5 text-sm font-semibold text-canvas transition-transform hover:-translate-y-px ${focusRing}`}
               >
-                Create and open <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                {saving ? "Creating…" : "Create and open"} <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </form>

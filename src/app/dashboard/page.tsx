@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { StartHere } from "@/components/guide/StartHere";
 import { InfoTip } from "@/components/guide/HelpPanel";
-import { QuickTutorial } from "@/components/guide/QuickTutorial";
+import { startTour } from "@/components/tour/ProductTour";
 import { usePrefs, personaOf, focusRing, openWorkspacePicker } from "@/components/guide/workspace";
 
 type Status = "pending" | "approved" | "changes_requested";
@@ -24,13 +24,6 @@ interface SubmissionItem {
   score: number | null;
   submittedAt: string;
 }
-
-// Shown only if the API is unreachable, and labelled as sample data in the UI.
-const SAMPLE: SubmissionItem[] = [
-  { id: "sub_reel_script", title: "Q4 Campaign - Clinical Protein Reel Script", brand: "Apex Nutrition", channel: "Instagram Reel", author: "Creator S.", status: "pending", score: 18, submittedAt: "14m ago" },
-  { id: "sub_insta_launch", title: "Product Launch - Recovery Blend Carousel", brand: "Apex Nutrition", channel: "Instagram Carousel", author: "Demo Reviewer", status: "approved", score: 96, submittedAt: "1h ago" },
-  { id: "sub_banner_v2", title: "Global Website Banner - Winter Immunity V2", brand: "Apex Nutrition", channel: "Homepage Hero", author: "Analyst R.", status: "changes_requested", score: 64, submittedAt: "2h ago" },
-];
 
 const STATUS: Record<Status, { label: string; variant: "pending" | "warning" | "approved" }> = {
   pending: { label: "In review", variant: "pending" },
@@ -195,7 +188,7 @@ export default function DashboardPage() {
   const prefs = usePrefs();
   const persona = personaOf(prefs);
   const [submissions, setSubmissions] = useState<SubmissionItem[] | null>(null);
-  const [isSample, setIsSample] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [listTab, setListTab] = useState<"attention" | "recent">("attention");
@@ -229,8 +222,8 @@ export default function DashboardPage() {
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setSubmissions((d.submissions ?? []).map(fromApi)))
       .catch(() => {
-        setSubmissions(SAMPLE);
-        setIsSample(true);
+        setSubmissions([]);
+        setLoadFailed(true);
       });
   }, []);
 
@@ -332,7 +325,10 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
               </button>
             </p>
           </div>
-          <div className="relative" ref={exportRef}>
+          <div className="relative flex gap-2" ref={exportRef}>
+            <Button size="sm" variant="secondary" onClick={startTour} className="h-10">
+              Take the tour
+            </Button>
             <Button
               size="sm"
               variant="secondary"
@@ -373,12 +369,11 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
           </p>
         )}
 
-        <QuickTutorial />
         <CheckAnAd />
 
-        {isSample && (
+        {loadFailed && (
           <p role="status" className="rounded-lg border border-status-warning/30 bg-status-warning/5 px-4 py-3 text-[13px] text-text-secondary">
-            Could not reach the server, so sample reviews are shown below. They are examples, not your data.
+            Could not reach the server, so your reviews could not be loaded. Refresh to try again.
           </p>
         )}
 
@@ -444,7 +439,7 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
         </section>
 
         ) : (
-        <section aria-labelledby="recent-h" className="glass rounded-2xl p-5 sm:p-6">
+        <section data-tour="recent" aria-labelledby="recent-h" className="glass rounded-2xl p-5 sm:p-6">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 id="recent-h" className="text-base font-semibold text-text-primary">Recent activity</h2>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

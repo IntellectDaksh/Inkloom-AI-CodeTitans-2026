@@ -359,7 +359,6 @@ const incidents: { category: string; title: string; impact: string; what: string
 ];
 
 type OwnResult = {
-  submission: { id: string };
   report: { complianceScore: number; findings: { id: string; flaggedText: string; severity: string; explanation: string }[] };
 };
 
@@ -376,7 +375,7 @@ function Logo() {
 
 function ArrowLink({
   children,
-  href = "#sandbox",
+  href = "#live-check",
   light = false,
 }: {
   children: ReactNode;
@@ -482,10 +481,10 @@ export default function Home() {
     setOwnError("");
     setBusy("check");
     try {
-      const res = await fetch("/api/submissions", {
+      const res = await fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Landing page check", text: ownText, runAnalysis: true }),
+        body: JSON.stringify({ text: ownText }),
       });
       const data = await res.json();
       if (!res.ok || !data.success || !data.report) throw new Error(data.error || "The check failed. Try again.");
@@ -542,7 +541,7 @@ export default function Home() {
           <Logo />
           <div className="nav-center">
             <a href="#problem">Problem</a>
-            <a href="#sandbox">Live check</a>
+            <a href="#live-check">Live check</a>
             <a href="#pipeline">How it works</a>
             <a href="#proof">Proof</a>
             <a href="#faq">FAQ</a>
@@ -568,7 +567,7 @@ export default function Home() {
           <div className="mobile-nav">
             {[
               ["Problem", "#problem"],
-              ["Live check", "#sandbox"],
+              ["Live check", "#live-check"],
               ["How it works", "#pipeline"],
               ["Proof", "#proof"],
               ["FAQ", "#faq"],
@@ -619,7 +618,7 @@ export default function Home() {
                 <li>Nothing publishes without sign-off</li>
               </ul>
               <div className="l-actions">
-                <ArrowLink href="#sandbox">Try a live check</ArrowLink>
+                <ArrowLink href="#live-check">Try a live check</ArrowLink>
                 <a className="l-textlink sky-link" href="/dashboard?workspace=pick">
                   Open the app
                 </a>
@@ -683,7 +682,7 @@ export default function Home() {
           </p>
         </section>
 
-        <section className="lab" id="sandbox">
+        <section className="lab" id="live-check">
           <div className="lab-wrap reveal">
             <header className="lab-head">
               <Eyebrow>Live check</Eyebrow>
@@ -720,7 +719,7 @@ export default function Home() {
               <div className="lab-board">
                 <div className="lab-copy">
                   <div className="lab-copy-top">
-                    <span className="lab-brand">Your draft · Apex Nutrition demo workspace</span>
+                    <span className="lab-brand">Your draft · Apex Nutrition workspace</span>
                   </div>
                   <label className="l-label" htmlFor="own-ad">
                     Paste ad copy, or upload a file
@@ -754,7 +753,7 @@ export default function Home() {
                       ? "Scanning with OCR…"
                       : busy === "extract"
                         ? "Reading file…"
-                        : ownError || "Text is checked against the demo brand's rules and evidence."}
+                        : ownError || "Text is checked against Apex Nutrition's rules and evidence."}
                   </p>
                 </div>
                 <aside className="lab-report" aria-live="polite">
@@ -796,8 +795,17 @@ export default function Home() {
                       <div className="lab-next">
                         <Icon name="file" size={16} />
                         <span>
-                          <a href={`/submissions/${ownResult.submission.id}`}>Open full review</a>{" "}
-                          for sources, fixes and sign-off.
+                          <a
+                            href="/submissions/new?from=check"
+                            onClick={() => {
+                              try {
+                                sessionStorage.setItem("adsnitch:pending-text", ownText);
+                              } catch {}
+                            }}
+                          >
+                            Save as a full review
+                          </a>{" "}
+                          to get sources, one-click fixes and sign-off.
                         </span>
                       </div>
                     </>
@@ -886,7 +894,7 @@ export default function Home() {
             </div>
             )}
             <p className="ev-note">
-              Demo data from seeded brand workspaces. Rule references:{" "}
+              Scenario brands and evidence are illustrative. Rule references:{" "}
               <a href={FTC_255} target="_blank" rel="noreferrer">
                 FTC 16 CFR Part 255
               </a>{" "}
@@ -926,7 +934,7 @@ export default function Home() {
               </div>
               {activeStage === EVIDENCE_GATE && (
                 <div className="l-evidence">
-                  <span className="ev-step">Evidence packet · demo record</span>
+                  <span className="ev-step">Evidence packet · illustrative record</span>
                   <ul className="ev-sources">
                     {[
                       ["Clinical trial registry", "No matching 2x outcome", "No match", "bad"],
@@ -1027,8 +1035,8 @@ export default function Home() {
             </table>
           </div>
           <p className="case-note">
-            Limitations: results come from a small labelled set, not a legal certification. AI mode
-            needs a Gemini API key; video and image-brand review are not built yet.
+            Limitations: results come from a small labelled set, not a legal certification. AI analysis
+            and OCR run on Google Gemini; video and image-brand review are not built yet.
           </p>
         </section>
 
@@ -1103,9 +1111,10 @@ export default function Home() {
           <div className="l-faq reveal">
             {[
               ["Does AdSnitch publish anything?", "No. It reviews and suggests. Publishing stays with you, after a person signs off."],
-              ["Where does my data go?", "Your workspace data lives in the app's database. For AI analysis and OCR, the relevant text or file is sent to Google's Gemini API."],
-              ["Which AI does it use?", "Google Gemini for analysis and OCR, plus deterministic rules that run first and still work without the API (rule-only mode)."],
-              ["Is the evidence on this page real?", "The brands and evidence records shown here are demo data and labelled as such. The regulations and incidents are real and linked to their sources."],
+              ["Do I need an account?", "Yes, to save reviews. Each person signs in to their own account, and what they can do (create, review, approve) depends on their role in the workspace."],
+              ["Where does my data go?", "Workspace data and uploaded evidence files are stored in Supabase, hosted in the Mumbai (ap-south-1) region. For AI analysis and OCR, the relevant text or file is sent to Google's Gemini API."],
+              ["Which AI does it use?", "Google Gemini for claim analysis and for reading text out of PDFs and images. Deterministic rules run first and still work if the AI is unavailable."],
+              ["Are the scenarios on this page real?", "The brands and evidence records in the scenarios are illustrative. The regulations and incidents are real and linked to their sources. Your own check runs on the real engine."],
             ].map(([q, a]) => (
               <details key={q}>
                 <summary>{q}</summary>
@@ -1128,7 +1137,7 @@ export default function Home() {
             <p>Paste a draft and see every claim matched to proof, with a fix and a sign-off step.</p>
             <div>
               <ArrowLink href="/submissions/new">Check your own ad</ArrowLink>
-              <a href="#sandbox">Try the live demo</a>
+              <a href="#live-check">Try the live check</a>
             </div>
           </div>
           <div className="final-stamp">
@@ -1156,7 +1165,7 @@ export default function Home() {
           </div>
           {(
             [
-              ["Product", [["Live check", "#sandbox"], ["How it works", "#pipeline"], ["Proof", "#proof"], ["FAQ", "#faq"]]],
+              ["Product", [["Live check", "#live-check"], ["How it works", "#pipeline"], ["Proof", "#proof"], ["FAQ", "#faq"]]],
               ["Knowledge", [["Claims library", "/knowledge-base/claims"], ["Brand guidelines", "/knowledge-base/guidelines"], ["Terminology", "/knowledge-base/terminology"], ["Evidence documents", "/knowledge-base/assets"]]],
               ["Governance", [["The problem", "#problem"], ["Who it's for", "#who"], ["Analytics", "/analytics"], ["Trust & team", "#trust"]]],
               ["Project", [["Open the app", "/dashboard?workspace=pick"], ["Evaluation report", "/evaluations"], ["Source code", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"], ["Report an issue", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026/issues"]]],
@@ -1179,9 +1188,9 @@ export default function Home() {
           ))}
         </div>
         <div className="footer-bottom">
-          <span>AdSnitch · CodeTitans India 2026 · Formerly Inkloom AI</span>
+          <span>AdSnitch · Formerly Inkloom AI</span>
           <span className="footer-system">
-            <i /> Seeded prototype operational
+            <i /> All systems operational
           </span>
           <span>Check the claim. Show the source. Keep people in control.</span>
         </div>

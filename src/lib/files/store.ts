@@ -1,72 +1,59 @@
-// Local copy of uploaded originals, so a reviewer can open exactly what was uploaded.
-// ponytail: IndexedDB is per-browser. Upgrade path: upload to Supabase Storage on submit and
-// store the object path in sourceFile.fileId so every device can open it.
+// Uploaded originals live in Supabase Storage (private bucket 'evidence'), uploaded through
+// /api/files. Opening one asks /api/files/[id] for a signed URL that expires after a minute.
 
-export interface StoredFile {
+export interface StoredFileInfo {
   id: string;
   name: string;
-  type: string;
   size: number;
-  savedAt: string;
-  blob: Blob;
+  mime: string;
 }
 
-const DB = "adsnitch-files";
-const STORE = "files";
-
-function open(): Promise<IDBDatabase | null> {
-  return new Promise((resolve) => {
-    try {
-      if (typeof indexedDB === "undefined") return resolve(null);
-      const req = indexedDB.open(DB, 1);
-      req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: "id" });
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-      req.onblocked = () => resolve(null);
-    } catch {
-      resolve(null); // private mode / storage blocked
-    }
-  });
+/** Uploads the original; returns its id, or null when the server refused or is unreachable. */
+export async function putFile(file: File, brand?: string): Promise<string | null> {
+  return (await uploadFile(file, brand)).id;
 }
 
-/** ok=false when IndexedDB is unavailable or the request failed. */
-async function run<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest): Promise<{ ok: boolean; value?: T }> {
-  const db = await open();
-  if (!db) return { ok: false };
-  return new Promise((resolve) => {
-    try {
-      const req = fn(db.transaction(STORE, mode).objectStore(STORE));
-      req.onsuccess = () => resolve({ ok: true, value: req.result as T });
-      req.onerror = () => resolve({ ok: false });
-    } catch {
-      resolve({ ok: false });
-    }
-  });
+/** Same as putFile, with the server's reason when it fails. */
+export async function uploadFile(file: File, brand?: string): Promise<{ id: string | null; error?: string }> {
+  const body = new FormData();
+  body.append("file", file);
+  if (brand) body.append("brand", brand);
+  try {
+    const r = await fetch("/api/files", { method: "POST", body });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.success) return { id: null, error: d.error || `Upload failed (error ${r.status}).` };
+    return { id: (d.file as StoredFileInfo).id };
+  } catch {
+    return { id: null, error: "Could not reach the server. The original was not stored." };
+  }
 }
 
-export const newFileId = () =>
-  `file_${typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)}`;
-
-/** Saves the file; returns its id, or null when this browser cannot store files. */
-export async function putFile(file: File, id = newFileId()): Promise<string | null> {
-  const rec: StoredFile = { id, name: file.name, type: file.type || "application/octet-stream", size: file.size, savedAt: new Date().toISOString(), blob: file };
-  return (await run("readwrite", (s) => s.put(rec))).ok ? id : null;
+/** Signed URL + metadata for a stored original, or null. */
+export async function getFile(id: string, download = false): Promise<(StoredFileInfo & { url: string }) | null> {
+  try {
+    const r = await fetch(`/api/files/${encodeURIComponent(id)}${download ? "?download=1" : ""}`, { cache: "no-store" });
+    const d = await r.json().catch(() => ({}));
+    return r.ok && d.success ? { id, name: d.name, size: d.size, mime: d.mime, url: d.url } : null;
+  } catch {
+    return null;
+  }
 }
-export const getFile = async (id: string) => (await run<StoredFile>("readonly", (s) => s.get(id))).value ?? null;
-export const listFiles = async () => (await run<StoredFile[]>("readonly", (s) => s.getAll())).value ?? [];
-export const deleteFile = async (id: string) => (await run("readwrite", (s) => s.delete(id))).ok;
 
-/** Opens the stored original in a new tab, or downloads it. Returns false if it is not on this device. */
+/** Opens the stored original in a new tab, or downloads it. Returns false if it can't be fetched. */
 export async function openFile(id: string, download = false): Promise<boolean> {
-  const f = await getFile(id);
-  if (!f) return false;
-  const url = URL.createObjectURL(f.blob);
+  // Open the tab synchronously so popup blockers allow it, then point it at the signed URL.
+  const tab = download ? null : window.open("", "_blank");
+  const f = await getFile(id, download);
+  if (!f) {
+    tab?.close();
+    return false;
+  }
   if (download) {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = f.name;
+    const a = Object.assign(document.createElement("a"), { href: f.url, download: f.name, rel: "noopener" });
     a.click();
-  } else window.open(url, "_blank", "noopener");
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } else if (tab) {
+    tab.opener = null;
+    tab.location.href = f.url;
+  } else window.open(f.url, "_blank", "noopener");
   return true;
 }

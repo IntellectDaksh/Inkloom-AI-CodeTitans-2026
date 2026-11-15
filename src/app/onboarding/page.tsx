@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ArrowRight, ArrowLeft, Check } from "lucide-react";
-import { BRANDS, PERSONAS, ROLE_HELP, readPrefs, setPrefs, focusRing } from "@/components/guide/workspace";
+import { BRANDS, ROLE_HELP, readPrefs, setPrefs, useMe, focusRing } from "@/components/guide/workspace";
 
 const STEPS = ["What it does", "Your setup", "Ready"];
 
@@ -12,18 +12,17 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [brand, setBrand] = useState<string>(BRANDS[0]);
-  const [persona, setPersona] = useState(PERSONAS[0].id);
+  const me = useMe();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     const p = readPrefs();
     setBrand(p.brand);
-    setPersona(p.persona);
   }, []);
   useEffect(() => headingRef.current?.focus(), [step]);
 
   const finish = (to: string) => {
-    setPrefs({ brand, persona, onboarded: true });
+    setPrefs({ brand, onboarded: true });
     router.push(to);
   };
 
@@ -77,8 +76,8 @@ export default function OnboardingPage() {
 
             {step === 1 && (
               <>
-                <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">Pick your brand and role</h1>
-                <p className="mt-2 text-sm text-text-secondary">You can change both later from the top bar.</p>
+                <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">Pick your brand</h1>
+                <p className="mt-2 text-sm text-text-secondary">You can switch brands any time from the top bar.</p>
                 <fieldset className="mt-6">
                   <legend className="text-sm font-medium">Brand</legend>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -90,20 +89,11 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                 </fieldset>
-                <fieldset className="mt-6">
-                  <legend className="text-sm font-medium">Your role in this demo</legend>
-                  <div className="mt-2 space-y-2">
-                    {PERSONAS.map((p) => (
-                      <label key={p.id} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-border-default px-3 py-2.5 text-sm has-[:checked]:border-ink/50 has-[:checked]:bg-panel has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ink/40">
-                        <input type="radio" name="persona" value={p.id} checked={persona === p.id} onChange={() => setPersona(p.id)} className="mt-1 accent-current" />
-                        <span>
-                          <span className="font-medium">{p.label}</span> <span className="text-text-muted">as {p.name}</span>
-                          <span className="block text-[13px] text-text-secondary">{ROLE_HELP[p.role]}</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
+                {me && (
+                  <p className="mt-6 text-[13px] leading-relaxed text-text-secondary">
+                    You joined as <strong className="font-medium text-text-primary">{me.label}</strong>. {ROLE_HELP[me.role]} An admin can change your role from Team.
+                  </p>
+                )}
               </>
             )}
 
@@ -112,7 +102,7 @@ export default function OnboardingPage() {
                 <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">You&rsquo;re set up</h1>
                 <p className="mt-2 text-sm leading-relaxed text-text-secondary">
                   Working on <strong className="text-text-primary">{brand}</strong> as{" "}
-                  <strong className="text-text-primary">{PERSONAS.find((p) => p.id === persona)?.label}</strong>. The best way to see how it works is to check a real ad.
+                  <strong className="text-text-primary">{me?.label ?? "a team member"}</strong>. The best way to see how it works is to check a real ad.
                 </p>
               </>
             )}

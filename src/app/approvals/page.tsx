@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { InfoTip } from "@/components/guide/HelpPanel";
-import { PERSONAS, ROLE_HELP, personaOf, usePrefs, focusRing } from "@/components/guide/workspace";
+import { ROLE_HELP, personaOf, usePrefs, focusRing } from "@/components/guide/workspace";
 
 type Tab = "pending" | "changes_requested" | "rejected" | "approved";
 type Action = "approve" | "changes" | "reject" | "override";
@@ -41,7 +41,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "approved", label: "Approved" },
 ];
 
-const nameOf = (id?: string | null) => PERSONAS.find((p) => p.userId === id)?.name ?? "A reviewer";
+// Decisions carry the signer's name; fall back only when an old record lacks it.
+const nameOf = (name?: string | null) => name || "A reviewer";
 const fmt = (iso: string) =>
   new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 
@@ -65,7 +66,7 @@ function fromApi(s: any): Item {
     highRisk: open.filter((f) => f.severity === "critical" || f.severity === "high").length,
     copy: s.raw_content ?? s.currentContent ?? "",
     topIssue: worst ? { text: worst.highlighted_snippet ?? worst.flaggedText ?? "", why: worst.description ?? worst.title ?? "" } : undefined,
-    decision: d ? { by: nameOf(d.decided_by), at: d.decided_at, decision: d.decision, note: d.comments } : null,
+    decision: d ? { by: nameOf(d.reviewer_name ?? d.decided_by_name ?? d.reviewerName), at: d.decided_at, decision: d.decision, note: d.comments } : null,
   };
 }
 

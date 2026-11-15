@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { NAV } from "../guide/nav";
+import { ProductTour, startTour } from "../tour/ProductTour";
 import {
   Search,
   BookOpen,
@@ -30,7 +31,8 @@ const DEFAULT_COMMANDS: CommandItem[] = [
   { id: "a-claim", title: "Add a claim", category: "Actions", description: "Save a statement your brand may make, with its proof", href: "/knowledge-base/claims", icon: ShieldCheck },
   { id: "a-rule", title: "Add a brand rule", category: "Actions", description: "Write a tone, wording or legal guideline", href: "/knowledge-base/guidelines", icon: BookOpen },
   { id: "a-approvals", title: "Go to approvals", category: "Actions", description: "Sign off ads waiting on a person", href: "/approvals", icon: CheckCircle2 },
-  { id: "a-tour", title: "Replay the welcome tour", category: "Actions", description: "Pick brand and role again", href: "/onboarding", icon: Info },
+  { id: "a-tour", title: "Take the tour", category: "Actions", description: "A guided walk through checking and signing off an ad", icon: Info, onSelect: startTour },
+  { id: "a-setup", title: "Redo workspace setup", category: "Actions", description: "Pick brand and role again", href: "/onboarding", icon: Info },
   ...NAV.flatMap((g) =>
     g.items.map((i) => ({
       id: `nav-${i.href}`,
@@ -155,7 +157,8 @@ export function CommandK({
     }
   };
 
-  if (!isOpen) return null;
+  // The tour lives here because CommandK is mounted once in every app page.
+  if (!isOpen) return <><ProductTour /></>;
 
   // Group items by category
   const categories: ("Actions" | "Navigation" | "Knowledge Base" | "Brands" | "System")[] = [
@@ -169,6 +172,8 @@ export function CommandK({
   let cumulativeIndex = 0;
 
   return (
+    <>
+    <ProductTour />
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-ink/25 backdrop-blur-sm transition-opacity animate-in fade-in duration-120"
       onClick={handleClose}
@@ -316,6 +321,7 @@ export function CommandK({
         </div>
       </div>
     </div>
+    </>
   );
 }
 

@@ -27,7 +27,7 @@ const TYPES: Record<string, string> = {
   cascade_re_review: "Needs re-review",
 };
 
-// Seeded links use /claims/<code>; the claims library lives under /knowledge-base.
+// Older links use /claims/<code>; the claims library lives under /knowledge-base.
 const deepLink = (u?: string | null) => (!u ? null : u.startsWith("/claims") ? "/knowledge-base/claims" : u);
 
 const fmt = (iso: string) => {

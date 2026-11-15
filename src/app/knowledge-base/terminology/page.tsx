@@ -5,10 +5,9 @@ import { ArrowRight, Download, FileUp, Plus, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { FileDrop, KbHeader, Modal, Toast, area, csvCell, download, field, focusRing, labelCls, parseCsv, useStored } from "@/components/knowledge/kb";
+import { TERM_STARTER, type Severity, type Term } from "@/components/knowledge/starters";
+import { FileDrop, KbHeader, Modal, Toast, area, csvCell, download, field, focusRing, labelCls, parseCsv, useKb, KbError } from "@/components/knowledge/kb";
 
-type Severity = "critical" | "high" | "medium";
-interface Term { term: string; kind: "blocked" | "preferred"; note: string; replacement: string; severity: Severity }
 
 const SEV: Record<Severity, { label: string; variant: "violation" | "warning" | "draft" }> = {
   critical: { label: "Must fix", variant: "violation" },
@@ -16,24 +15,12 @@ const SEV: Record<Severity, { label: string; variant: "violation" | "warning" | 
   medium: { label: "Consider", variant: "draft" },
 };
 
-const INITIAL: Term[] = [
-  { term: "magic bullet", kind: "blocked", severity: "critical", replacement: "effective, evidence-based formula", note: "Sensational and cannot be substantiated." },
-  { term: "miracle", kind: "blocked", severity: "critical", replacement: "clinically evaluated formula", note: "Reads as a disease or cure claim." },
-  { term: "cure", kind: "blocked", severity: "critical", replacement: "supports natural recovery", note: "Supplements cannot claim to treat or cure any condition." },
-  { term: "cheat code", kind: "blocked", severity: "high", replacement: "carefully calibrated nutrition", note: "Off-brand slang that undermines trust." },
-  { term: "instant fix", kind: "blocked", severity: "high", replacement: "fast-absorbing", note: "Promises a timeframe we have no data for." },
-  { term: "guaranteed overnight", kind: "blocked", severity: "high", replacement: "consistent results over 8 weeks", note: "Guarantee language is high risk with regulators." },
-  { term: "effortless", kind: "blocked", severity: "medium", replacement: "convenient", note: "Ignores the training and diet the result depends on." },
-  { term: "bio-available", kind: "preferred", severity: "medium", replacement: "", note: "Use when citing the approved amino acid uptake study." },
-  { term: "clean sport certified", kind: "preferred", severity: "medium", replacement: "", note: "Use only with the current batch-testing certificate." },
-  { term: "supports protein synthesis", kind: "preferred", severity: "medium", replacement: "", note: "Matches approved claim CLM-APX-001 wording." },
-];
 
 const TEMPLATE = "term,kind,replacement,reason,severity\n" +
   ["clinically proven", "blocked", "clinically studied", "Needs a published trial", "high"].map(csvCell).join(",") + "\n";
 
 export default function TerminologyPage() {
-  const [terms, setTerms] = useStored<Term[]>("adsnitch:kb-terms", INITIAL);
+  const [terms, setTerms, kb] = useKb<Term>("/api/terms", TERM_STARTER);
   const [q, setQ] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ ok: Term[]; bad: number } | null>(null);
@@ -45,16 +32,18 @@ export default function TerminologyPage() {
   const blocked = terms.filter((t) => t.kind === "blocked" && match(t));
   const preferred = terms.filter((t) => t.kind === "preferred" && match(t));
 
-  function add(e: React.FormEvent<HTMLFormElement>) {
+  async function add(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const s = (k: string) => String(f.get(k) ?? "").trim();
     if (!s("term")) return;
     if (terms.some((t) => t.term.toLowerCase() === s("term").toLowerCase())) { flash(`"${s("term")}" is already in the list.`); return; }
-    setTerms((p) => [{ term: s("term"), kind: s("kind") as Term["kind"], replacement: s("replacement"), note: s("note"), severity: s("severity") as Severity }, ...p]);
-    e.currentTarget.reset();
+    const ok = await setTerms((p) => [{ term: s("term"), kind: s("kind") as Term["kind"], replacement: s("replacement"), note: s("note"), severity: s("severity") as Severity }, ...p]);
+    if (!ok) return;
+    form.reset();
     addRef.current?.close();
-    flash(`Added "${s("term")}". Saved on this device.`);
+    flash(`Added "${s("term")}".`);
   }
 
   function parse(text: string) {
@@ -88,6 +77,7 @@ export default function TerminologyPage() {
             className={`${field} w-full pl-9 placeholder:text-text-muted`} />
         </div>
 
+        <KbError status={kb} />
         <section aria-labelledby="blocked-h" className="glass rounded-2xl p-5 sm:p-6">
           <h2 id="blocked-h" className="text-lg font-semibold text-text-primary">Blocked words ({blocked.length})</h2>
           <p className="mt-1 text-sm text-text-secondary">If an ad uses one of these, the check flags it and offers the safer wording.</p>
@@ -154,9 +144,9 @@ export default function TerminologyPage() {
           <div aria-live="polite" className="space-y-3">
             <p className="text-sm text-text-secondary">{preview.ok.length} new terms ready. {preview.bad ? `${preview.bad} rows skipped (empty or already listed).` : ""}</p>
             <div className="flex justify-end">
-              <Button size="sm" className="h-10" disabled={!preview.ok.length} onClick={() => {
-                setTerms((p) => [...preview.ok, ...p]);
-                flash(`Imported ${preview.ok.length} terms. Saved on this device.`);
+              <Button size="sm" className="h-10" disabled={!preview.ok.length} onClick={async () => {
+                if (!(await setTerms((p) => [...preview.ok, ...p]))) return;
+                flash(`Imported ${preview.ok.length} terms.`);
                 importRef.current?.close();
               }}>Import {preview.ok.length} terms</Button>
             </div>

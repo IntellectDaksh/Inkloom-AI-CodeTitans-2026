@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, PanelLeftClose, PanelLeft, Info, X } from "lucide-react";
+import { ShieldCheck, PanelLeftClose, PanelLeft, X } from "lucide-react";
 import { NAV, isActive } from "../guide/nav";
 import { usePrefs, useWorkspaceCounts, focusRing, personaOf } from "../guide/workspace";
 
@@ -46,6 +46,7 @@ function NavList({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    data-tour={`nav-${item.href}`}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     title={collapsed ? (count ? `${item.name} (${count})` : item.name) : undefined}
@@ -118,17 +119,6 @@ export function Sidebar({
 
   const footer = (collapsed: boolean, onNavigate?: () => void) => (
     <div className="space-y-2 border-t border-border-subtle p-3">
-      <Link
-        href="/prototype-notice"
-        onClick={onNavigate}
-        title={collapsed ? "About this prototype" : undefined}
-        className={`flex min-h-10 items-center rounded-lg text-[13px] text-text-secondary hover:bg-panel hover:text-text-primary ${focusRing} ${
-          collapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2"
-        }`}
-      >
-        <Info className="h-4 w-4 shrink-0 text-text-muted" aria-hidden="true" />
-        {!collapsed && <span>About this prototype</span>}
-      </Link>
       <div className={`flex items-center gap-2.5 rounded-lg ${collapsed ? "justify-center py-1" : "border border-border-subtle bg-panel p-2.5"}`}>
         <span
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border-default bg-panel-elevated text-xs font-semibold text-text-primary"

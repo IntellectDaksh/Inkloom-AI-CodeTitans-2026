@@ -6,7 +6,8 @@ import { FileText, FileUp } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { FileDrop, KbHeader, Modal, Toast, UNVERIFIED, focusRing, useStored } from "@/components/knowledge/kb";
+import { FileDrop, KbError, KbHeader, Modal, Toast, UNVERIFIED, focusRing, useKb } from "@/components/knowledge/kb";
+import { openFile, uploadFile } from "@/lib/files/store";
 
 interface Asset {
   id: string;
@@ -18,21 +19,15 @@ interface Asset {
   excerpt?: string;
   chars?: number;
   uploaded?: boolean;
+  /** Stored original in /api/files, when the upload succeeded. */
+  fileId?: string;
 }
-
-// Demo documents: fictional, not independently verified.
-const INITIAL: Asset[] = [
-  { id: "doc_ct_2024", name: "Clinical trial report APX-2024-C3.pdf", size: "2.4 MB", type: "PDF", date: "2026-10-12", reference: "DOI 10.1016/j.nutres.2024.108421" },
-  { id: "doc_iso", name: "Bioavailability assay ISO-NTR.pdf", size: "1.1 MB", type: "PDF", date: "2026-09-18", reference: "ISO 22196 Annex C" },
-  { id: "doc_brand", name: "Apex Nutrition brand voice v2.4.docx", size: "840 KB", type: "DOCX", date: "2026-11-01" },
-  { id: "doc_wada", name: "Banned substance batch test 2025.pdf", size: "1.8 MB", type: "PDF", date: "2026-08-30", reference: "LGC-IS-2026-Q1" },
-];
 
 const sizeOf = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 export default function DocumentAssetsPage() {
-  const [docs, setDocs] = useStored<Asset[]>("adsnitch:kb-docs", INITIAL);
+  const [docs, setDocs, kb] = useKb<Asset>("/api/documents");
   const [open, setOpen] = useState<Asset | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const uploadRef = useRef<HTMLDialogElement>(null);
@@ -45,13 +40,15 @@ export default function DocumentAssetsPage() {
           <Button size="sm" className="h-10" icon={<FileUp className="h-4 w-4" />} onClick={() => uploadRef.current?.showModal()}>Upload document</Button>
         </KbHeader>
 
+        <KbError status={kb} />
         <section aria-labelledby="docs-h" className="glass rounded-2xl p-5 sm:p-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="docs-h" className="text-lg font-semibold text-text-primary">{docs.length} documents</h2>
+            <h2 id="docs-h" className="text-lg font-semibold text-text-primary">{kb.loading ? "Documents" : `${docs.length} document${docs.length === 1 ? "" : "s"}`}</h2>
             <p className="text-[13px] text-text-muted">
               To turn sentences into claims, use <Link href="/knowledge-base/claims" className={`rounded underline underline-offset-4 hover:text-text-primary ${focusRing}`}>Add claims, Pick from a document</Link>.
             </p>
           </div>
+          {!kb.loading && !docs.length && <p className="mt-4 text-sm text-text-muted">No documents yet. Upload a study, lab report or legal memo to start.</p>}
           <ul className="-mx-3 mt-4 space-y-1">
             {docs.map((d) => (
               <li key={d.id}>
@@ -62,7 +59,7 @@ export default function DocumentAssetsPage() {
                     <p className="truncate text-sm font-medium text-text-primary">{d.name}</p>
                     <p className="mt-1 text-[13px] text-text-muted">{d.type}, {d.size}, added {dateFmt.format(new Date(d.date))}{d.reference ? `, ${d.reference}` : ""}</p>
                   </div>
-                  <Badge variant={d.uploaded ? "warning" : "draft"} size="xs">{d.uploaded ? "Unverified" : "Demo"}</Badge>
+                  <Badge variant="warning" size="xs">Unverified</Badge>
                 </button>
               </li>
             ))}
@@ -72,15 +69,16 @@ export default function DocumentAssetsPage() {
 
       <Modal ref={uploadRef} title="Upload a document">
         <FileDrop label="Choose a file" hint="PDF, Word, image or text, up to 15 MB."
-          onText={(r, file) => {
+          onText={async (r, file) => {
+            const up = await uploadFile(file, kb.brand);
             const d: Asset = {
               id: `doc-${Date.now()}`, name: r.fileName, size: sizeOf(file.size), uploaded: true,
               type: (r.fileName.split(".").pop() ?? "file").toUpperCase(), date: new Date().toISOString().slice(0, 10),
-              excerpt: r.text.slice(0, 1200), chars: r.chars,
+              excerpt: r.text.slice(0, 1200), chars: r.chars, fileId: up.id ?? undefined,
             };
-            setDocs((p) => [d, ...p]);
+            if (!(await setDocs((p) => [d, ...p]))) return;
             uploadRef.current?.close();
-            setToast(`${r.fileName} added. ${r.chars.toLocaleString()} characters read. Saved on this device.`);
+            setToast(`${r.fileName} added. ${r.chars.toLocaleString()} characters read.${up.id ? "" : ` The original file was not stored: ${up.error}`}`);
             window.setTimeout(() => setToast(null), 4000);
           }} />
         <p className="text-[13px] text-text-muted">Uploaded documents are {UNVERIFIED.toLowerCase()}.</p>
@@ -90,10 +88,18 @@ export default function DocumentAssetsPage() {
         {open && (open.excerpt ? (
           <>
             <p className="text-[13px] text-text-muted">{open.chars?.toLocaleString()} characters read. Showing the start. {UNVERIFIED}.</p>
+            {open.fileId && (
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={async () => { if (!(await openFile(open.fileId!))) setToast("Could not open the original. Try again."); }}
+                  className={`rounded-lg border border-border-default bg-canvas px-4 py-2 text-sm font-medium hover:bg-panel-hover ${focusRing}`}>Open original</button>
+                <button type="button" onClick={async () => { if (!(await openFile(open.fileId!, true))) setToast("Could not download the original. Try again."); }}
+                  className={`rounded-lg border border-border-default bg-canvas px-4 py-2 text-sm font-medium hover:bg-panel-hover ${focusRing}`}>Download</button>
+              </div>
+            )}
             <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-border-default bg-panel p-4 font-sans text-sm leading-relaxed text-text-secondary">{open.excerpt}</pre>
           </>
         ) : (
-          <p className="text-sm text-text-secondary">Demo document. Its contents are fictional and not stored here. Upload a real file to read its text.</p>
+          <p className="text-sm text-text-secondary">No text was read from this document.</p>
         ))}
       </Modal>
       <Toast msg={toast} />

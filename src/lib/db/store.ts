@@ -111,6 +111,7 @@ export function isRemoteStoreActive(): boolean {
 // Re-reads the file every call so warm instances see writes from other requests.
 /** Add seed rows (by id) missing from an older data file, e.g. a brand added to the seed later. Never overwrites saved rows. */
 function backfillSeed(state: InkloomDatabaseState): InkloomDatabaseState {
+  scrubSeedReferences(state);
   if (state.brands?.some((b) => b.id === SEED_IDS.BRAND_LUMINA)) return state; // one-time migration
   const seed = createInitialSeedState() as unknown as Record<string, { id: string }[]>;
   const st = state as unknown as Record<string, { id: string }[]>;
@@ -170,6 +171,84 @@ function pushAudit(state: InkloomDatabaseState, e: AuditEvent): void {
   e.hash = auditHash(e, e.prev_hash);
   state.audit_events.unshift(e);
 }
+
+/**
+ * One-time migration: earlier seeds shipped invented citations (DOIs, trial IDs, certificates).
+ * Overwrite those seed rows with the cleaned seed: evidence keeps its type plus an internal note,
+ * seed claims go back to unverified. User-created rows are never touched.
+ */
+const SCRUB_TAG = 'scrub_seed_refs_v1';
+function scrubSeedReferences(state: InkloomDatabaseState): void {
+  const st = state as InkloomDatabaseState & StoreExtras;
+  if (st._migrations?.includes(SCRUB_TAG)) return;
+  const seed = createInitialSeedState();
+  const ev = new Map(seed.claim_evidence.map((e) => [e.id, e]));
+  st.claim_evidence = (st.claim_evidence ?? []).map((e) => ev.get(e.id) ?? e);
+  const cl = new Map(seed.approved_claims.map((c) => [c.id, c]));
+  st.approved_claims = (st.approved_claims ?? []).map((c) => {
+    const s = cl.get(c.id);
+    return s ? { ...c, status: s.status, verified_by: s.verified_by, required_disclosures: s.required_disclosures, permitted_context: s.permitted_context } : c;
+  });
+  const g = new Map(seed.brand_guidelines.map((x) => [x.id, x]));
+  st.brand_guidelines = (st.brand_guidelines ?? []).map((x) => g.get(x.id) ?? x);
+  const d = new Map(seed.documents.map((x) => [x.id, x]));
+  st.documents = (st.documents ?? []).map((x) => d.get(x.id) ?? x);
+  st._migrations = [...(st._migrations ?? []), SCRUB_TAG];
+  if (remoteActive) remoteDirty = true;
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge-base records, uploaded files and workspace fields the typed tables
+// don't carry. Kept on the same state document.
+// ---------------------------------------------------------------------------
+export type KbKind = 'guideline' | 'term' | 'document' | 'claim';
+export interface KbItem {
+  id: string; // `${brand_id}:${kind}:${key}`
+  organisation_id: string;
+  brand_id: string;
+  kind: KbKind;
+  key: string;
+  data: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+export interface StoredFileRecord {
+  id: string;
+  organisation_id: string;
+  brand_id: string | null;
+  name: string;
+  mime: string;
+  size: number;
+  path: string; // object path in the private 'evidence' bucket
+  uploaded_by: string | null;
+  created_at: string;
+}
+export interface Workspace {
+  id: string;
+  name: string;
+  industry: string;
+  channels: string[];
+  description?: string;
+  custom: boolean;
+  createdAt?: string;
+}
+interface StoreExtras {
+  kb_items?: KbItem[];
+  /** `${brand}:${kind}` pairs saved at least once, so an emptied list stays empty. */
+  kb_saved?: string[];
+  stored_files?: StoredFileRecord[];
+  _migrations?: string[];
+}
+type BrandX = Brand & { channels?: string[] };
+const SEED_BRAND_IDS = new Set<string>([SEED_IDS.BRAND_APEX, SEED_IDS.BRAND_ZENITH, SEED_IDS.BRAND_LUMINA]);
+const SEED_CHANNELS: Record<string, string[]> = {
+  [SEED_IDS.BRAND_APEX]: ['Instagram', 'Landing page', 'Email'],
+  [SEED_IDS.BRAND_ZENITH]: ['LinkedIn', 'Landing page', 'Ads'],
+  [SEED_IDS.BRAND_LUMINA]: ['Instagram', 'TikTok', 'Product page'],
+};
+const ext = (s: InkloomDatabaseState) => s as InkloomDatabaseState & StoreExtras;
+const cleanName = (n: unknown) => String(n ?? '').trim().replace(/\s+/g, ' ');
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 // ============================================================================
 // SUPABASE CLIENT INTEGRATION HELPERS
@@ -1822,5 +1901,184 @@ export class InkloomStore {
       recent_audit_events,
       unread_notifications,
     };
+  }
+
+  // --------------------------------------------------------------------------
+  // Workspaces (= brands)
+  // --------------------------------------------------------------------------
+
+  private static toWorkspace(b: BrandX): Workspace {
+    return {
+      id: b.id, name: b.name, industry: b.industry ?? 'Other',
+      channels: b.channels ?? SEED_CHANNELS[b.id] ?? [],
+      description: b.description ?? undefined,
+      custom: !SEED_BRAND_IDS.has(b.id), createdAt: b.created_at,
+    };
+  }
+
+  public static listWorkspaces(orgId: string): Workspace[] {
+    return this.getBrands(orgId).map((b) => this.toWorkspace(b));
+  }
+
+  /** Resolves a brand by id, slug or name inside one organisation only. */
+  public static resolveBrand(orgId: string, ref?: string | null): Brand | undefined {
+    if (!ref) return undefined;
+    const r = String(ref).toLowerCase();
+    return this.getBrands(orgId).find((b) => b.id === ref || b.slug === ref || b.name.toLowerCase() === r);
+  }
+
+  private static checkWorkspace(orgId: string, name: string, industry: unknown, channels: unknown, selfId?: string): string | null {
+    if (name.length < 2) return 'Give the workspace a name of at least 2 characters.';
+    if (name.length > 60) return 'Keep the name under 60 characters.';
+    if (this.getBrands(orgId).some((b) => b.id !== selfId && b.name.toLowerCase() === name.toLowerCase()))
+      return `A workspace called "${name}" already exists. Pick it from the list instead.`;
+    if (industry !== undefined && (typeof industry !== 'string' || !industry.trim() || industry.length > 60)) return 'Pick an industry.';
+    if (channels !== undefined && (!Array.isArray(channels) || !channels.length || channels.some((c) => typeof c !== 'string' || c.length > 40)))
+      return 'Pick at least one channel.';
+    return null;
+  }
+
+  public static createWorkspace(
+    orgId: string,
+    input: { name?: unknown; industry?: unknown; channels?: unknown; description?: unknown },
+    userId?: string
+  ): { ok: true; workspace: Workspace } | { ok: false; error: string } {
+    const name = cleanName(input.name);
+    const err = this.checkWorkspace(orgId, name, input.industry ?? 'Other', input.channels ?? []);
+    if (err) return { ok: false, error: err };
+    const state = loadState();
+    const now = new Date().toISOString();
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'workspace';
+    const brand: BrandX = {
+      id: crypto.randomUUID(), organisation_id: orgId, name,
+      slug: state.brands.some((b) => b.slug === slug) ? `${slug}-${Date.now().toString(36)}` : slug,
+      industry: String(input.industry ?? 'Other'), description: cleanName(input.description).slice(0, 400) || null,
+      is_active: true, compliance_threshold: 80,
+      settings: { auto_flag_unsubstantiated: true, strict_prohibited_terms: true, require_clinical_doi: false },
+      channels: input.channels as string[], created_at: now, updated_at: now,
+    };
+    state.brands.push(brand);
+    pushAudit(state, this.auditRow(orgId, brand.id, userId, 'brand', brand.id, 'workspace_created', { name }));
+    saveState(state);
+    return { ok: true, workspace: this.toWorkspace(brand) };
+  }
+
+  public static updateWorkspace(
+    orgId: string,
+    id: string,
+    patch: { name?: unknown; industry?: unknown; channels?: unknown; description?: unknown },
+    userId?: string
+  ): { ok: true; workspace: Workspace } | { ok: false; error: string; status: number } {
+    const state = loadState();
+    const brand = state.brands.find((b) => b.organisation_id === orgId && b.id === id) as BrandX | undefined;
+    if (!brand) return { ok: false, error: 'Workspace not found.', status: 404 };
+    if (SEED_BRAND_IDS.has(brand.id)) return { ok: false, error: "Built-in workspaces can't be edited.", status: 403 };
+    const name = patch.name === undefined ? brand.name : cleanName(patch.name);
+    const err = this.checkWorkspace(orgId, name, patch.industry, patch.channels, brand.id);
+    if (err) return { ok: false, error: err, status: 400 };
+    const before = this.toWorkspace(brand);
+    brand.name = name;
+    if (patch.industry !== undefined) brand.industry = patch.industry as string;
+    if (patch.channels !== undefined) brand.channels = patch.channels as string[];
+    if (patch.description !== undefined) brand.description = cleanName(patch.description).slice(0, 400) || null;
+    brand.updated_at = new Date().toISOString();
+    pushAudit(state, this.auditRow(orgId, brand.id, userId, 'brand', brand.id, 'workspace_updated', { before, after: this.toWorkspace(brand) }));
+    saveState(state);
+    return { ok: true, workspace: this.toWorkspace(brand) };
+  }
+
+  private static auditRow(
+    orgId: string, brandId: string | null, userId: string | undefined,
+    entityType: string, entityId: string, action: string, metadata: Record<string, unknown>
+  ): AuditEvent {
+    return {
+      id: crypto.randomUUID(), organisation_id: orgId, brand_id: brandId, user_id: userId || SEED_IDS.USER_DAKSH,
+      entity_type: entityType as AuditEvent['entity_type'], entity_id: entityId, action: action as AuditEvent['action'],
+      ip_address: null, metadata, created_at: new Date().toISOString(),
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // Knowledge-base records (guidelines, terms, documents, claim review records)
+  // --------------------------------------------------------------------------
+
+  /** One brand's records of one kind. `saved` stays false until the brand saves this kind once. */
+  public static listKbItems(orgId: string, brandId: string, kind: KbKind): { items: Record<string, unknown>[]; saved: boolean } {
+    const st = ext(loadState());
+    const items = (st.kb_items ?? [])
+      .filter((i) => i.organisation_id === orgId && i.brand_id === brandId && i.kind === kind)
+      .map((i) => i.data);
+    return { items, saved: (st.kb_saved ?? []).includes(`${brandId}:${kind}`) };
+  }
+
+  /**
+   * Replaces one brand's list of one kind (order kept) and audits what was added, changed and removed.
+   * ponytail: whole-list replace, last write wins. Move to per-item endpoints if two editors collide.
+   */
+  public static replaceKbItems(
+    orgId: string, brandId: string, kind: KbKind, items: Record<string, unknown>[],
+    keyOf: (d: Record<string, unknown>) => string, userId?: string
+  ) {
+    const st = ext(loadState());
+    const all = st.kb_items ?? [];
+    const isMine = (i: KbItem) => i.organisation_id === orgId && i.brand_id === brandId && i.kind === kind;
+    const prev = new Map(all.filter(isMine).map((i) => [i.key, i]));
+    const now = new Date().toISOString();
+    const added: string[] = [], changed: string[] = [];
+    const next: KbItem[] = [];
+    for (const data of items) {
+      const key = keyOf(data);
+      if (!key || next.some((n) => n.key === key)) continue;
+      const old = prev.get(key);
+      const dirty = !old || !same(old.data, data);
+      if (!old) added.push(key);
+      else if (dirty) changed.push(key);
+      next.push({
+        id: `${brandId}:${kind}:${key}`, organisation_id: orgId, brand_id: brandId, kind, key, data,
+        created_at: old?.created_at ?? now, updated_at: dirty ? now : old!.updated_at,
+      });
+    }
+    const removed = [...prev.keys()].filter((k) => !next.some((n) => n.key === k));
+    st.kb_items = [...all.filter((i) => !isMine(i)), ...next];
+    const tag = `${brandId}:${kind}`;
+    st.kb_saved = [...new Set([...(st.kb_saved ?? []), tag])];
+    if (added.length || changed.length || removed.length)
+      pushAudit(st, this.auditRow(orgId, brandId, userId, 'brand', brandId, `${kind}s_updated`, { kind, added, changed, removed }));
+    saveState(st);
+    return { items: next.map((i) => i.data), added: added.length, changed: changed.length, removed: removed.length };
+  }
+
+  /** Upserts one record (per-claim review records: edits, attached evidence, sign-offs). */
+  public static putKbItem(
+    orgId: string, brandId: string, kind: KbKind, key: string, data: Record<string, unknown>,
+    action: string, meta: Record<string, unknown>, userId?: string
+  ) {
+    const st = ext(loadState());
+    const all = (st.kb_items ??= []);
+    const id = `${brandId}:${kind}:${key}`;
+    const now = new Date().toISOString();
+    const i = all.findIndex((x) => x.id === id);
+    const row: KbItem = { id, organisation_id: orgId, brand_id: brandId, kind, key, data, created_at: i >= 0 ? all[i].created_at : now, updated_at: now };
+    if (i >= 0) all[i] = row;
+    else all.push(row);
+    pushAudit(st, this.auditRow(orgId, brandId, userId, kind === 'claim' ? 'claim' : 'brand', key, action, meta));
+    saveState(st);
+    return row.data;
+  }
+
+  // --------------------------------------------------------------------------
+  // Uploaded originals (bytes live in Supabase Storage, private bucket 'evidence')
+  // --------------------------------------------------------------------------
+
+  public static addStoredFile(rec: StoredFileRecord): StoredFileRecord {
+    const st = ext(loadState());
+    (st.stored_files ??= []).push(rec);
+    pushAudit(st, this.auditRow(rec.organisation_id, rec.brand_id, rec.uploaded_by ?? undefined, 'document', rec.id, 'file_uploaded', { name: rec.name, size: rec.size, mime: rec.mime }));
+    saveState(st);
+    return rec;
+  }
+
+  public static getStoredFile(orgId: string, id: string): StoredFileRecord | undefined {
+    return (ext(loadState()).stored_files ?? []).find((f) => f.organisation_id === orgId && f.id === id);
   }
 }

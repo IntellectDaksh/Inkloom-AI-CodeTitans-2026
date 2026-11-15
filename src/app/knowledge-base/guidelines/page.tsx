@@ -5,42 +5,12 @@ import { Check, FileUp, Plus, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Extracted, FileDrop, KbHeader, Modal, Toast, area, field, labelCls, useStored } from "@/components/knowledge/kb";
+import { GUIDELINE_STARTER, type GuidelineRule } from "@/components/knowledge/starters";
+import { Extracted, FileDrop, KbHeader, Modal, Toast, area, field, labelCls, useKb, KbError } from "@/components/knowledge/kb";
 
-interface GuidelineRule {
-  id: string;
-  category: string;
-  title: string;
-  description: string;
-  dos: string[];
-  donts: string[];
-  source?: string;
-}
 
 const CATEGORIES = ["Voice and tone", "Messaging standards", "Legal and disclosures", "Visual identity"];
 
-const INITIAL: GuidelineRule[] = [
-  {
-    id: "g1", category: "Voice and tone", title: "Confident, science-backed, never hyped",
-    description: "Speak with grounded confidence. Educate rather than pressure. No buzzwords or sensational promises.",
-    dos: [
-      "Use active, encouraging language, e.g. \"Fuel your training\"",
-      "Point speed or absorption claims to the approved study in the claims library",
-      "Write for everyday gym-goers as well as competitive athletes",
-    ],
-    donts: [
-      "\"Miracle\", \"magic bullet\", \"cheat code\" or any cure-style phrasing",
-      "Promising results in a fixed time without approved proof, e.g. \"build muscle in 14 days\"",
-      "Fear-based or bro-science messaging",
-    ],
-  },
-  {
-    id: "g2", category: "Messaging standards", title: "Clear sourcing and ingredient transparency",
-    description: "Ingredient claims must match a lab-tested, approved claim. Mention sustainability only when it is documented.",
-    dos: ["Name the protein source and amino acid profile", "Mention non-GMO or recyclable packaging where documented"],
-    donts: ["\"100% absorption\" without the approved lab report", "Knocking competitor categories without independent data"],
-  },
-];
 
 /** Turn uploaded guideline text into a rule: lines starting with do/avoid/don't become lists. */
 function ruleFromText(r: Extracted): GuidelineRule {
@@ -56,7 +26,7 @@ function ruleFromText(r: Extracted): GuidelineRule {
 }
 
 export default function BrandGuidelinesPage() {
-  const [rules, setRules] = useStored<GuidelineRule[]>("adsnitch:kb-guidelines", INITIAL);
+  const [rules, setRules, kb] = useKb<GuidelineRule>("/api/guidelines", GUIDELINE_STARTER);
   const [cat, setCat] = useState("all");
   const [draft, setDraft] = useState<GuidelineRule | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -66,20 +36,22 @@ export default function BrandGuidelinesPage() {
   const flash = (m: string) => { setToast(m); window.setTimeout(() => setToast(null), 4000); };
   const lines = (v: FormDataEntryValue | null) => String(v ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
 
-  function save(e: React.FormEvent<HTMLFormElement>, dialog: HTMLDialogElement | null, base?: GuidelineRule) {
+  async function save(e: React.FormEvent<HTMLFormElement>, dialog: HTMLDialogElement | null, base?: GuidelineRule) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const title = String(f.get("title") ?? "").trim();
     if (!title) return;
-    setRules((p) => [{
+    const ok = await setRules((p) => [{
       id: base?.id ?? `g-${Date.now()}`, source: base?.source, title,
       category: String(f.get("category")), description: String(f.get("description") ?? "").trim(),
       dos: lines(f.get("dos")), donts: lines(f.get("donts")),
     }, ...p]);
-    e.currentTarget.reset();
+    if (!ok) return;
+    form.reset();
     setDraft(null);
     dialog?.close();
-    flash(`Saved "${title}". Saved on this device.`);
+    flash(`Saved "${title}".`);
   }
 
   const visible = rules.filter((r) => cat === "all" || r.category === cat);
@@ -118,6 +90,7 @@ export default function BrandGuidelinesPage() {
           <Button size="sm" className="h-10" icon={<Plus className="h-4 w-4" />} onClick={() => addRef.current?.showModal()}>Add rule</Button>
         </KbHeader>
 
+        <KbError status={kb} />
         <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-2">
           {["all", ...CATEGORIES].map((c) => (
             <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}
@@ -127,7 +100,9 @@ export default function BrandGuidelinesPage() {
           ))}
         </div>
 
-        {visible.length ? (
+        {kb.loading ? (
+          <p className="text-sm text-text-muted">Loading rules…</p>
+        ) : visible.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {visible.map((r) => (
               <article key={r.id} className="glass space-y-5 rounded-2xl p-5 sm:p-6">

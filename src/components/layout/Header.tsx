@@ -2,12 +2,13 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Bell, Plus, Search, Menu, ChevronRight, ChevronsUpDown } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, Plus, Search, Menu, ChevronRight, ChevronsUpDown, User, Settings, LogOut } from "lucide-react";
 import { openCommandK } from "../ui/CommandK";
 import { HelpButton } from "../guide/HelpPanel";
 import { findPage } from "../guide/nav";
-import { PERSONAS, openWorkspacePicker, ROLE_HELP, personaOf, setPrefs, usePrefs, focusRing } from "../guide/workspace";
+import { openWorkspacePicker, usePrefs, useMe, focusRing } from "../guide/workspace";
+import { supabaseBrowser } from "@/lib/auth/client";
 
 export interface HeaderBreadcrumb {
   label: string;
@@ -118,21 +119,6 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
         <span className="sr-only">, switch workspace</span>
       </button>
 
-      {/* Demo persona / role switcher */}
-      <label className="sr-only" htmlFor="persona-switch">Signed in as</label>
-      <select
-        id="persona-switch"
-        value={prefs.persona}
-        onChange={(e) => setPrefs({ persona: e.target.value })}
-        title={ROLE_HELP[personaOf(prefs).role]}
-        className={`hidden h-10 max-w-48 rounded-lg border border-border-default bg-panel px-3 text-sm text-text-primary md:block ${focusRing}`}
-        style={{ backgroundColor: "var(--color-canvas-elevated)", color: "var(--color-ink)" }}
-      >
-        {PERSONAS.map((p) => (
-          <option key={p.id} value={p.id}>{p.name.split(" ")[0]} ({p.label})</option>
-        ))}
-      </select>
-
       {/* Search */}
       <button
         type="button"
@@ -215,6 +201,75 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
           Check an ad
         </Link>
       )}
+
+      <AccountMenu />
     </header>
+  );
+}
+
+export function Avatar({ name, url, size = 40 }: { name: string; url?: string | null; size?: number }) {
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]?.toUpperCase()).join("") || "?";
+  return url ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt="" width={size} height={size} className="shrink-0 rounded-full border border-border-default object-cover" style={{ width: size, height: size }} />
+  ) : (
+    <span aria-hidden="true" className="flex shrink-0 items-center justify-center rounded-full border border-border-default bg-panel text-sm font-semibold text-text-primary" style={{ width: size, height: size }}>
+      {initials}
+    </span>
+  );
+}
+
+function AccountMenu() {
+  const me = useMe();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [open]);
+
+  const signOut = async () => {
+    await supabaseBrowser().auth.signOut();
+    router.replace("/auth/login");
+    router.refresh();
+  };
+
+  const item = `flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] text-text-primary hover:bg-panel-hover ${focusRing}`;
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={me ? `Account menu for ${me.name}` : "Account menu"}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={`flex h-10 w-10 items-center justify-center rounded-full ${focusRing}`}
+      >
+        <Avatar name={me?.name ?? ""} url={me?.avatarUrl} size={36} />
+      </button>
+      {open && (
+        <div role="menu" className="glass-strong absolute right-0 z-50 mt-2 w-60 rounded-xl p-1">
+          {me && (
+            <div className="px-3 py-2">
+              <p className="truncate text-sm font-semibold text-text-primary">{me.name}</p>
+              <p className="truncate text-xs text-text-muted">{me.email} · {me.label}</p>
+            </div>
+          )}
+          <Link role="menuitem" href="/profile" onClick={() => setOpen(false)} className={item}><User className="h-4 w-4" aria-hidden="true" />Profile</Link>
+          <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className={item}><Settings className="h-4 w-4" aria-hidden="true" />Settings</Link>
+          <button role="menuitem" type="button" onClick={signOut} className={item}><LogOut className="h-4 w-4" aria-hidden="true" />Sign out</button>
+        </div>
+      )}
+    </div>
   );
 }

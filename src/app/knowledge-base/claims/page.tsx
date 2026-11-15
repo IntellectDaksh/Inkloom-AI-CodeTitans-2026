@@ -3,7 +3,7 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { openFile, putFile } from "@/lib/files/store";
+import { openFile, uploadFile } from "@/lib/files/store";
 import { AlertTriangle, BadgeCheck, ChevronRight, ExternalLink, Pencil, Plus, Search, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -27,7 +27,7 @@ interface Evidence {
   verifiedAt?: string;
   /** Link to the source document, when one is on file. */
   url?: string;
-  /** IndexedDB key of an uploaded original (src/lib/files/store.ts). */
+  /** Id of the stored original (/api/files). */
   fileId?: string;
 }
 
@@ -57,194 +57,34 @@ interface Claim {
   /** Wording or expiry changed since drafts were checked against it. */
   edited?: boolean;
   flaggedAt?: string;
-  /** Not saved to the server (API unavailable). */
-  localOnly?: boolean;
+  /** Seeded claim that no reviewer has verified yet. */
+  unverified?: boolean;
 }
 
-/** yyyy-mm-dd n days from now, so seeded expiries stay meaningful whenever the demo runs. */
-const rel = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 
-// Demo data. Every source below is fictional and has not been independently verified.
-const SEED_CLAIMS: Claim[] = [
-  {
-    id: "clm-apx-001", code: "CLM-APX-001", brand: "Apex Nutrition", type: "Performance",
-    text: "Supports post-workout protein synthesis when taken within 45 minutes of resistance training.",
-    expiresAt: rel(47), updatedAt: "2026-11-02",
-    channels: ["Instagram", "Paid social", "Product page"], owner: "Dr. Aris Vance, Medical & Regulatory",
-    prohibited: ["Builds muscle faster than any other protein", "Doubles muscle growth", "Clinically proven to build muscle"],
-    evidence: [
-      { source: "Clinical study report APX-2024-C3", kind: "Clinical study", ref: "DOI 10.1016/j.nutres.2024.108421", excerpt: "Mean fractional synthetic rate was 28.4% higher than control (p = 0.004) over 8 weeks.", version: "v2", checkedAt: "2026-10-18" },
-      { source: "Internal formulation sheet", kind: "Internal document", ref: "FORM-APX-ISO-12", excerpt: "Each serving provides 25 g whey isolate with 2.8 g leucine.", version: "v5", checkedAt: "2026-09-30" },
-    ],
-    usage: [
-      { id: "00000000-0000-4000-c000-000000000001", title: "Q4 campaign, clinical protein reel script", channel: "Instagram Reel", date: "2026-11-12" },
-      { id: "sub_pdp_headline", title: "Iso-Whey product page headline", channel: "Product page", date: "2026-10-20" },
-    ],
-  },
-  {
-    id: "clm-apx-002", code: "CLM-APX-002", brand: "Apex Nutrition", type: "Certification",
-    text: "Informed-Sport certified. Every batch is tested for substances on the WADA prohibited list.",
-    expiresAt: rel(17), updatedAt: "2026-10-28",
-    channels: ["Packaging", "Website", "Ambassador kits"], owner: "Analyst R., Quality Assurance",
-    prohibited: ["100% drug free", "Guaranteed safe for all athletes", "Banned-substance proof"],
-    evidence: [
-      { source: "Certificate of analysis, batch IS-8921", kind: "Certificate", ref: "LGC-IS-2026-Q1, ISO/IEC 17025 lab", excerpt: "All screened compounds were below the limit of quantification (LOQ < 10 ng/g).", version: "Q1 2026", checkedAt: "2026-10-28" },
-    ],
-    usage: [
-      { id: "00000000-0000-4000-c000-000000000002", title: "Recovery blend carousel", channel: "Instagram Carousel", date: "2026-11-13" },
-      { id: "00000000-0000-4000-c000-000000000005", title: "College athlete sponsorship ad", channel: "Video ad", date: "2026-10-04" },
-    ],
-  },
-  {
-    id: "clm-apx-003", code: "CLM-APX-003", brand: "Apex Nutrition", type: "Clinical",
-    text: "Raised peak VO2 max by 14.3% in trained endurance athletes over six weeks.",
-    expiresAt: rel(21), updatedAt: "2026-09-14",
-    channels: ["B2B reports", "Whitepapers"], owner: "Dr. Aris Vance, Medical & Regulatory",
-    prohibited: ["Boosts stamina for everyone", "Makes you run 14% faster"],
-    evidence: [
-      { source: "CPET protocol report CPET-2024-B", kind: "Clinical study", ref: "DOI 10.1249/MSS.0000000000003189", excerpt: "Peak oxygen uptake rose from 51.2 to 58.5 mL/kg/min (p < 0.001).", version: "v1", checkedAt: "2026-09-14" },
-    ],
-    usage: [{ id: "sub_linkedin_endurance", title: "Endurance results LinkedIn post", channel: "LinkedIn", date: "2026-09-22" }],
-  },
-  {
-    id: "clm-apx-004", code: "CLM-APX-004", brand: "Apex Nutrition", type: "Ingredient",
-    text: "No added sugar. Sweetened with stevia leaf extract.",
-    expiresAt: "2027-06-30", updatedAt: "2026-08-03",
-    channels: ["Nutrition panel", "Social", "Retail displays"], owner: "Elena Rostova, Compliance Counsel",
-    prohibited: ["Sugar free", "Zero calories", "Diabetic friendly"],
-    evidence: [
-      { source: "Nutritional composition assay EF-9921", kind: "Lab test", ref: "AOAC 996.11", excerpt: "Sucrose, fructose and glucose each measured below 0.1 g per 100 g.", version: "v1", checkedAt: "2026-08-03" },
-    ],
-    usage: [{ id: "sub_banner_ingredients", title: "Ingredient spotlight banner", channel: "Display", date: "2026-08-19" }],
-  },
-  {
-    id: "clm-apx-005", code: "CLM-APX-005", brand: "Apex Nutrition", type: "Performance",
-    text: "Helps maintain hydration with a 3:1 sodium to potassium electrolyte ratio.",
-    expiresAt: rel(-91), updatedAt: "2026-05-11",
-    channels: ["Website", "Digital ads"], owner: "Dr. Marcus Lin, Scientific Advisor",
-    prohibited: ["Hydrates 3x better than water", "Prevents cramps"],
-    evidence: [
-      { source: "Electrolyte osmolality report EOS-2023", kind: "Lab test", ref: "USP <785>, ISO 17025 lab", excerpt: "Solution measured 285 mOsm/kg, within isotonic range.", version: "v1", checkedAt: "2025-08-15" },
-    ],
-    usage: [{ id: "00000000-0000-4000-c000-000000000003", title: "Hydration electrolytes ad, version 2", channel: "Instagram Reel", date: "2026-07-30" }],
-  },
-  {
-    id: "clm-apx-006", code: "CLM-APX-006", brand: "Apex Nutrition", type: "Ingredient",
-    text: "Contains 5 g creatine monohydrate per serving.",
-    draft: true, expiresAt: "2027-11-01", updatedAt: "2026-11-10",
-    channels: ["Packaging"], owner: "Elena Rostova, Compliance Counsel",
-    prohibited: ["Pharmaceutical-grade creatine"],
-    evidence: [
-      { source: "Supplier certificate of analysis", kind: "Certificate", ref: "SUP-CR-0412", excerpt: "Creatine monohydrate purity 99.6% by HPLC.", version: "draft", checkedAt: "2026-11-10" },
-    ],
-    usage: [],
-  },
-  {
-    id: "clm-zen-001", code: "CLM-ZEN-001", brand: "Zenith Cloud", type: "Service level",
-    text: "99.95% monthly uptime on Enterprise plans, backed by service credits.",
-    expiresAt: "2027-03-31", updatedAt: "2026-10-01",
-    channels: ["Website", "Sales decks", "Email"], owner: "Priya Natarajan, Legal",
-    prohibited: ["Never goes down", "100% uptime", "Guaranteed zero downtime"],
-    evidence: [
-      { source: "Enterprise SLA", kind: "Contract", ref: "SLA-ENT-2026", excerpt: "Monthly uptime of at least 99.95%, otherwise credits apply per section 4.", version: "2026.2", checkedAt: "2026-10-01" },
-      { source: "Status history export", kind: "Internal document", ref: "STATUS-Q3-2026", excerpt: "Q3 measured uptime 99.97% across all regions.", version: "Q3", checkedAt: "2026-10-03" },
-    ],
-    usage: [{ id: "sub_email_promo", title: "Enterprise SLA email announcement", channel: "Newsletter", date: "2026-11-14" }],
-  },
-  {
-    id: "clm-zen-002", code: "CLM-ZEN-002", brand: "Zenith Cloud", type: "Security",
-    text: "SOC 2 Type II report available to customers under NDA.",
-    expiresAt: rel(16), updatedAt: "2026-06-12",
-    channels: ["Website", "Sales decks"], owner: "Tomás Herrera, Security",
-    prohibited: ["SOC 2 certified", "Unhackable", "Bank-grade security"],
-    evidence: [
-      { source: "SOC 2 Type II attestation report", kind: "Audit report", ref: "AUD-ZEN-2025, AICPA SOC 2 / ISO 27001", excerpt: "Report period 1 Dec 2024 to 30 Nov 2025, no exceptions noted.", version: "2025", checkedAt: "2026-06-12" },
-    ],
-    usage: [{ id: "sub_security_page", title: "Trust page refresh", channel: "Website", date: "2026-06-20" }],
-  },
-  {
-    id: "clm-zen-003", code: "CLM-ZEN-003", brand: "Zenith Cloud", type: "Performance",
-    text: "Median API response time under 120 ms in EU and US regions.",
-    expiresAt: rel(-14), updatedAt: "2026-04-30",
-    channels: ["Developer docs", "Website"], owner: "Wen Li, Platform",
-    prohibited: ["Fastest cloud on the market", "Instant responses"],
-    evidence: [
-      { source: "Internal latency benchmark", kind: "Internal document", ref: "BENCH-API-0426", excerpt: "p50 latency 104 ms (EU), 111 ms (US) across 30 days.", version: "v1", checkedAt: "2026-04-30" },
-    ],
-    usage: [{ id: "sub_dev_landing", title: "Developer landing page", channel: "Website", date: "2026-05-14" }],
-  },
-  {
-    id: "clm-zen-004", code: "CLM-ZEN-004", brand: "Zenith Cloud", type: "Comparison",
-    text: "Up to 30% lower compute cost than our 2024 pricing for the same workload.",
-    draft: true, expiresAt: "2027-05-01", updatedAt: "2026-11-08",
-    channels: ["Paid search"], owner: "Priya Natarajan, Legal",
-    prohibited: ["30% cheaper than AWS", "Cheapest cloud provider"],
-    evidence: [
-      { source: "Pricing comparison worksheet", kind: "Internal document", ref: "PRICE-CMP-1108", excerpt: "Reference workload cost fell from $4,210 to $2,960 per month.", version: "draft", checkedAt: "2026-11-08" },
-    ],
-    usage: [],
-  },
-  {
-    id: "clm-lum-001", code: "CLM-LUM-001", brand: "Lumina Skincare", type: "Cosmetic",
-    text: "Visibly reduces the look of fine lines after 8 weeks of twice-daily use.",
-    expiresAt: "2027-02-28", updatedAt: "2026-09-21",
-    channels: ["Instagram", "Product page", "Retail"], owner: "Dr. Hana Sato, Dermatology",
-    prohibited: ["Reverses aging", "Repairs cells", "Removes wrinkles permanently", "Works like Botox"],
-    evidence: [
-      { source: "Consumer perception and instrumental study LUM-CS-07", kind: "Clinical study", ref: "Trial ID LUM-CS-07, ISO 16128", excerpt: "Profilometry showed an 11% reduction in fine line depth at week 8 (n = 42).", version: "v3", checkedAt: "2026-09-21" },
-      { source: "Panel self-assessment", kind: "Consumer survey", ref: "LUM-SA-07", excerpt: "71% of participants agreed fine lines looked less visible.", version: "v1", checkedAt: "2026-09-21" },
-    ],
-    usage: [
-      { id: "sub_clinical_whitepaper", title: "Peptide serum study summary", channel: "Healthcare portal", date: "2026-11-14" },
-      { id: "sub_lumina_reel", title: "Night serum launch reel", channel: "Instagram Reel", date: "2026-10-09" },
-    ],
-  },
-  {
-    id: "clm-lum-002", code: "CLM-LUM-002", brand: "Lumina Skincare", type: "Safety",
-    text: "Dermatologist tested on sensitive skin.",
-    expiresAt: rel(12), updatedAt: "2026-07-07",
-    channels: ["Packaging", "Website"], owner: "Dr. Hana Sato, Dermatology",
-    prohibited: ["Hypoallergenic", "Safe for all skin", "Dermatologist recommended"],
-    evidence: [
-      { source: "Repeat insult patch test report", kind: "Lab test", ref: "HRIPT-LUM-22, ISO 10993-10", excerpt: "No irritation or sensitization observed in 55 subjects with self-declared sensitive skin.", version: "v1", checkedAt: "2026-07-07" },
-    ],
-    usage: [{ id: "sub_lumina_pack", title: "Gentle cleanser pack copy", channel: "Packaging", date: "2026-07-15" }],
-  },
-  {
-    id: "clm-lum-003", code: "CLM-LUM-003", brand: "Lumina Skincare", type: "Ingredient",
-    text: "Fragrance free and formulated without parabens.",
-    expiresAt: "2027-09-30", updatedAt: "2026-10-14",
-    channels: ["Packaging", "Website", "Instagram"], owner: "Grace Oduya, Regulatory",
-    prohibited: ["Chemical free", "Non-toxic", "Clean beauty certified"],
-    evidence: [
-      { source: "Full ingredient declaration", kind: "Internal document", ref: "INCI-LUM-NS-04", excerpt: "No fragrance, parfum or paraben compounds listed in INCI.", version: "v4", checkedAt: "2026-10-14" },
-    ],
-    usage: [],
-  },
-];
-
-type Status = "approved" | "expiring" | "expired" | "draft";
+type Status = "approved" | "expiring" | "expired" | "draft" | "unverified";
 
 const STATUS: Record<Status, { label: string; variant: "approved" | "warning" | "violation" | "draft" }> = {
   approved: { label: "Approved", variant: "approved" },
   expiring: { label: "Expiring soon", variant: "warning" },
   expired: { label: "Expired", variant: "violation" },
   draft: { label: "Draft", variant: "draft" },
+  unverified: { label: "Unverified", variant: "warning" },
 };
 
-// Claim edits, uploaded evidence and sign-offs the API has no field for are kept on this device.
-// ponytail: localStorage overlay keyed by claim id; drop once the claims table stores evidence + sign-offs.
-const LOCAL_KEY = "adsnitch:kb-claims-local";
-function readLocal(): Record<string, Claim> {
-  try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}"); } catch { return {}; }
-}
-function writeLocal(list: Claim[]) {
-  try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ ...readLocal(), ...Object.fromEntries(list.map((c) => [c.id, c])) })); } catch {}
-}
-function withLocal(list: Claim[]): Claim[] {
-  const local = readLocal();
-  const ids = new Set(list.map((c) => c.id));
-  return [...Object.values(local).filter((c) => c.localOnly && !ids.has(c.id)), ...list.map((c) => (local[c.id] ? { ...local[c.id], apiId: c.apiId } : c))];
+// Claim edits, attached evidence and sign-offs live in /api/documents/claims (one record per claim).
+/** Fields of a claim that the review record owns; the claims API owns the rest. */
+type ClaimRecord = Pick<Claim, "text" | "expiresAt" | "updatedAt" | "evidence" | "edited" | "flaggedAt" | "prohibited" | "usage"> & { id: string };
+const recordOf = (c: Claim): ClaimRecord => ({
+  id: c.apiId ?? c.id, text: c.text, expiresAt: c.expiresAt, updatedAt: c.updatedAt,
+  evidence: c.evidence, edited: c.edited, flaggedAt: c.flaggedAt, prohibited: c.prohibited, usage: c.usage,
+});
+function withRecords(list: Claim[], recs: ClaimRecord[]): Claim[] {
+  const byId = new Map(recs.map((r) => [r.id, r]));
+  return list.map((c) => {
+    const r = byId.get(c.id);
+    return r ? { ...c, ...r, id: c.id, apiId: c.apiId, usage: [...r.usage, ...c.usage.filter((u) => !r.usage.some((x) => x.id === u.id))] } : c;
+  });
 }
 
 const BRANDS: Brand[] = ["Apex Nutrition", "Zenith Cloud", "Lumina Skincare"];
@@ -258,14 +98,14 @@ const BRAND_IDS: Record<string, string> = {
 };
 /** Direct link for an evidence item: stored URL, a DOI in its reference, or a URL reference. */
 function sourceHref(ev: Evidence): string | undefined {
-  // Demo records carry illustrative references only; linking them would lead to dead pages.
+  // Only evidence added by a person carries a link; library records without a public source stay unlinked.
   if (!ev.userAdded) return undefined;
   if (ev.url) return ev.url;
   const doi = ev.ref?.match(/10\.\d{4,9}\/[^\s,;]+/)?.[0];
   if (doi) return `https://doi.org/${doi}`;
   return /^https?:\/\//.test(ev.ref ?? "") ? ev.ref : undefined;
 }
-/** Demo usage rows with a "sub_" id have no review on file, so they render as plain text. */
+/** Usage rows with a "sub_" id have no review on file, so they render as plain text. */
 const hasReview = (u: Usage) => !u.id.startsWith("sub_");
 const today = () => new Date().toISOString().slice(0, 10);
 const cap = (s?: string) => (s ? s[0].toUpperCase() + s.slice(1).replace(/_/g, " ") : "General");
@@ -275,12 +115,12 @@ function fromApi(c: any): Claim {
   const day = (v?: string | null) => (v ? String(v).slice(0, 10) : today());
   return {
     id: c.id, apiId: c.id, code: c.claim_code ?? c.id, brand: BRAND_IDS[c.brand_id] ?? c.brand ?? "Apex Nutrition",
-    type: cap(c.category), text: c.claim_text ?? c.claimText ?? "", draft: c.status === "draft",
+    type: cap(c.category), text: c.claim_text ?? c.claimText ?? "", draft: c.status === "draft", unverified: c.status === "under_review",
     expiresAt: day(c.expires_at ?? "2099-12-31"), updatedAt: day(c.updated_at),
     channels: String(c.permitted_context ?? "").split(/[,;]/).map((x: string) => x.trim()).filter(Boolean),
     owner: c.verifier?.full_name ?? c.owner ?? "Unassigned", prohibited: [],
     evidence: (c.evidence ?? []).map((e: any) => ({
-      source: e.title, kind: cap(e.evidence_type), ref: e.citation, excerpt: e.excerpt, url: e.study_url ?? undefined,
+      source: e.title, kind: cap(e.evidence_type), ref: e.citation || "No reference on file", excerpt: e.excerpt, url: e.study_url ?? undefined,
       version: "v1", checkedAt: day(e.updated_at),
     })),
     usage: usageFromApi(c.dependent_submissions),
@@ -291,23 +131,12 @@ function usageFromApi(subs: any[] = []): Usage[] {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-/** Demo seed plus API claims; an API claim with a seed's code lends it its id (for cascade) instead of duplicating it. */
-function merge(seed: Claim[], api: Claim[]): Claim[] {
-  const byCode = new Map(api.map((c) => [c.code, c]));
-  const out = seed.map((s) => {
-    const a = byCode.get(s.code);
-    if (!a) return s;
-    byCode.delete(s.code);
-    return { ...s, apiId: a.apiId, usage: s.usage.length ? s.usage : a.usage };
-  });
-  return [...byCode.values(), ...out];
-}
-
 const daysLeft = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / DAY);
 const fmt = (iso: string) => dateFmt.format(new Date(iso));
 
 function statusOf(c: Claim): Status {
   if (c.draft) return "draft";
+  if (c.unverified && !c.evidence.some((e) => e.verifiedBy)) return "unverified";
   const d = daysLeft(c.expiresAt);
   return d < 0 ? "expired" : d <= 30 ? "expiring" : "approved";
 }
@@ -343,7 +172,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function ClaimsLibrary() {
-  const [claims, setClaims] = useState<Claim[]>(SEED_CLAIMS);
+  const [claims, setClaims] = useState<Claim[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "live" | "offline">("loading");
   const [toast, setToast] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -362,15 +191,15 @@ function ClaimsLibrary() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/claims", { cache: "no-store" });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error();
-      const api = (data.claims as unknown[]).map(fromApi);
-      // Keep claims created on this device that the server never saw.
-      setClaims(withLocal(merge(SEED_CLAIMS, api)));
+      const [res, rec] = await Promise.all([
+        fetch("/api/claims", { cache: "no-store" }),
+        fetch("/api/documents/claims", { cache: "no-store" }),
+      ]);
+      const [data, recs] = await Promise.all([res.json(), rec.json()]);
+      if (!res.ok || !data.success || !rec.ok || !recs.success) throw new Error();
+      setClaims(withRecords((data.claims as unknown[]).map(fromApi), recs.records as ClaimRecord[]));
       setLoadState("live");
     } catch {
-      setClaims(withLocal(SEED_CLAIMS));
       setLoadState("offline");
     }
   }, []);
@@ -379,11 +208,27 @@ function ClaimsLibrary() {
 
   // The drawer reads the live claim by id so edits, evidence and flags show immediately.
   const current = open ? claims.find((c) => c.id === open.id) ?? open : null;
-  const patch = (id: string, fn: (c: Claim) => Claim) => setClaims((prev) => {
-    const next = prev.map((c) => (c.id === id ? fn(c) : c));
-    writeLocal(next.filter((c) => c.id === id));
-    return next;
-  });
+  const claimsRef = useRef<Claim[]>([]);
+  claimsRef.current = claims;
+  /** Applies a change and saves the claim's review record. Rolls back and resolves false if the server refuses. */
+  const patch = async (id: string, fn: (c: Claim) => Claim, action = "claim_updated", detail: Record<string, unknown> = {}) => {
+    const before = claimsRef.current.find((c) => c.id === id);
+    if (!before) return false;
+    const after = fn(before);
+    setClaims((prev) => prev.map((c) => (c.id === id ? after : c)));
+    try {
+      const r = await fetch("/api/documents/claims", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claimId: after.apiId ?? after.id, record: recordOf(after), action, detail }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error();
+      return true;
+    } catch {
+      setClaims((prev) => prev.map((c) => (c.id === id ? before : c)));
+      return false;
+    }
+  };
 
   async function createClaims(inputs: NewClaimInput[]): Promise<string> {
     let saved = 0;
@@ -404,18 +249,21 @@ function ClaimsLibrary() {
         });
         const data = await res.json();
         if (res.ok && data.success) { saved1 = fromApi(data.claim); saved++; }
-      } catch { /* fall through to a local draft */ }
-      const base: Claim = saved1 ?? {
-        id: `local-${Date.now()}-${i}`, code: `CLM-NEW-${claims.length + i + 1}`, brand: c.brand, type: c.type, text: c.text,
-        expiresAt: c.expiresAt, updatedAt: today(), channels: [], owner: "You", prohibited: [], evidence: [], usage: [], localOnly: true,
-      };
-      made.push({ ...base, brand: c.brand, type: c.type, draft: true, channels: c.channels, evidence, owner: "You" });
+      } catch { /* reported below */ }
+      if (!saved1) continue;
+      const full: Claim = { ...saved1, brand: c.brand, type: c.type, draft: true, channels: c.channels, evidence, owner: "You" };
+      // Evidence and channels live in the claim's review record.
+      await fetch("/api/documents/claims", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claimId: full.apiId ?? full.id, record: recordOf(full), action: "evidence_attached", detail: { created: true } }),
+      }).catch(() => undefined);
+      made.push(full);
     }
-    writeLocal(made);
     setClaims((prev) => [...made, ...prev]);
     const n = inputs.length;
-    const m = `Added ${n} draft claim${n === 1 ? "" : "s"}.` +
-      (saved < n ? ` ${n - saved} could not reach the server and are kept on this device only.` : "");
+    const m = saved === n
+      ? `Added ${n} draft claim${n === 1 ? "" : "s"}.`
+      : `Added ${saved} of ${n}. ${n - saved} could not be saved. Check your connection and try those again.`;
     flash(m);
     return m;
   }
@@ -444,9 +292,11 @@ function ClaimsLibrary() {
       if (!res.ok || !data.success) throw new Error();
       msg = `${data.count} draft${data.count === 1 ? "" : "s"} sent back for re-review.`;
     } catch {
-      msg = `${c.usage.length} draft${c.usage.length === 1 ? "" : "s"} marked for re-review on this device. The server could not be updated.`;
+      msg = "The drafts could not be flagged. Check your connection and try again.";
+      setReview({ busy: false, msg });
+      return;
     }
-    patch(c.id, (x) => ({ ...x, flaggedAt: today() }));
+    await patch(c.id, (x) => ({ ...x, flaggedAt: today() }), "claim_flagged", { count: c.usage.length });
     setReview({ busy: false, msg });
   }
 
@@ -458,38 +308,40 @@ function ClaimsLibrary() {
     const expiresAt = String(f.get("expires") || current.expiresAt);
     if (!text) return;
     const changed = text !== current.text || expiresAt !== current.expiresAt;
-    patch(current.id, (x) => ({ ...x, text, expiresAt, updatedAt: today(), edited: x.edited || changed, flaggedAt: changed ? undefined : x.flaggedAt }));
     setEditing(false);
     if (!changed) return;
     const c = current;
+    patch(c.id, (x) => ({ ...x, text, expiresAt, updatedAt: today(), edited: true, flaggedAt: undefined }), "claim_edited", { text, expiresAt });
     checkUsage(c);
-    if (!c.apiId) { flash("Claim updated and saved on this device. Drafts that use it are listed under Re-review."); return; }
+    if (!c.apiId) { flash("Claim updated. Drafts that use it are listed under Re-review."); return; }
     fetch(`/api/claims/${encodeURIComponent(c.apiId)}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ claimText: text, expiresAt }),
     })
       .then((r) => r.json().then((d) => (r.ok && d.success ? null : Promise.reject(d.error))))
       .then(() => flash("Claim updated on the server. Drafts that use it are listed under Re-review."))
-      .catch(() => flash("Saved on this device only. The server could not be updated."));
+      .catch(() => flash("The claim text could not be updated on the server. Try again."));
   }
 
   async function attachEvidence(c: Claim, text: string, file: File) {
     const fileName = file.name;
     const excerpt = text.replace(/\s+/g, " ").trim().slice(0, 400);
-    const fileId = (await putFile(file)) ?? undefined;
-    patch(c.id, (x) => ({
+    const up = await uploadFile(file, c.brand);
+    if (!up.id) { flash(up.error ?? "The file could not be uploaded. Try again."); return; }
+    const fileId = up.id;
+    const ok = await patch(c.id, (x) => ({
       ...x,
       evidence: [...x.evidence, { source: fileName, kind: "Uploaded file", ref: fileName, excerpt, version: "v1", checkedAt: today(), userAdded: true, fileName, fileId }],
-    }));
-    flash(`${fileName} attached as evidence. Saved on this device.`);
+    }), "evidence_attached", { fileName });
+    flash(ok ? `${fileName} attached as evidence.` : "The file uploaded but could not be linked to the claim. Try again.");
   }
 
   function verifyEvidence(e: React.FormEvent<HTMLFormElement>, c: Claim, idx: number) {
     e.preventDefault();
     const name = String(new FormData(e.currentTarget).get("reviewer") ?? "").trim();
     if (!name) return;
-    patch(c.id, (x) => ({ ...x, evidence: x.evidence.map((ev, i) => (i === idx ? { ...ev, verifiedBy: name, verifiedAt: today() } : ev)) }));
-    flash("Evidence marked as verified. Saved on this device.");
+    patch(c.id, (x) => ({ ...x, evidence: x.evidence.map((ev, i) => (i === idx ? { ...ev, verifiedBy: name, verifiedAt: today() } : ev)) }), "evidence_verified", { reviewer: name })
+      .then((ok) => flash(ok ? "Evidence marked as verified." : "Could not save the verification. Try again."));
   }
 
   const needsReview = claims.filter((c) => !c.flaggedAt && c.usage.length > 0 && (c.edited || statusOf(c) === "expired"));
@@ -567,12 +419,11 @@ function ClaimsLibrary() {
         </header>
 
         <p className="rounded-lg border border-border-default bg-panel px-4 py-3 text-[13px] text-text-secondary">
-          Demo data. Brands, studies and references on this page are fictional and have not been independently verified.{" "}
           <span aria-live="polite">
             {loadState === "loading" && "Loading saved claims…"}
-            {loadState === "live" && "Saved claims are loaded from the server."}
+            {loadState === "live" && `${claims.length} claim${claims.length === 1 ? "" : "s"} across your workspaces. Claims stay unverified until a reviewer signs off their evidence.`}
             {loadState === "offline" && (
-              <>Saved claims could not be loaded, showing demo claims only.{" "}
+              <>Claims could not be loaded.{" "}
                 <button onClick={() => { setLoadState("loading"); load(); }} className={`rounded underline underline-offset-4 hover:text-text-primary ${focusRing}`}>Try again</button>
               </>
             )}
@@ -653,7 +504,6 @@ function ClaimsLibrary() {
                         <p className="mt-1.5 text-[13px] text-text-muted">
                           {c.brand}, {c.type}, {expiryWords(c)}, {c.evidence.length} evidence record{c.evidence.length === 1 ? "" : "s"}
                           {c.flaggedAt && ", drafts flagged for re-review"}
-                          {c.localOnly && ", saved on this device only"}
                         </p>
                       </div>
                       <Badge variant={s.variant} size="xs" className="shrink-0">{s.label}</Badge>
@@ -733,7 +583,7 @@ function ClaimsLibrary() {
                 {current.usage.length > 0 && (
                   <ul className="mt-3 space-y-1 text-sm">
                     {current.usage.map((u) => (
-                      <li key={u.id}>{hasReview(u) ? <Link href={`/submissions/${u.id}`} className={`rounded underline-offset-4 hover:underline ${focusRing}`}>{u.title}</Link> : <span>{u.title}</span>} <span className="text-text-muted">({u.channel}{hasReview(u) ? "" : ", demo, no review on file"})</span></li>
+                      <li key={u.id}>{hasReview(u) ? <Link href={`/submissions/${u.id}`} className={`rounded underline-offset-4 hover:underline ${focusRing}`}>{u.title}</Link> : <span>{u.title}</span>} <span className="text-text-muted">({u.channel}{hasReview(u) ? "" : ", no review on file"})</span></li>
                     ))}
                   </ul>
                 )}
@@ -782,7 +632,7 @@ function ClaimsLibrary() {
                           )}
                           {ev.fileId && (
                             <button type="button" className={`font-medium underline underline-offset-2 cursor-pointer ${focusRing}`}
-                              onClick={async () => { if (!(await openFile(ev.fileId!))) flash("The original file is stored on the device it was uploaded from."); }}>
+                              onClick={async () => { if (!(await openFile(ev.fileId!))) flash("The file could not be opened. Try again."); }}>
                               Open original file
                             </button>
                           )}
@@ -790,7 +640,6 @@ function ClaimsLibrary() {
                       )}
                       {!ev.userAdded ? (
                         <p className="mt-3 text-[13px] text-text-muted">
-                          <Badge variant="neutral" size="xs">Demo record</Badge>{" "}
                           Version {ev.version}. Last checked by owner {fmt(ev.checkedAt)}. Unverified.
                         </p>
                       ) : ev.verifiedBy ? (
@@ -844,7 +693,7 @@ function ClaimsLibrary() {
                       ) : (
                         <div className="px-3 py-3">
                           <p className="truncate text-sm font-medium">{u.title}</p>
-                          <p className="mt-1 text-[13px] text-text-muted">{u.channel}, {fmt(u.date)}. Demo usage, no review on file.</p>
+                          <p className="mt-1 text-[13px] text-text-muted">{u.channel}, {fmt(u.date)}. No review on file.</p>
                         </div>
                       )}
                     </li>

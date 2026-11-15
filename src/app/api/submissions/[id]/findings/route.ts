@@ -1,7 +1,7 @@
 import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { denyFor, type AppRole } from "@/app/api/approvals/rbac";
+import { denyFor, getActor } from "@/app/api/approvals/rbac";
 
 async function POST_handler(
   req: NextRequest,
@@ -16,8 +16,6 @@ async function POST_handler(
       reason = "",
       evidence = "",
       memo = "",
-      reviewerId = "",
-      userId = "",
       evidenceFile = null,
     } = body as Record<string, any>;
 
@@ -28,9 +26,11 @@ async function POST_handler(
       );
     }
 
-    // Permission matrix: see src/app/api/approvals/rbac.ts. Role is read from the stored profile.
-    const actorId: string = action === "dispute" ? userId || reviewerId : reviewerId || userId;
-    const role = db.getUserRole(actorId) as AppRole | undefined;
+    // Permission matrix: see src/app/api/approvals/rbac.ts. Actor = signed-in user, role from their profile.
+    const actor = await getActor();
+    if (!actor) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
+    const actorId = actor.id;
+    const role = actor.role;
     const perm = action === "dispute" ? "dispute" : action === "dismiss" ? "dismiss" : action === "override" ? "override_finding" : null;
     if (perm) {
       const denied = denyFor(role, perm);

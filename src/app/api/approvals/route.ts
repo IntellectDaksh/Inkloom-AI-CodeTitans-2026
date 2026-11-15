@@ -1,7 +1,8 @@
 import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { denyFor, type AppRole } from "./rbac";
+import { denyFor, getActor, type AppRole } from "./rbac";
+import { supabaseAdmin } from "@/lib/auth/server";
 
 async function GET_handler(req: NextRequest) {
   try {
@@ -10,6 +11,20 @@ async function GET_handler(req: NextRequest) {
     const status = searchParams.get("status") || undefined;
 
     const approvals = db.listApprovals(orgId, status as any);
+    // Attach the signer's display name from their profile.
+    const ids = [...new Set(approvals.map((a: any) => a.latest_decision?.decided_by).filter(Boolean))] as string[];
+    if (ids.length) {
+      try {
+        const { data } = await supabaseAdmin().from("profiles").select("id, full_name").in("id", ids);
+        const names = new Map((data ?? []).map((p: { id: string; full_name: string | null }) => [p.id, p.full_name]));
+        for (const a of approvals as any[]) {
+          const d = a.latest_decision;
+          if (d) d.decided_by_name = names.get(d.decided_by) ?? null;
+        }
+      } catch {
+        // Names are cosmetic; the list still renders with a generic signer label.
+      }
+    }
     return NextResponse.json({ success: true, approvals });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -33,14 +48,10 @@ function denyReason(role: AppRole | undefined, decision: Decision, reviewerId: s
 async function POST_handler(req: NextRequest) {
   try {
     const body = await req.json();
-    let {
-      reviewerName = "Unknown user",
-    } = body as { reviewerName?: string };
     const {
       submissionId,
       decision,
       notes,
-      reviewerId = "",
       reviewerRole: roleField,
       role,
       organizationId = "org_uideas_digital",
@@ -48,16 +59,18 @@ async function POST_handler(req: NextRequest) {
       submissionId?: string;
       decision?: Decision;
       notes?: string;
-      reviewerId?: string;
       reviewerRole?: string;
       role?: string;
       organizationId?: string;
     };
 
-    // Server-side identity: whatever role the client claims, the stored profile wins.
-    const reviewerRole = db.getUserRole(reviewerId) as AppRole | undefined;
+    // Server-side identity: the signed-in user and their stored profile role. Body claims are ignored.
+    const actor = await getActor();
+    if (!actor) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
+    const reviewerId = actor.id;
+    const reviewerRole: AppRole = actor.role;
+    const reviewerName = actor.name;
     const claimedRole = roleField ?? role;
-    reviewerName = db.getUserName(reviewerId) ?? reviewerName;
     if (!submissionId || !decision || !DECISIONS.includes(decision)) {
       return NextResponse.json(
         { success: false, error: "submissionId and a valid decision are required" },

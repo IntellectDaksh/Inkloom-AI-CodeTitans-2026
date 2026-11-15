@@ -7,26 +7,77 @@ import { useEffect, useState } from "react";
 
 export const BRANDS = ["Apex Nutrition", "Zenith Cloud"] as const;
 export type Role = "creator" | "reviewer" | "brand_manager" | "admin";
-// Demo personas, matching the seeded users on the login page.
-export const PERSONAS = [
-  { id: "daksh", name: "Daksh Agrawal", role: "admin" as Role, userId: "00000000-0000-4000-a000-000000000010", label: "Admin" },
-  { id: "brand_manager", name: "Demo Brand Manager", role: "brand_manager" as Role, userId: "00000000-0000-4000-a000-000000000013", label: "Brand Manager" },
-  { id: "reviewer", name: "Demo Reviewer", role: "reviewer" as Role, userId: "00000000-0000-4000-a000-000000000012", label: "Reviewer" },
-  { id: "creator", name: "Demo Creator", role: "creator" as Role, userId: "00000000-0000-4000-a000-000000000011", label: "Creator" },
-];
-export type Persona = (typeof PERSONAS)[number];
+export const ROLE_LABEL: Record<Role, string> = {
+  admin: "Admin",
+  brand_manager: "Brand Manager",
+  reviewer: "Reviewer",
+  creator: "Creator",
+};
+
+/** The signed-in user, loaded once from /api/me. */
+export interface Persona {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: Role;
+  label: string;
+  avatarUrl: string | null;
+  bio: string;
+}
+const SIGNED_OUT: Persona = { id: "", userId: "", name: "", email: "", role: "creator", label: ROLE_LABEL.creator, avatarUrl: null, bio: "" };
+let current: Persona = SIGNED_OUT;
+let loading: Promise<void> | null = null;
+const ME_EVT = "adsnitch:me";
+
+/** @deprecated Accounts are real now; kept empty so older callers compile. Use useMe(). */
+export const PERSONAS: Persona[] = [];
+
+export function refreshMe(): Promise<void> {
+  loading = fetch("/api/me")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      const m = d?.me;
+      current = m
+        ? { id: m.id, userId: m.id, name: m.name, email: m.email, role: m.role, label: ROLE_LABEL[m.role as Role] ?? m.role, avatarUrl: m.avatarUrl, bio: m.bio }
+        : SIGNED_OUT;
+    })
+    .catch(() => {})
+    .finally(() => {
+      window.dispatchEvent(new Event(ME_EVT));
+      // usePrefs consumers that read personaOf() re-render too
+      window.dispatchEvent(new CustomEvent(EVT, { detail: readPrefs() }));
+    });
+  return loading;
+}
+
+export function useMe(): Persona | null {
+  const [me, set] = useState<Persona | null>(current.id ? current : null);
+  useEffect(() => {
+    const on = () => set(current.id ? current : null);
+    window.addEventListener(ME_EVT, on);
+    if (!loading) refreshMe();
+    else on();
+    return () => window.removeEventListener(ME_EVT, on);
+  }, []);
+  return me;
+}
+
 export const ROLE_HELP: Record<Role, string> = {
   creator: "Writes and checks ads. Cannot approve.",
   reviewer: "Signs off ads written by others.",
   brand_manager: "Signs off or rejects ads and can override a single issue with a reason.",
   admin: "Signs off ads and can override a decision with a reason.",
 };
-export function personaOf(p: Prefs): Persona {
-  return PERSONAS.find((x) => x.id === p.persona) ?? PERSONAS[0];
+/** The signed-in user (prefs arg kept for older callers). */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function personaOf(_p?: Prefs): Persona {
+  return current;
 }
 
 export interface Prefs {
   brand: string;
+  /** @deprecated unused; identity comes from the signed-in account. */
   persona: string;
   onboarded: boolean;
   checklistDismissed: boolean;
@@ -62,7 +113,7 @@ export const STRICTNESS_PRESETS: Record<Strictness, { passScore: number; blockBe
 export const KEY = "adsnitch:prefs";
 const EVT = "adsnitch:prefs";
 export const DEFAULTS: Prefs = {
-  brand: BRANDS[0], persona: PERSONAS[0].id, onboarded: false, checklistDismissed: false,
+  brand: BRANDS[0], persona: "", onboarded: false, checklistDismissed: false,
   passScore: 80, blockBelow: 50, strictness: "balanced",
   requireDisclosure: false, flagSuperlatives: false, flagTimeBound: false, requireReviewerHighRisk: true,
   useGemini: true, aiConfidence: 60, ocr: true,
@@ -85,11 +136,6 @@ export function setPrefs(patch: Partial<Prefs>) {
   } catch {
     // private mode: prefs live for this tab only via the event
   }
-  try {
-    // Mirror into the session key the login page and other screens already read.
-    const p = personaOf(next);
-    localStorage.setItem("inkloom:session", JSON.stringify({ name: p.name, role: p.label, userId: p.userId }));
-  } catch {}
   window.dispatchEvent(new CustomEvent(EVT, { detail: next }));
 }
 
@@ -97,6 +143,7 @@ export function usePrefs(): Prefs {
   const [prefs, set] = useState<Prefs>(DEFAULTS);
   useEffect(() => {
     set(readPrefs());
+    if (!loading) refreshMe();
     const on = (e: Event) => set((e as CustomEvent<Prefs>).detail);
     window.addEventListener(EVT, on);
     return () => window.removeEventListener(EVT, on);
@@ -150,9 +197,8 @@ export const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas";
 
 // ---------------------------------------------------------------------------
-// Workspaces: one per brand. Seeded ones mirror the demo data; new ones are
-// kept in localStorage until Supabase is connected.
-// ponytail: client-only store, move to a brands table when Supabase lands.
+// Workspaces: one per brand. Built-in ones match the stored brands; custom ones are
+// kept in this browser for now.
 export interface Workspace {
   name: string;
   industry: string;
@@ -193,7 +239,7 @@ export function useWorkspaces(): Workspace[] {
   return [...SEED_WORKSPACES, ...custom];
 }
 
-/** Edits a custom workspace in place. Seeded ones are read-only. Returns an error message or null. */
+/** Edits a custom workspace in place. Built-in ones are read-only. Returns an error message or null. */
 export function updateWorkspace(name: string, patch: Partial<Workspace>): string | null {
   const list = readCustom();
   const i = list.findIndex((w) => w.name === name);

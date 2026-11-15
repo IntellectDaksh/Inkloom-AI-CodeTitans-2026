@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Plus, Check } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InfoTip } from "@/components/guide/HelpPanel";
-import { usePrefs, setPrefs, useWorkspaces, openWorkspacePicker, focusRing } from "@/components/guide/workspace";
+import { usePrefs, setPrefs, openWorkspacePicker, focusRing } from "@/components/guide/workspace";
+import { useWorkspaces } from "@/lib/workspaces/client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const get = (u: string) => fetch(u, { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))));
@@ -39,7 +40,7 @@ export default function BrandsPage() {
       ads: subs.length,
       review: subs.filter((s) => REVIEW.includes(s.status)).length,
       approved: subs.filter((s) => s.status === "approved").length,
-      claims: (data?.claims ?? []).filter((c) => idToName.get(c.brand_id) === name).length,
+      claims: (data?.claims ?? []).filter((c) => (idToName.get(c.brand_id) ?? workspaces.find((w) => w.id === c.brand_id)?.name) === name).length,
     };
   };
 
@@ -85,7 +86,7 @@ export default function BrandsPage() {
               { label: "Claims", value: c.claims, href: "/knowledge-base/claims", tip: "Approved statements with proof, used to check this brand's ads." },
             ];
             return (
-              <li key={w.name} className={`glass flex flex-col rounded-2xl p-5 ${active ? "ring-1 ring-ink/30" : ""}`}>
+              <li key={w.id} className={`glass flex flex-col rounded-2xl p-5 ${active ? "ring-1 ring-ink/30" : ""}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="truncate text-base font-semibold text-text-primary">{w.name}</h2>
@@ -113,7 +114,6 @@ export default function BrandsPage() {
                     </div>
                   ))}
                 </dl>
-                {w.custom && <p className="mt-3 text-xs text-text-muted">Saved in this browser only until accounts are connected.</p>}
 
                 <button
                   type="button"

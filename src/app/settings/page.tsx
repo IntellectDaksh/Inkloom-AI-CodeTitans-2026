@@ -11,19 +11,16 @@ import {
   PICKED_KEY,
   ROLE_HELP,
   STRICTNESS_PRESETS,
-  WS_EVT,
-  WS_KEY,
   focusRing,
   openWorkspacePicker,
   personaOf,
   readPrefs,
   setPrefs,
-  updateWorkspace,
   usePrefs,
-  useWorkspaces,
   type Prefs,
   type Strictness,
 } from "@/components/guide/workspace";
+import { updateWorkspace, useWorkspaces } from "@/lib/workspaces/client";
 import { VERDICT, localFlags, verdictFor, type FindingItem } from "@/components/submission/shared";
 
 const SECTIONS = [
@@ -38,8 +35,8 @@ const SECTIONS = [
 
 const INDUSTRIES = ["Health & nutrition", "Beauty & skincare", "Software", "Finance", "Food & drink", "Other"];
 const CHANNELS = ["Instagram", "TikTok", "LinkedIn", "Landing page", "Product page", "Email", "Ads"];
-const SAMPLE_TEXT = "The best protein you'll ever try. Limited time offer!";
-const SAMPLE_FINDINGS: FindingItem[] = [
+const EXAMPLE_TEXT = "The best protein you'll ever try. Limited time offer!";
+const EXAMPLE_FINDINGS: FindingItem[] = [
   { id: "s1", category: "unsupported_claim", severity: "medium", flaggedText: "x", explanation: "", status: "resolved" },
 ];
 const btn = `inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border-default bg-panel px-4 text-sm font-medium text-text-primary hover:bg-panel-hover ${focusRing}`;
@@ -63,7 +60,7 @@ export default function SettingsPage() {
   const workspaces = useWorkspaces();
   const [toast, setToast] = useState(0);
   const [active, setActive] = useState("workspace");
-  const [sampleScore, setSampleScore] = useState(76);
+  const [exampleScore, setExampleScore] = useState(76);
   const [ioMsg, setIoMsg] = useState<string | null>(null);
   const confirmRef = useRef<HTMLDialogElement>(null);
   const [confirm, setConfirm] = useState<"reset" | "clear">("reset");
@@ -101,35 +98,35 @@ export default function SettingsPage() {
   const [wsIndustry, setWsIndustry] = useState(INDUSTRIES[0]);
   const [wsChannels, setWsChannels] = useState<string[]>([]);
   const [wsErr, setWsErr] = useState<string | null>(null);
+  const [wsSaving, setWsSaving] = useState(false);
   const startEdit = () => {
+    if (!current) return;
     setWsName(current.name);
     setWsIndustry(current.industry);
     setWsChannels(current.channels);
     setWsErr(null);
     setEdit(true);
   };
-  const saveWs = (e: React.FormEvent) => {
+  const saveWs = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!current || wsSaving) return;
     if (!wsChannels.length) return setWsErr("Pick at least one channel.");
-    const err = updateWorkspace(current.name, { name: wsName, industry: wsIndustry, channels: wsChannels });
-    if (err) return setWsErr(err);
-    const clean = wsName.trim().replace(/\s+/g, " ");
-    if (clean !== prefs.brand) setPrefs({ brand: clean });
+    setWsSaving(true);
+    const res = await updateWorkspace(current.id, { name: wsName, industry: wsIndustry, channels: wsChannels });
+    setWsSaving(false);
+    if (!res.ok) return setWsErr(res.error);
+    if (res.workspace.name !== prefs.brand) setPrefs({ brand: res.workspace.name });
     setEdit(false);
     setToast((n) => n + 1);
   };
 
   const setStrictness = (s: Strictness) => save({ strictness: s, ...STRICTNESS_PRESETS[s] });
-  const preview = verdictFor(sampleScore, SAMPLE_FINDINGS, SAMPLE_TEXT, prefs);
-  const previewFlags = localFlags(SAMPLE_TEXT, prefs);
+  const exampleVerdict = verdictFor(exampleScore, EXAMPLE_FINDINGS, EXAMPLE_TEXT, prefs);
+  const exampleFlags = localFlags(EXAMPLE_TEXT, prefs);
   const persona = personaOf(prefs);
 
   const exportAll = () => {
-    let workspacesRaw: unknown = [];
-    try {
-      workspacesRaw = JSON.parse(localStorage.getItem(WS_KEY) || "[]");
-    } catch {}
-    const blob = new Blob([JSON.stringify({ app: "adsnitch", version: 1, prefs: readPrefs(), workspaces: workspacesRaw }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ app: "adsnitch", version: 1, prefs: readPrefs() }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "adsnitch-settings.json";
@@ -145,11 +142,6 @@ export default function SettingsPage() {
       // Only accept known keys with the right type, so a bad file can't break the app.
       const patch: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(data.prefs)) if (k in DEFAULTS && typeof v === typeof DEFAULTS[k as keyof Prefs]) patch[k] = v;
-      if (Array.isArray(data.workspaces)) {
-        const ok = data.workspaces.filter((w: unknown) => w && typeof (w as { name?: unknown }).name === "string" && Array.isArray((w as { channels?: unknown }).channels));
-        localStorage.setItem(WS_KEY, JSON.stringify(ok));
-        window.dispatchEvent(new Event(WS_EVT));
-      }
       save(patch as Partial<Prefs>);
       setIoMsg(`Imported ${Object.keys(patch).length} settings.`);
     } catch {
@@ -169,7 +161,7 @@ export default function SettingsPage() {
       setIoMsg("Settings reset to defaults.");
     } else {
       try {
-        [KEY, WS_KEY, "adsnitch:pending-upload", "inkloom:session", "inkloom:sidebar-collapsed"].forEach((k) => localStorage.removeItem(k));
+        [KEY, "adsnitch:workspaces", "adsnitch:pending-upload", "inkloom:session", "inkloom:sidebar-collapsed"].forEach((k) => localStorage.removeItem(k));
         sessionStorage.removeItem(PICKED_KEY);
       } catch {}
       window.location.reload();
@@ -207,7 +199,9 @@ export default function SettingsPage() {
 
           <div className="min-w-0 space-y-6">
             <Panel id="workspace" title="Workspace" desc="The brand you're reviewing ads for. Each workspace has its own claims and guidelines.">
-              {!edit ? (
+              {!current ? (
+                <p className="text-sm text-text-muted">Loading workspace…</p>
+              ) : !edit ? (
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <dl className="grid gap-3 text-sm sm:grid-cols-3 sm:gap-8">
                     <div>
@@ -265,12 +259,12 @@ export default function SettingsPage() {
                   </fieldset>
                   {wsErr && <p role="alert" className="text-sm text-status-critical">{wsErr}</p>}
                   <div className="flex gap-2">
-                    <button type="submit" className={`${btn} border-ink bg-ink text-white hover:bg-ink/90`}>Save workspace</button>
+                    <button type="submit" disabled={wsSaving} className={`${btn} border-ink bg-ink text-white hover:bg-ink/90 disabled:opacity-60`}>{wsSaving ? "Saving…" : "Save workspace"}</button>
                     <button type="button" className={btn} onClick={() => setEdit(false)}>Cancel</button>
                   </div>
                 </form>
               )}
-              {!current.custom && <p className="text-[13px] text-text-muted">Built-in demo workspaces can't be edited. Create your own from Switch workspace.</p>}
+              {current && !current.custom && <p className="text-[13px] text-text-muted">Built-in workspaces can't be edited. Create your own from Switch workspace.</p>}
             </Panel>
 
             <Panel id="review" title="Review strictness" desc="Decides when an ad counts as safe, needs changes, or is blocked. Applied on every result page.">
@@ -292,20 +286,19 @@ export default function SettingsPage() {
                     <Toggle label="Require a disclosure tag" hint="Ads without #ad or #sponsored need changes." checked={prefs.requireDisclosure} onChange={(v) => save({ requireDisclosure: v })} />
                     <Toggle label="Flag superlatives" hint={'Words like "best" or "guaranteed" need changes.'} checked={prefs.flagSuperlatives} onChange={(v) => save({ flagSuperlatives: v })} />
                     <Toggle label="Flag time-bound claims" hint={'Phrases like "limited time" or "today only" need changes.'} checked={prefs.flagTimeBound} onChange={(v) => save({ flagTimeBound: v })} />
-                    <Toggle label="Require a reviewer for high-risk ads" hint="Saved for your workspace. Approvals already require a reviewer for high-risk findings; this switch takes over once the server reads workspace settings." checked={prefs.requireReviewerHighRisk} onChange={(v) => save({ requireReviewerHighRisk: v })} />
                   </Divided>
                 </div>
                 <aside aria-live="polite" className="glass-inset h-fit space-y-4 rounded-xl p-4 xl:sticky xl:top-24">
-                  <p className="text-sm font-semibold text-text-primary">Live preview</p>
-                  <p className="text-[13px] italic text-text-secondary">&ldquo;{SAMPLE_TEXT}&rdquo;</p>
-                  <Slider label="Sample score" min={0} max={100} value={sampleScore} onChange={setSampleScore} />
+                  <p className="text-sm font-semibold text-text-primary">Example result</p>
+                  <p className="text-[13px] italic text-text-secondary">&ldquo;{EXAMPLE_TEXT}&rdquo;</p>
+                  <Slider label="Example score" min={0} max={100} value={exampleScore} onChange={setExampleScore} />
                   <div>
-                    <p className={`text-lg font-semibold ${VERDICT[preview].tone}`}>{VERDICT[preview].title}</p>
+                    <p className={`text-lg font-semibold ${VERDICT[exampleVerdict].tone}`}>{VERDICT[exampleVerdict].title}</p>
                     <ul className="mt-1 space-y-0.5 text-[13px] text-text-muted">
-                      {previewFlags.map((f) => (
+                      {exampleFlags.map((f) => (
                         <li key={f}>{f}</li>
                       ))}
-                      {!previewFlags.length && <li>Passes at {prefs.passScore}+, blocked below {prefs.blockBelow}.</li>}
+                      {!exampleFlags.length && <li>Passes at {prefs.passScore}+, blocked below {prefs.blockBelow}.</li>}
                     </ul>
                   </div>
                 </aside>
@@ -315,9 +308,7 @@ export default function SettingsPage() {
             <Panel id="ai" title="AI" desc="How the assistant reads your ads and files.">
               <Divided>
                 <Toggle label="Read PDFs and images (OCR)" hint="When off, PDF and image uploads are skipped with a message. Text and Word files still work." checked={prefs.ocr} onChange={(v) => save({ ocr: v })} />
-                <Toggle label="Use Gemini for context checks" hint="Saved only for now: the server still decides based on its API key. Rule checks always run." checked={prefs.useGemini} onChange={(v) => save({ useGemini: v })} />
               </Divided>
-              <Slider label="Confidence threshold" min={30} max={95} unit="%" value={prefs.aiConfidence} hint="Saved only for now. Will hide AI findings below this confidence once the pipeline returns numeric scores." onChange={(v) => save({ aiConfidence: v })} />
             </Panel>
 
             <Panel id="appearance" title="Appearance" desc="Applies across the whole app on this device.">
@@ -329,16 +320,10 @@ export default function SettingsPage() {
               </Divided>
             </Panel>
 
-            <Panel id="notifications" title="Notifications" desc="Where you hear about approvals and requested changes.">
+            <Panel id="notifications" title="Notifications" desc="How you hear about approvals and requested changes.">
               <Divided>
                 <Toggle label="In-app" hint="Shows the unread dot on the bell in the header." checked={prefs.notifyInApp} onChange={(v) => save({ notifyInApp: v })} />
-                <Toggle label="Email" hint="Unavailable: email needs a mail server, and this build has none connected. Nothing is emailed." checked={false} disabled onChange={() => {}} />
               </Divided>
-              <div className="glass-inset rounded-xl p-4 text-[13px] text-text-secondary">
-                <p className="font-medium text-text-primary">Email preview</p>
-                <p className="mt-1">Subject: Your ad &ldquo;Q4 Protein Reel&rdquo; needs changes</p>
-                <p>{persona.name.split(" ")[0]}, a reviewer left 2 notes. Open AdSnitch to see them.</p>
-              </div>
             </Panel>
 
             <Panel id="team" title="Team & roles" desc="Pick who you're acting as. This changes what you can approve.">
@@ -370,7 +355,7 @@ export default function SettingsPage() {
                   <RotateCcw className="h-4 w-4" aria-hidden /> Reset to defaults
                 </button>
                 <button type="button" className={`${btn} text-status-critical`} onClick={() => askConfirm("clear")}>
-                  <Trash2 className="h-4 w-4" aria-hidden /> Clear demo data on this device
+                  <Trash2 className="h-4 w-4" aria-hidden /> Clear local data on this device
                 </button>
                 <input ref={fileRef} type="file" accept="application/json,.json" className="sr-only" tabIndex={-1} aria-label="Settings file" onChange={(e) => { const f = e.target.files?.[0]; if (f) importAll(f); e.target.value = ""; }} />
               </div>
@@ -382,7 +367,7 @@ export default function SettingsPage() {
 
       <dialog ref={confirmRef} aria-labelledby="cf-t" className="glass-strong m-auto w-[min(26rem,calc(100vw-2rem))] rounded-2xl p-6 backdrop:bg-ink/30 backdrop:backdrop-blur-sm">
         <h2 id="cf-t" className="font-display text-lg font-semibold text-text-primary">
-          {confirm === "reset" ? "Reset all settings?" : "Clear demo data?"}
+          {confirm === "reset" ? "Reset all settings?" : "Clear local data?"}
         </h2>
         <p className="mt-2 text-sm text-text-secondary">
           {confirm === "reset"

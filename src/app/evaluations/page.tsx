@@ -210,7 +210,7 @@ export default function EvaluationsPage() {
             {landmarks.length > 0 && (
               <section aria-labelledby="landmarks">
                 <h2 id="landmarks" className="text-lg font-semibold text-text-primary">Landmark cases</h2>
-                <p className="mt-1 text-sm text-text-secondary">Drafts modelled on real enforcement actions and public incidents. Rewritten for the demo brands, labelled the same way as the rest of the set.</p>
+                <p className="mt-1 text-sm text-text-secondary">Drafts modelled on real enforcement actions and public incidents. Rewritten for the built-in brands, labelled the same way as the rest of the set.</p>
                 <ul className="mt-3 space-y-2">
                   {landmarks.map((r) => <ProblemRow key={r.id} r={r} />)}
                 </ul>
@@ -231,7 +231,7 @@ export default function EvaluationsPage() {
           <h2 id="limits" className="text-base font-semibold text-text-primary">Limitations</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>The drafts are synthetic and were labelled by our own team, not an independent reviewer.</li>
-            <li>The set is small ({report?.items ?? 39} drafts across three demo brands), so one draft can swing a percentage by several points.</li>
+            <li>The set is small ({report?.items ?? 39} drafts across three built-in brands), so one draft can swing a percentage by several points.</li>
             <li>Rule-only gaps found by earlier runs (negations, proper nouns, verbatim approved claims, medical wording) were fixed against this same set, so these numbers flatter performance on copy it has never seen.</li>
             <li>A flag counts as caught only when it lands on the labelled text with the same issue type. Right text under the wrong label is shown separately and counts against &ldquo;flags that were right&rdquo;.</li>
             <li>Missing disclosures have no text to point at, so they are matched on issue type alone.</li>

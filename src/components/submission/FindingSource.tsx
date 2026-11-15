@@ -22,7 +22,6 @@ export function FindingSource({ f }: { f: FindingItem }) {
         <>
           <p className="text-sm font-medium text-text-primary">
             {s.title}
-            {s.demo && <span className="ml-2 rounded border border-border-default px-1.5 py-0.5 text-[11px] font-normal text-text-muted">Demo record</span>}
           </p>
           <p className="text-text-muted">
             {s.type} · {s.claimCode}

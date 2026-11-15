@@ -25,7 +25,7 @@ import {
   localFlags,
   VERDICT,
 } from "@/components/submission/shared";
-import { PERSONAS, personaOf, setPrefs, usePrefs, Role } from "@/components/guide/workspace";
+import { personaOf, usePrefs, Role } from "@/components/guide/workspace";
 
 type Decision = "approved" | "changes_requested" | "rejected";
 type Actor = { id: string; name: string; role: Role };
@@ -370,20 +370,9 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
           <Link href="/submissions" className="inline-flex items-center gap-2 rounded text-sm text-text-muted hover:text-text-primary focus-visible:outline-2 focus-visible:outline-blue">
             <ArrowLeft className="h-4 w-4" aria-hidden /> All reviews
           </Link>
-          <label className="flex items-center gap-2 text-[13px] text-text-muted">
-            Acting as
-            <select
-              value={persona.id}
-              onChange={(e) => setPrefs({ persona: e.target.value })}
-              className="h-9 rounded-lg border border-border-default bg-panel px-2 text-[13px] text-text-primary focus-visible:outline-2 focus-visible:outline-blue"
-            >
-              {PERSONAS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.label})
-                </option>
-              ))}
-            </select>
-          </label>
+          <span className="text-[13px] text-text-muted">
+            Signed in as <span className="font-semibold text-text-primary">{persona.name}</span>
+          </span>
         </div>
 
         <header className="space-y-2">

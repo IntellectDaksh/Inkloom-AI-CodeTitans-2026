@@ -1,6 +1,7 @@
 "use client";
 
-import React, { forwardRef, useEffect, useId, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useId, useRef, useState } from "react";
+import { usePrefs } from "@/components/guide/workspace";
 import Link from "next/link";
 import { FileUp, Loader2, X } from "lucide-react";
 
@@ -42,23 +43,61 @@ export async function extractFile(file: File): Promise<Extracted> {
   return data as Extracted;
 }
 
-// ---------- Device storage ----------
-/** useState that also persists to localStorage ("saved on this device") until a DB table exists. */
-export function useStored<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [v, set] = useState<T>(initial);
-  const loaded = useRef(false);
+// ---------- Server-backed lists ----------
+export interface KbStatus { loading: boolean; error: string | null; brand: string }
+
+/**
+ * One workspace's list from a knowledge-base API (/api/guidelines, /api/terms, /api/documents).
+ * `starter[brandName]` is shown only until that workspace saves this list for the first time.
+ * The setter saves the whole list and resolves false (state rolled back) when the server refuses.
+ */
+export function useKb<T>(path: string, starter: Record<string, T[]> = {}): [T[], (fn: (prev: T[]) => T[]) => Promise<boolean>, KbStatus] {
+  const { brand } = usePrefs();
+  const [items, setItems] = useState<T[]>([]);
+  const [status, setStatus] = useState<KbStatus>({ loading: true, error: null, brand });
+  const ref = useRef<T[]>([]);
+  const starterRef = useRef(starter);
   useEffect(() => {
+    let alive = true;
+    setStatus({ loading: true, error: null, brand });
+    fetch(`${path}?brand=${encodeURIComponent(brand)}`, { cache: "no-store" })
+      .then((r) => r.json().then((d) => (r.ok && d.success ? d : Promise.reject(new Error(d.error || `Error ${r.status}`)))))
+      .then((d: { items: T[]; saved: boolean }) => {
+        if (!alive) return;
+        ref.current = d.saved ? d.items : starterRef.current[brand] ?? [];
+        setItems(ref.current);
+        setStatus({ loading: false, error: null, brand });
+      })
+      .catch((e: Error) => alive && setStatus({ loading: false, error: e.message || "Could not load this list.", brand }));
+    return () => { alive = false; };
+  }, [path, brand]);
+
+  const save = useCallback(async (fn: (prev: T[]) => T[]) => {
+    const before = ref.current;
+    const next = fn(before);
+    ref.current = next;
+    setItems(next);
     try {
-      const raw = localStorage.getItem(key);
-      if (raw) set(JSON.parse(raw) as T);
-    } catch {}
-    loaded.current = true;
-  }, [key]);
-  useEffect(() => {
-    if (!loaded.current) return;
-    try { localStorage.setItem(key, JSON.stringify(v)); } catch {}
-  }, [key, v]);
-  return [v, set];
+      const r = await fetch(path, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand, items: next }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error(d.error || `Could not save (error ${r.status}).`);
+      setStatus((s) => ({ ...s, error: null }));
+      return true;
+    } catch (e) {
+      ref.current = before;
+      setItems(before);
+      setStatus((s) => ({ ...s, error: e instanceof Error && e.message !== "Failed to fetch" ? e.message : "Could not reach the server. Nothing was saved." }));
+      return false;
+    }
+  }, [path, brand]);
+
+  return [items, save, status];
+}
+
+/** Inline load/save error line for knowledge-base pages. */
+export function KbError({ status }: { status: KbStatus }) {
+  if (!status.error) return null;
+  return <p role="alert" className="rounded-lg border border-status-critical/30 bg-panel px-4 py-3 text-sm text-status-critical">{status.error}</p>;
 }
 
 // ---------- CSV ----------

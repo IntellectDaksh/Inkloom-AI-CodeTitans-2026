@@ -272,7 +272,7 @@ export function EvidenceModal({ finding, onClose, onApply }: { finding: FindingI
                     src?.url ? (
                       <a href={src.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:no-underline">{doi}</a>
                     ) : (
-                      <>{doi} <span className="text-text-muted">(demo reference, not linked)</span></>
+                      <>{doi}</>
                     )
                   ) : (
                     <span className="text-text-muted">None on file</span>

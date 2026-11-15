@@ -76,6 +76,17 @@ export default function NewSubmissionPage() {
 
   useEffect(() => headingRef.current?.focus(), [step]);
 
+  // Copy carried over from the public live check.
+  useEffect(() => {
+    try {
+      const t = sessionStorage.getItem("adsnitch:pending-text");
+      if (t) {
+        sessionStorage.removeItem("adsnitch:pending-text");
+        setContent(t);
+      }
+    } catch {}
+  }, []);
+
   // File dropped on the dashboard: rebuild it and run it through the normal extract flow once.
   useEffect(() => {
     let raw: string | null = null;
@@ -310,7 +321,7 @@ export default function NewSubmissionPage() {
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-t border-border-subtle pt-4">
-                  <span className="text-[13px] text-text-muted">No ad handy? Try a sample:</span>
+                  <span className="text-[13px] text-text-muted">No ad handy? Try one of these:</span>
                   {SAMPLES.map((s) => (
                     <button
                       key={s.label}

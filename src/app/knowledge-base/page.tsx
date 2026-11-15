@@ -6,6 +6,8 @@ import { ShieldCheck, BookOpen, Tag, FileText, ChevronRight, type LucideIcon } f
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InfoTip } from "@/components/guide/HelpPanel";
 import { usePrefs, focusRing } from "@/components/guide/workspace";
+import { useKb } from "@/components/knowledge/kb";
+import { GUIDELINE_STARTER, TERM_STARTER, type GuidelineRule, type Term } from "@/components/knowledge/starters";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -17,13 +19,15 @@ interface Tile {
   count: string | null; // null while loading
   countLabel: string;
   tip: string;
-  sample?: boolean;
 }
 
 export default function KnowledgeBasePage() {
   const prefs = usePrefs();
   const [claims, setClaims] = useState<any[] | null>(null);
   const [error, setError] = useState(false);
+  const [rules, , rulesKb] = useKb<GuidelineRule>("/api/guidelines", GUIDELINE_STARTER);
+  const [terms, , termsKb] = useKb<Term>("/api/terms", TERM_STARTER);
+  const kbCount = (n: number, st: { loading: boolean; error: string | null }) => (st.error ? "-" : st.loading ? null : String(n));
 
   useEffect(() => {
     let alive = true;
@@ -42,7 +46,7 @@ export default function KnowledgeBasePage() {
     {
       title: "Claims", icon: ShieldCheck, href: "/knowledge-base/claims",
       body: "Statements your brand is allowed to make, each tied to its proof and an expiry date.",
-      count: live((c) => c.length), countLabel: "approved claims",
+      count: live((c) => c.length), countLabel: "claims",
       tip: "Number of claims in the library right now, read from the claims database.",
     },
     {
@@ -54,14 +58,14 @@ export default function KnowledgeBasePage() {
     {
       title: "Guidelines", icon: BookOpen, href: "/knowledge-base/guidelines",
       body: "Tone, wording and legal rules written in plain sentences. The checker reads them as written.",
-      count: "Sample", countLabel: "rules saved on this device",
-      tip: "The guidelines page starts with example rules. Your edits are saved on this device until the database move.", sample: true,
+      count: kbCount(rules.length, rulesKb), countLabel: "rules",
+      tip: `Rules saved for ${prefs.brand}.`,
     },
     {
       title: "Terminology", icon: Tag, href: "/knowledge-base/terminology",
       body: "Words to avoid and what to say instead, with the reason so writers understand the swap.",
-      count: "Sample", countLabel: "terms saved on this device",
-      tip: "The terminology page starts with example terms. Your edits are saved on this device until the database move.", sample: true,
+      count: kbCount(terms.length, termsKb), countLabel: "terms",
+      tip: `Blocked and preferred terms saved for ${prefs.brand}.`,
     },
   ];
 
@@ -91,8 +95,6 @@ export default function KnowledgeBasePage() {
                 <p className="mt-4 flex items-baseline gap-2">
                   {t.count === null ? (
                     <span className="inline-block h-7 w-10 animate-pulse rounded bg-panel-hover" />
-                  ) : t.sample ? (
-                    <span className="rounded-full border border-status-warning/40 px-2 py-0.5 text-xs text-text-secondary">Sample</span>
                   ) : (
                     <span className="text-2xl font-semibold tabular-nums text-text-primary">{t.count}</span>
                   )}
