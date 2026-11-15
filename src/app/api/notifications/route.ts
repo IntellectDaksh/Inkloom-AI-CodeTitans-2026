@@ -2,6 +2,13 @@ import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { SEED_IDS } from "@/lib/db/seed";
+import { supabaseServer } from "@/lib/auth/server";
+
+/** Always the signed-in user; the client never chooses whose alerts it reads. */
+async function sessionUserId(): Promise<string | null> {
+  const { data: { user } } = await (await supabaseServer()).auth.getUser();
+  return user?.id ?? null;
+}
 
 /** Raise one alert per approved claim whose proof lapses within 30 days, from live claim data. */
 function syncExpiryAlerts(userId: string) {
@@ -11,7 +18,7 @@ function syncExpiryAlerts(userId: string) {
     if (existing.some((n) => n.notification_type === "claim_expiring" && (n.link_url === link || n.message.includes(c.claim_code)))) continue;
     const days = c.days_until_expiry ?? 0;
     db.createNotification({
-      userId: userId === "usr_daksh" ? SEED_IDS.USER_DAKSH : userId,
+      userId,
       type: "claim_expiring",
       title: `Claim expiring in ${days} day${days === 1 ? "" : "s"}`,
       message: `Approved claim ${c.claim_code} expires on ${String(c.expires_at).slice(0, 10)}. Renew its evidence or ads that use it will be flagged.`,
@@ -22,8 +29,8 @@ function syncExpiryAlerts(userId: string) {
 
 async function GET_handler(req: NextRequest) {
   try {
-    const searchParams = req.nextUrl.searchParams;
-    const userId = searchParams.get("userId") || "usr_daksh";
+    const userId = await sessionUserId();
+    if (!userId) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
 
     syncExpiryAlerts(userId);
     const notifications = db.listNotifications(userId);
@@ -45,7 +52,9 @@ async function PATCH_handler(req: NextRequest) {
       );
     }
 
-    if (!db.markNotificationRead(notificationId)) {
+    const userId = await sessionUserId();
+    const mine = userId && db.listNotifications(userId).some((n: { id: string }) => n.id === notificationId);
+    if (!mine || !db.markNotificationRead(notificationId)) {
       return NextResponse.json({ success: false, error: "Notification not found" }, { status: 404 });
     }
     return NextResponse.json({ success: true });

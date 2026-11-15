@@ -8,6 +8,7 @@ import { PageMotion } from "./Motion";
 import { FloatingLayer } from "./FloatingLayer";
 import { WorkspacePicker } from "../guide/WorkspacePicker";
 import { DemoOverlay } from "../tour/DemoOverlay";
+import { useMe } from "../guide/workspace";
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -32,6 +33,11 @@ export function AppLayout({
   fullWidth = false,
   className = "",
 }: AppLayoutProps) {
+  // New accounts (email or Google) set up their profile before anything else.
+  const me = useMe();
+  React.useEffect(() => {
+    if (me && !me.profileComplete) window.location.replace(`/welcome?next=${encodeURIComponent(location.pathname + location.search)}`);
+  }, [me]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
       try {
@@ -68,7 +74,7 @@ export function AppLayout({
 
       <FloatingLayer density="app" />
       <WorkspacePicker />
-      <DemoOverlay />
+      {me?.profileComplete !== false && <DemoOverlay />}
 
       {/* Global CommandK Quick Switcher Dialog */}
       <CommandK

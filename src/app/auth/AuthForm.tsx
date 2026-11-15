@@ -23,7 +23,7 @@ const input = `h-11 w-full rounded-lg border border-border-default bg-panel px-3
 
 export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: Mode; next?: string; error?: string }) {
   const router = useRouter();
-  const next = safeNext(rawNext, mode === "register" ? "/onboarding" : "/dashboard");
+  const next = safeNext(rawNext, mode === "register" ? "/welcome?next=/onboarding" : "/dashboard");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(initialError === "link" ? "That link has expired or was already used. Try again." : null);
   const [info, setInfo] = useState<string | null>(null);
@@ -47,8 +47,10 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
         router.refresh();
       } else if (mode === "register") {
         const name = String(f.get("name") ?? "").trim();
+        const company = String(f.get("company") ?? "").trim();
+        if (!f.get("terms")) throw new Error("Agree to the Terms to create an account.");
         if (password.length < 8) throw new Error("Use at least 8 characters for your password.");
-        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name }, emailRedirectTo: callback(next) } });
+        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name, company, terms_accepted_at: new Date().toISOString() }, emailRedirectTo: callback(next) } });
         if (error) throw error;
         if (data.session) {
           router.replace(next);
@@ -103,6 +105,11 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
                 <input name="name" autoComplete="name" required maxLength={80} className={`mt-1 ${input}`} />
               </label>
             )}
+            {mode === "register" && (
+              <label className="block text-sm text-text-primary">Company or brand
+                <input name="company" autoComplete="organization" required maxLength={80} className={`mt-1 ${input}`} />
+              </label>
+            )}
             {mode !== "reset" && (
               <label className="block text-sm text-text-primary">Email
                 <input name="email" type="email" autoComplete="email" required spellCheck={false} className={`mt-1 ${input}`} />
@@ -114,6 +121,12 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
             {mode === "reset" && (
               <label className="block text-sm text-text-primary">Confirm password
                 <input name="confirm" type="password" required minLength={8} autoComplete="new-password" className={`mt-1 ${input}`} />
+              </label>
+            )}
+            {mode === "register" && (
+              <label className="flex items-start gap-2 text-[13px] leading-snug text-text-secondary">
+                <input name="terms" type="checkbox" required className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]" />
+                <span>I agree to the <a href="/terms" target="_blank" className="underline">Terms</a> and <a href="/privacy" target="_blank" className="underline">Privacy Policy</a>, and understand AdSnitch is a review aid, not legal advice.</span>
               </label>
             )}
             {error && <p role="alert" className="text-[13px] text-status-red">{error}</p>}

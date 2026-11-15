@@ -28,4 +28,4 @@ async function POST_handler(req: NextRequest) {
   }
 }
 
-export const POST = withStore(POST_handler, { public: true });
+export const POST = withStore(POST_handler, { public: true, name: "extract", limit: [5, 60] });

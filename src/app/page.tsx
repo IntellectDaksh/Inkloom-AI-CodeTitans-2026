@@ -618,9 +618,11 @@ export default function Home() {
         <nav className="nav-inner" aria-label="Primary navigation">
           <Logo />
           <div className="nav-center">
+            <a href="#problem">Problem</a>
             <a href="#live-check">Live check</a>
             <a href="#pipeline">How it works</a>
             <a href="#proof">Proof</a>
+            <a href="#faq">FAQ</a>
             <a href="/knowledge-base/claims">Claims library</a>
           </div>
           <div className="nav-end">
@@ -1239,7 +1241,7 @@ export default function Home() {
               ["Product", [["Live check", "#live-check"], ["How it works", "#pipeline"], ["Proof", "#proof"], ["FAQ", "#faq"]]],
               ["Knowledge", [["Claims library", "/knowledge-base/claims"], ["Brand guidelines", "/knowledge-base/guidelines"], ["Terminology", "/knowledge-base/terminology"], ["Evidence documents", "/knowledge-base/assets"]]],
               ["Governance", [["The problem", "#problem"], ["Who it's for", "#who"], ["Analytics", "/analytics"], ["Trust & team", "#trust"]]],
-              ["Project", [["Open the app", "/dashboard?workspace=pick"], ["Evaluation report", "/evaluations"], ["Source code", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"], ["Report an issue", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026/issues"]]],
+              ["Project", [["Open the app", "/dashboard?workspace=pick"], ["Evaluation report", "/evaluations"], ["Source code", "https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"], ["Terms", "/terms"], ["Privacy", "/privacy"]]],
             ] as [string, [string, string][]][]
           ).map(([title, links]) => (
             <div className="footer-column" key={title}>

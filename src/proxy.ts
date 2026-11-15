@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED = ["/dashboard", "/submissions", "/approvals", "/knowledge-base", "/analytics", "/settings", "/profile", "/audit", "/team", "/brands", "/notifications", "/evaluations", "/onboarding"];
+const PROTECTED = ["/dashboard", "/submissions", "/approvals", "/knowledge-base", "/analytics", "/settings", "/profile", "/audit", "/team", "/brands", "/notifications", "/evaluations", "/onboarding", "/welcome"];
 
 // Refreshes the Supabase session cookie on every request and gates app pages.
 // ponytail: optimistic page gate only; API routes authorise themselves via getMe().

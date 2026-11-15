@@ -9,7 +9,12 @@ export async function GET(req: NextRequest) {
   if (code) {
     const sb = await supabaseServer();
     const { error } = await sb.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(next, req.url));
+    if (!error) {
+      const { data: { user } } = await sb.auth.getUser();
+      const { data: p } = user ? await sb.from("profiles").select("profile_completed_at").eq("id", user.id).maybeSingle() : { data: null };
+      const dest = p && !p.profile_completed_at && !next.startsWith("/auth/reset") ? `/welcome?next=${encodeURIComponent(next)}` : next;
+      return NextResponse.redirect(new URL(dest, req.url));
+    }
   }
   return NextResponse.redirect(new URL("/auth/login?error=link", req.url));
 }

@@ -297,7 +297,7 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
   const stats = [
     { label: "In review", value: count("pending"), href: "/submissions?status=under_review", tip: "Checked by AdSnitch and waiting for a person to approve or send back." },
     { label: "Needs changes", value: count("changes_requested"), href: "/submissions?status=changes_requested", tip: "A reviewer sent these back. The author fixes them and checks again." },
-    { label: "Approved", value: count("approved"), href: "/submissions?status=approved", tip: "Signed off by a reviewer. Safe to publish as written." },
+    { label: "Approved", value: count("approved"), href: "/submissions?status=approved", tip: "Signed off by a reviewer in your team." },
     { label: "Average score", value: avgScore === null ? "-" : `${avgScore}/100`, href: "/analytics", tip: "How closely ads match your approved claims and rules. 100 means nothing flagged; under 60 usually needs edits." },
   ];
 

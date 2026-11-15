@@ -7,6 +7,7 @@
  */
 
 import fs from 'fs';
+import { AsyncLocalStorage } from 'async_hooks';
 import { createHash } from 'crypto';
 import path from 'path';
 import os from 'os';
@@ -63,49 +64,76 @@ function getDataFilePath(): string {
   }
 }
 
-let inMemoryState: InkloomDatabaseState | null = null;
-
 // ---------------------------------------------------------------------------
-// Supabase persistence: when Supabase is configured, the whole state lives in
-// one JSON document (public.app_state, id 'main'). Each API request pulls it
-// before running and pushes it back if anything changed (see withStore.ts).
-// ponytail: single-document, last-write-wins; move hot tables to the
-// relational schema in supabase/migrations when concurrent writers matter.
+// Supabase persistence: one JSON document per organisation (public.app_state,
+// id = organisation id). Each API request runs inside its own context
+// (AsyncLocalStorage), pulls its organisation's document, and writes it back
+// with a compare-and-swap on `version`. A concurrent write makes the CAS fail
+// and withStore re-runs the request on fresh data instead of overwriting.
+// ponytail: whole-document CAS per org; split hot tables out when one org has
+// enough concurrent writers that retries become common.
 // ---------------------------------------------------------------------------
-let remoteActive = false;
-let remoteDirty = false;
-const STATE_ID = 'main';
+interface StoreCtx {
+  state: InkloomDatabaseState | null;
+  remote: boolean;
+  dirty: boolean;
+  docId: string | null;
+  version: number;
+  /** Anonymous public checks: seed data, never persisted. */
+  ephemeral: boolean;
+}
+const als = new AsyncLocalStorage<StoreCtx>();
+const fallbackCtx: StoreCtx = { state: null, remote: false, dirty: false, docId: null, version: 0, ephemeral: false };
+const cur = (): StoreCtx => als.getStore() ?? fallbackCtx;
 
-export async function syncFromRemote(): Promise<void> {
+export class StoreConflictError extends Error {}
+
+/** Run fn with an isolated store context (one per request). */
+export function runWithStore<T>(fn: () => Promise<T>): Promise<T> {
+  return als.run({ state: null, remote: false, dirty: false, docId: null, version: 0, ephemeral: false }, fn);
+}
+
+/** Load the organisation's document. orgId null = anonymous: seed data in memory only. */
+export async function syncFromRemote(orgId: string | null): Promise<void> {
+  const ctx = cur();
+  if (orgId === null) {
+    ctx.state = createInitialSeedState();
+    ctx.ephemeral = true;
+    ctx.remote = true; // never touch the file store either
+    ctx.dirty = false;
+    return;
+  }
   const sb = getSupabaseClient();
   if (!sb || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
-  const { data, error } = await sb.from('app_state').select('data').eq('id', STATE_ID).maybeSingle();
+  const { data, error } = await sb.from('app_state').select('data, version').eq('id', orgId).maybeSingle();
   if (error) throw new Error(`Supabase read failed: ${error.message}`);
+  ctx.docId = orgId;
+  ctx.remote = true;
   if (data?.data) {
-    inMemoryState = backfillSeed(data.data as InkloomDatabaseState);
+    ctx.version = Number(data.version) || 0;
+    ctx.state = backfillSeed(data.data as InkloomDatabaseState);
+    ctx.dirty = false;
   } else {
-    inMemoryState = createInitialSeedState();
-    remoteActive = true;
-    remoteDirty = true;
-    await flushToRemote();
+    ctx.version = 0;
+    ctx.state = createInitialSeedState();
+    ctx.dirty = true;
   }
-  remoteActive = true;
-  remoteDirty = false;
 }
 
 export async function flushToRemote(): Promise<void> {
-  if (!remoteActive || !remoteDirty || !inMemoryState) return;
+  const ctx = cur();
+  if (ctx.ephemeral || !ctx.remote || !ctx.dirty || !ctx.state || !ctx.docId) return;
   const sb = getSupabaseClient();
   if (!sb) return;
-  const { error } = await sb
-    .from('app_state')
-    .upsert({ id: STATE_ID, data: inMemoryState, updated_at: new Date().toISOString() });
+  const { data, error } = await sb.rpc('app_state_cas', { p_id: ctx.docId, p_version: ctx.version, p_data: ctx.state });
   if (error) throw new Error(`Supabase write failed: ${error.message}`);
-  remoteDirty = false;
+  if (data === null || data === undefined) throw new StoreConflictError('Someone else saved at the same time.');
+  ctx.version = Number(data);
+  ctx.dirty = false;
 }
 
 export function isRemoteStoreActive(): boolean {
-  return remoteActive;
+  return cur().remote;
 }
 
 // Re-reads the file every call so warm instances see writes from other requests.
@@ -123,26 +151,28 @@ function backfillSeed(state: InkloomDatabaseState): InkloomDatabaseState {
 }
 
 function loadState(): InkloomDatabaseState {
-  if (remoteActive && inMemoryState) return inMemoryState;
+  const ctx = cur();
+  if (ctx.remote && ctx.state) return ctx.state;
   const filePath = getDataFilePath();
   try {
     if (fs.existsSync(filePath)) {
-      inMemoryState = backfillSeed(JSON.parse(fs.readFileSync(filePath, 'utf-8')) as InkloomDatabaseState);
-      return inMemoryState;
+      const s = backfillSeed(JSON.parse(fs.readFileSync(filePath, 'utf-8')) as InkloomDatabaseState);
+      ctx.state = s;
+      return s;
     }
   } catch (err) {
     console.warn('[Inkloom DB] Unable to read data file, using memory:', err);
   }
-  if (inMemoryState) return inMemoryState;
-  inMemoryState = createInitialSeedState();
-  saveState(inMemoryState);
-  return inMemoryState;
+  if (ctx.state) return ctx.state;
+  const fresh = createInitialSeedState();
+  saveState(fresh);
+  return fresh;
 }
 
 function saveState(state: InkloomDatabaseState): void {
-  inMemoryState = state;
-  if (remoteActive) {
-    remoteDirty = true;
+  cur().state = state;
+  if (cur().remote) {
+    cur().dirty = true;
     return;
   }
   const body = JSON.stringify(state, null, 2);
@@ -194,7 +224,7 @@ function scrubSeedReferences(state: InkloomDatabaseState): void {
   const d = new Map(seed.documents.map((x) => [x.id, x]));
   st.documents = (st.documents ?? []).map((x) => d.get(x.id) ?? x);
   st._migrations = [...(st._migrations ?? []), SCRUB_TAG];
-  if (remoteActive) remoteDirty = true;
+  if (cur().remote) cur().dirty = true;
 }
 
 // ---------------------------------------------------------------------------

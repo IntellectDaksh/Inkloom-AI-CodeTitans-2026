@@ -24,8 +24,9 @@ export interface Persona {
   label: string;
   avatarUrl: string | null;
   bio: string;
+  profileComplete: boolean;
 }
-const SIGNED_OUT: Persona = { id: "", userId: "", name: "", email: "", role: "creator", label: ROLE_LABEL.creator, avatarUrl: null, bio: "" };
+const SIGNED_OUT: Persona = { id: "", userId: "", name: "", email: "", role: "creator", label: ROLE_LABEL.creator, avatarUrl: null, bio: "", profileComplete: true };
 let current: Persona = SIGNED_OUT;
 let loading: Promise<void> | null = null;
 const ME_EVT = "adsnitch:me";
@@ -39,7 +40,7 @@ export function refreshMe(): Promise<void> {
     .then((d) => {
       const m = d?.me;
       current = m
-        ? { id: m.id, userId: m.id, name: m.name, email: m.email, role: m.role, label: ROLE_LABEL[m.role as Role] ?? m.role, avatarUrl: m.avatarUrl, bio: m.bio }
+        ? { id: m.id, userId: m.id, name: m.name, email: m.email, role: m.role, label: ROLE_LABEL[m.role as Role] ?? m.role, avatarUrl: m.avatarUrl, bio: m.bio, profileComplete: m.profileComplete !== false }
         : SIGNED_OUT;
     })
     .catch(() => {})

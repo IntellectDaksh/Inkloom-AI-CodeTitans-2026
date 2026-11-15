@@ -108,4 +108,4 @@ async function POST_handler(
   }
 }
 
-export const POST = withStore(POST_handler);
+export const POST = withStore(POST_handler, { name: "analyze", limit: [0, 200] });

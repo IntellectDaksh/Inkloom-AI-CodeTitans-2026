@@ -1,37 +1,80 @@
 import { NextResponse } from "next/server";
-import { flushToRemote, syncFromRemote } from "./store";
-import { supabaseServer } from "@/lib/auth/server";
+import { flushToRemote, runWithStore, StoreConflictError, syncFromRemote } from "./store";
+import { supabaseAdmin, supabaseServer } from "@/lib/auth/server";
+import { rateLimit } from "@/lib/rateLimit";
 
 type Handler<A extends unknown[]> = (...args: A) => Promise<Response> | Response;
 
+interface Opts {
+  /** Allow signed-out callers (they get seed data, never persisted). */
+  public?: boolean;
+  /** Per-hour request budget for this route: [signed-out, signed-in]. */
+  limit?: [number, number];
+  name?: string;
+}
+
+const MAX_ATTEMPTS = 3;
+
+/** Organisation id of the signed-in user, from public.profiles (service role, so RLS can't hide it). */
+async function orgOf(userId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin().from("profiles").select("organization_id").eq("id", userId).maybeSingle();
+  return (data?.organization_id as string) ?? null;
+}
+
 /**
- * Wraps an API route so it reads the latest state from Supabase before it runs
- * and saves any changes after. Without Supabase configured it is a no-op.
+ * Wraps an API route: authenticates, loads the caller's organisation document, runs the handler in an
+ * isolated per-request context, and saves with compare-and-swap. On a concurrent write the handler is
+ * re-run against fresh data (with a fresh copy of the request body) instead of overwriting the other save.
  */
-export function withStore<A extends unknown[]>(handler: Handler<A>, opts: { public?: boolean } = {}): Handler<A> {
+export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts = {}): Handler<A> {
   return async (...args: A) => {
-    // Every store route is signed-in only unless explicitly public (/api/check, /api/extract).
-    if (!opts.public) {
-      const { data: { user } } = await (await supabaseServer()).auth.getUser().catch(() => ({ data: { user: null } }));
-      if (!user) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
+    const { data: { user } } = await (await supabaseServer()).auth.getUser().catch(() => ({ data: { user: null } }));
+    if (!user && !opts.public) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
+
+    if (opts.limit) {
+      const req = args[0] as Request;
+      const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+      const key = `${opts.name ?? "api"}:${user ? `u:${user.id}` : `ip:${ip}`}`;
+      if (!(await rateLimit(key, user ? opts.limit[1] : opts.limit[0], 3600))) {
+        return NextResponse.json(
+          { success: false, error: user ? "Hourly limit reached. Try again later." : "Free check limit reached. Create a free account for more checks." },
+          { status: 429 },
+        );
+      }
     }
-    try {
-      await syncFromRemote();
-    } catch (err) {
-      return NextResponse.json(
-        { success: false, error: "The database is unreachable right now. Try again in a moment." , detail: (err as Error).message },
-        { status: 503 },
-      );
+
+    let orgId: string | null = null;
+    if (user) {
+      try {
+        orgId = await orgOf(user.id);
+      } catch {
+        return NextResponse.json({ success: false, error: "The database is unreachable right now. Try again in a moment." }, { status: 503 });
+      }
+      if (!orgId) return NextResponse.json({ success: false, error: "Your account has no workspace yet. Sign out and in again." }, { status: 403 });
     }
-    const res = await handler(...args);
-    try {
-      await flushToRemote();
-    } catch (err) {
-      return NextResponse.json(
-        { success: false, error: "Your change could not be saved. Try again.", detail: (err as Error).message },
-        { status: 503 },
-      );
+
+    const original = args[0] instanceof Request ? args[0] : null;
+    for (let attempt = 1; ; attempt++) {
+      const callArgs = (original ? [original.clone(), ...args.slice(1)] : args) as A;
+      const out = await runWithStore(async () => {
+        try {
+          await syncFromRemote(orgId);
+        } catch {
+          return NextResponse.json({ success: false, error: "The database is unreachable right now. Try again in a moment." }, { status: 503 });
+        }
+        const res = await handler(...callArgs);
+        try {
+          await flushToRemote();
+        } catch (err) {
+          if (err instanceof StoreConflictError) return "conflict" as const;
+          return NextResponse.json({ success: false, error: "Your change could not be saved. Try again." }, { status: 503 });
+        }
+        return res;
+      });
+      if (out !== "conflict") return out;
+      if (attempt >= MAX_ATTEMPTS) {
+        return NextResponse.json({ success: false, error: "Someone else saved at the same moment. Try again." }, { status: 409 });
+      }
     }
-    return res;
   };
 }

@@ -52,6 +52,21 @@ export default function TeamPage() {
   };
 
   const isAdmin = me?.role === "admin";
+  const [invEmail, setInvEmail] = useState("");
+  const [invRole, setInvRole] = useState<Role>("creator");
+  const [invState, setInvState] = useState<{ busy: boolean; msg: string | null; ok: boolean }>({ busy: false, msg: null, ok: false });
+  const invite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInvState({ busy: true, msg: null, ok: false });
+    try {
+      const r = await fetch("/api/team/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: invEmail, role: invRole }) });
+      const d = await r.json();
+      setInvState({ busy: false, ok: !!d.success, msg: d.success ? `Invite sent to ${invEmail}.` : d.error });
+      if (d.success) setInvEmail("");
+    } catch {
+      setInvState({ busy: false, ok: false, msg: "Could not send the invite. Try again." });
+    }
+  };
 
   return (
     <AppLayout title="Team">
@@ -100,7 +115,7 @@ export default function TeamPage() {
               })}
             </ul>
           )}
-          {!isAdmin && people && <p className="mt-3 text-[13px] text-text-muted">Only admins can change roles. New people join as Creators when they sign up.</p>}
+          {!isAdmin && people && <p className="mt-3 text-[13px] text-text-muted">Only admins can change roles. Admins invite people and pick their role.</p>}
         </section>
 
         <section aria-labelledby="roles-h" className="glass overflow-x-auto rounded-2xl p-5 sm:p-6">
@@ -132,7 +147,28 @@ export default function TeamPage() {
           </table>
         </section>
 
-        <p className="text-[13px] text-text-muted">To add a teammate, ask them to create an account. An admin can then set their role here.</p>
+        {isAdmin ? (
+          <section aria-labelledby="invite-h" className="glass rounded-2xl p-5 sm:p-6">
+            <h2 id="invite-h" className="text-base font-semibold text-text-primary">Invite a teammate</h2>
+            <p className="mt-1 text-[13px] text-text-muted">They get an email, set a password, and land in this workspace with the role you pick.</p>
+            <form onSubmit={invite} className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <label className="sr-only" htmlFor="inv-email">Email</label>
+              <input id="inv-email" type="email" required autoComplete="off" spellCheck={false} placeholder="name@company.com" value={invEmail} onChange={(e) => setInvEmail(e.target.value)}
+                className={`h-10 flex-1 rounded-lg border border-border-default px-3 text-sm text-text-primary ${focusRing}`} style={{ backgroundColor: "var(--color-canvas-elevated)" }} />
+              <label className="sr-only" htmlFor="inv-role">Role</label>
+              <select id="inv-role" value={invRole} onChange={(e) => setInvRole(e.target.value as Role)}
+                className={`h-10 rounded-lg border border-border-default px-3 text-sm text-text-primary ${focusRing}`} style={{ backgroundColor: "var(--color-canvas-elevated)", color: "var(--color-ink)" }}>
+                {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+              </select>
+              <button type="submit" disabled={invState.busy} className={`h-10 rounded-lg bg-ink px-4 text-sm font-medium text-canvas disabled:opacity-60 ${focusRing}`}>
+                {invState.busy ? "Sending…" : "Send invite"}
+              </button>
+            </form>
+            {invState.msg && <p role="status" aria-live="polite" className={`mt-3 text-[13px] ${invState.ok ? "text-status-success" : "text-status-red"}`}>{invState.msg}</p>}
+          </section>
+        ) : (
+          <p className="text-[13px] text-text-muted">To add a teammate, ask an admin to invite them from this page.</p>
+        )}
       </div>
     </AppLayout>
   );

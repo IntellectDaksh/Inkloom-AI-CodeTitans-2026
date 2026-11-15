@@ -26,4 +26,4 @@ async function POST_handler(req: NextRequest) {
   }
 }
 
-export const POST = withStore(POST_handler, { public: true });
+export const POST = withStore(POST_handler, { public: true, name: "check", limit: [10, 200] });

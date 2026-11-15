@@ -47,7 +47,7 @@ export default function NotificationsPage() {
     let alive = true;
     setNotes(null);
     setError(null);
-    fetch(`/api/notifications?userId=${encodeURIComponent(me.userId)}`, { cache: "no-store" })
+    fetch(`/api/notifications`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((d) => alive && setNotes(d.notifications ?? []))
       .catch((e) => alive && setError(e.message));

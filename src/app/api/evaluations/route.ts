@@ -15,4 +15,4 @@ async function GET_handler(req: Request) {
   }
 }
 
-export const GET = withStore(GET_handler);
+export const GET = withStore(GET_handler, { name: "eval", limit: [0, 10] });

@@ -76,6 +76,9 @@ export function VerdictBanner({
           <p className="mt-1.5 text-xs text-text-muted">Passes at {passScore}+, blocked below {blockBelow}</p>
         </div>
       </div>
+      <p className="mt-4 border-t border-border-subtle pt-3 text-xs text-text-muted">
+        Automated review aid, not legal advice. Checked against your workspace&rsquo;s claims and rules only. <a href="/terms" className="underline">Terms</a>
+      </p>
     </section>
   );
 }

@@ -304,7 +304,7 @@ export default function SettingsPage() {
                       { value: "strict", label: "Strict" },
                     ]}
                   />
-                  <Slider label="Pass score" min={50} max={95} value={prefs.passScore} hint="Ads scoring at or above this, with no open issues, are safe to publish." onChange={(v) => save({ passScore: Math.max(v, prefs.blockBelow + 1) })} />
+                  <Slider label="Pass score" min={50} max={95} value={prefs.passScore} hint="Ads scoring at or above this, with no open issues, pass the automated check." onChange={(v) => save({ passScore: Math.max(v, prefs.blockBelow + 1) })} />
                   <Slider label="Block below" min={20} max={60} value={prefs.blockBelow} hint="Ads scoring under this are blocked outright." onChange={(v) => save({ blockBelow: Math.min(v, prefs.passScore - 1) })} />
                   <Divided>
                     <Toggle label="Require a disclosure tag" hint="Ads without #ad or #sponsored need changes." checked={prefs.requireDisclosure} onChange={(v) => save({ requireDisclosure: v })} />

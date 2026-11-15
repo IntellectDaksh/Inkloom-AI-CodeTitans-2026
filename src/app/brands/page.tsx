@@ -82,7 +82,7 @@ export default function BrandsPage() {
             const rows = [
               { label: "Ads checked", value: c.ads, href: "/submissions", tip: "All ads submitted for this brand." },
               { label: "In review", value: c.review, href: "/submissions?status=under_review", tip: "Checked and waiting for a person to sign off." },
-              { label: "Approved", value: c.approved, href: "/submissions?status=approved", tip: "Signed off and safe to publish." },
+              { label: "Approved", value: c.approved, href: "/submissions?status=approved", tip: "Signed off by a reviewer in your team." },
               { label: "Claims", value: c.claims, href: "/knowledge-base/claims", tip: "Approved statements with proof, used to check this brand's ads." },
             ];
             return (
