@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { openFile, uploadFile } from "@/lib/files/store";
 import { AlertTriangle, BadgeCheck, ChevronRight, ExternalLink, Pencil, Plus, Search, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useWorkspaces } from "@/lib/workspaces/client";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { AddClaimsDialog, type NewClaimInput } from "@/components/knowledge/AddClaimsDialog";
@@ -87,7 +88,6 @@ function withRecords(list: Claim[], recs: ClaimRecord[]): Claim[] {
   });
 }
 
-const BRANDS: Brand[] = ["Apex Nutrition", "Zenith Cloud", "Lumina Skincare"];
 const DAY = 86_400_000;
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
@@ -178,6 +178,7 @@ function ClaimsLibrary() {
   const [editing, setEditing] = useState(false);
   const [review, setReview] = useState<{ busy: boolean; msg: string }>({ busy: false, msg: "" });
   const [brand, setBrand] = useState("all");
+  const workspaces = useWorkspaces();
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
   const [channel, setChannel] = useState("all");
@@ -244,7 +245,7 @@ function ClaimsLibrary() {
           body: JSON.stringify({
             claimText: c.text, category: c.type.toLowerCase(), status: "draft", expiresAt: c.expiresAt,
             permittedContext: c.channels.join(", ") || undefined, evidenceSource: c.evidence?.source, evidenceExcerpt: c.evidence?.excerpt,
-            brandId: Object.keys(BRAND_IDS).find((k) => BRAND_IDS[k] === c.brand) ?? c.brand,
+            brandId: workspaces.find((w) => w.name === c.brand)?.id ?? Object.keys(BRAND_IDS).find((k) => BRAND_IDS[k] === c.brand) ?? c.brand,
           }),
         });
         const data = await res.json();
@@ -345,7 +346,7 @@ function ClaimsLibrary() {
   }
 
   const needsReview = claims.filter((c) => !c.flaggedAt && c.usage.length > 0 && (c.edited || statusOf(c) === "expired"));
-  const allBrands = [...new Set([...BRANDS, ...claims.map((c) => c.brand)])];
+  const allBrands = [...new Set([...workspaces.map((w) => w.name), ...claims.map((c) => c.brand)])];
   const brandClaims = claims.filter((c) => brand === "all" || c.brand === brand);
   const types = [...new Set(claims.map((c) => c.type))].sort();
   const channels = [...new Set(claims.flatMap((c) => c.channels))].sort();

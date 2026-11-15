@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { useWorkspaces } from "@/lib/workspaces/client";
 import { BRANDS, ROLE_HELP, readPrefs, setPrefs, useMe, focusRing } from "@/components/guide/workspace";
 
 const STEPS = ["What it does", "Your setup", "Ready"];
@@ -13,6 +14,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [brand, setBrand] = useState<string>(BRANDS[0]);
   const me = useMe();
+  const workspaces = useWorkspaces();
+  const names: string[] = workspaces.length ? workspaces.map((w) => w.name) : [...BRANDS];
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -81,7 +84,7 @@ export default function OnboardingPage() {
                 <fieldset className="mt-6">
                   <legend className="text-sm font-medium">Brand</legend>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {BRANDS.map((b) => (
+                    {names.map((b) => (
                       <label key={b} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm has-[:checked]:border-ink/50 has-[:checked]:bg-panel has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ink/40 ${"border-border-default"}`}>
                         <input type="radio" name="brand" value={b} checked={brand === b} onChange={() => setBrand(b)} className="accent-current" />
                         {b}

@@ -307,6 +307,50 @@ export function compileGovernanceFindings(
   return compiled;
 }
 
+/**
+ * Safety net: a Stage 1 claim (numeric, guarantee, superlative, comparative) that neither the rules nor
+ * the model commented on, and that no approved claim covers, is still unsupported. Without this an LLM
+ * that skims a long document returns few findings and the copy scores ~100.
+ */
+export function addUncoveredClaims(
+  findings: GovernanceFinding[],
+  detected: DetectedClaim[],
+  approved: Array<{ claimText: string }>,
+  submissionId: string
+): void {
+  const covered = (l: string) =>
+    findings.some(f => {
+      const t = f.flaggedText?.toLowerCase();
+      return !!t && (t.includes(l) || l.includes(t));
+    });
+  const seen = new Set<string>();
+  let i = 0;
+  for (const c of detected) {
+    if (c.claimType === 'temporal') continue;
+    const key = c.text.toLowerCase();
+    if (seen.has(key) || covered(key) || approved.some(a => a.claimText.toLowerCase().includes(key))) continue;
+    seen.add(key);
+    findings.push({
+      id: `f_s1_${submissionId}_${i++}`,
+      submissionId,
+      stage: 'stage_4_llm',
+      category: 'unsupported_claim',
+      severity: c.claimType === 'guarantee' || c.claimType === 'numeric' ? 'high' : 'medium',
+      confidence: 'medium',
+      flaggedText: c.text,
+      startIndex: c.startIndex,
+      endIndex: c.endIndex,
+      explanation: `"${c.text}" is a ${c.claimType} claim with no approved record in this brand's claims library.`,
+      evidenceRecords: [],
+      citedEvidenceIds: [],
+      citedExcerpt: undefined,
+      isVerified: false,
+      unverified: true,
+      suggestedCorrection: `Add "${c.text}" to the claims library with evidence, or remove it.`,
+    });
+  }
+}
+
 // ============================================================================
 // Stage 6: Generate Review Summary
 // ============================================================================
@@ -327,7 +371,11 @@ export function computeScoreBreakdown(findings: GovernanceFinding[], modelScore:
     { key: 'disclosure', label: 'Required disclosures', weight: 0.15, score: clamp(100 - disclosures * 25), detail: disclosures ? `${disclosures} missing disclosure(s), 25 points each` : 'All required disclosures present' },
     { key: 'model', label: 'Contextual model review', weight: 0.25, score: clamp(modelScore), detail: 'Stage 4 score' },
   ];
-  return { final: clamp(factors.reduce((n, f) => n + f.score * f.weight, 0)), factors };
+  // Hard caps keep the number honest with the status: a weighted average alone let one critical
+  // finding (e.g. a pitch deck submitted as a reel) still land at 80+.
+  const has = (s: FindingSeverity) => findings.some(f => f.severity === s && !f.isVerified);
+  const cap = has('critical') ? 40 : has('high') ? 75 : unsupported >= 3 ? 65 : unsupported > 0 ? 85 : 100;
+  return { final: Math.min(cap, clamp(factors.reduce((n, f) => n + f.score * f.weight, 0))), factors };
 }
 
 export function generateReviewSummary(
@@ -535,6 +583,7 @@ export async function runGovernancePipeline(
     geminiResult,
     scopedKnowledge.relevantEvidence
   );
+  addUncoveredClaims(findings, segmentationResult.detectedClaims, scopedKnowledge.matchedApprovedClaims, submissionId);
   const stage5FindingsCompilationMs = performance.now() - stage5Start;
 
   // --------------------------------------------------------------------------

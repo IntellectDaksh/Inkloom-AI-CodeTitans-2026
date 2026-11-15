@@ -191,7 +191,6 @@ export default function DashboardPage() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [listTab, setListTab] = useState<"attention" | "recent">("attention");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [hour, setHour] = useState<number | null>(null);
@@ -246,7 +245,8 @@ export default function DashboardPage() {
   const scored = brandSubs.filter((s) => s.score !== null);
   const avgScore = scored.length ? Math.round(scored.reduce((n, s) => n + (s.score ?? 0), 0) / scored.length) : null;
 
-  const attention = brandSubs.filter((s) => s.status !== "approved").slice(0, 5);
+  const attentionAll = brandSubs.filter((s) => s.status !== "approved");
+  const attention = attentionAll.slice(0, 5);
   const q = searchQuery.trim().toLowerCase();
   const recent = brandSubs.filter(
     (s) => (filterStatus === "all" || s.status === filterStatus) && [s.title, s.author, s.channel].some((v) => v.toLowerCase().includes(q))
@@ -394,32 +394,13 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
           ))}
         </section>
 
-        <StartHere />
-
-        <div className="glass rounded-2xl p-1.5 sm:inline-flex" role="tablist" aria-label="Reviews">
-          {([
-            ["attention", `Needs attention${attention.length ? ` (${attention.length})` : ""}`],
-            ["recent", "All recent"],
-          ] as const).map(([id, label]) => (
-            <button
-              key={id}
-              role="tab"
-              aria-selected={listTab === id}
-              onClick={() => setListTab(id)}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${focusRing} ${
-                listTab === id ? "bg-text-primary text-white" : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {listTab === "attention" ? (
         <section aria-labelledby="attention-h" className="glass rounded-2xl p-5 sm:p-6">
           <div className="mb-4 flex items-baseline justify-between gap-4">
-            <h2 id="attention-h" className="flex items-center gap-1 text-base font-semibold text-text-primary">
+            <h2 id="attention-h" className="flex items-center gap-2 text-base font-semibold text-text-primary">
               Needs attention
+              {submissions !== null && (
+                <span className="rounded-full bg-panel-hover px-2 py-0.5 text-xs font-medium tabular-nums text-text-secondary">{attentionAll.length}</span>
+              )}
               <InfoTip label="needs attention">Ads that are in review or were sent back for changes. Approved ads drop off this list.</InfoTip>
             </h2>
             <Link href="/approvals" className={`rounded text-[13px] text-text-muted hover:text-text-primary ${focusRing}`}>Open approvals</Link>
@@ -429,16 +410,28 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
               {[0, 1, 2].map((i) => <li key={i} className="h-14 animate-pulse rounded-xl bg-panel-hover" />)}
             </ul>
           ) : attention.length ? (
-            <ul className="-mx-3 space-y-1">{attention.map((s) => <SubmissionRow key={s.id} sub={s} />)}</ul>
+            <>
+              <ul className="-mx-3 space-y-1">{attention.map((s) => <SubmissionRow key={s.id} sub={s} />)}</ul>
+              {attentionAll.length > attention.length && (
+                <div className="mt-4 border-t border-border-subtle pt-4">
+                  <Link href="/submissions" className={`rounded text-[13px] font-medium text-text-primary underline-offset-4 hover:underline ${focusRing}`}>
+                    View all {attentionAll.length}
+                  </Link>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="py-10 text-center">
+            <div className="py-8 text-center">
               <p className="text-sm font-medium text-text-primary">You&rsquo;re all caught up</p>
-              <p className="mt-1 text-[13px] text-text-muted">Nothing is waiting for {prefs.brand}. Check a new ad when you have one.</p>
+              <p className="mt-1 text-[13px] text-text-muted">
+                {brandSubs.length ? `Nothing is waiting for ${prefs.brand}.` : "Ads you check will show up here until a reviewer signs them off."}
+              </p>
             </div>
           )}
         </section>
 
-        ) : (
+        <StartHere />
+
         <section data-tour="recent" aria-labelledby="recent-h" className="glass rounded-2xl p-5 sm:p-6">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 id="recent-h" className="text-base font-semibold text-text-primary">Recent activity</h2>
@@ -495,7 +488,6 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
             <Link href="/submissions" className={`rounded text-[13px] font-medium text-text-primary underline-offset-4 hover:underline ${focusRing}`}>View all reviews</Link>
           </div>
         </section>
-        )}
       </div>
     </AppLayout>
   );

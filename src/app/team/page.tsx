@@ -9,11 +9,13 @@ import { useMe, refreshMe, ROLE_HELP, ROLE_LABEL, focusRing, type Role } from "@
 interface Profile { id: string; email: string | null; full_name: string; bio: string; avatar_url: string | null; role: Role }
 const ROLES: Role[] = ["admin", "brand_manager", "reviewer", "creator"];
 
+const TABLE_ROLES: Role[] = ["creator", "reviewer", "brand_manager", "admin"];
 const ABILITIES: { label: string; roles: Role[] }[] = [
-  { label: "Check an ad and see every flagged line", roles: ["creator", "reviewer", "admin"] },
-  { label: "Send an ad for approval", roles: ["creator", "reviewer", "admin"] },
-  { label: "Approve an ad written by someone else", roles: ["reviewer", "admin"] },
-  { label: "Request changes with a note to the author", roles: ["reviewer", "admin"] },
+  { label: "Check an ad and see every flagged line", roles: ["creator", "reviewer", "brand_manager", "admin"] },
+  { label: "Send an ad for approval", roles: ["creator", "reviewer", "brand_manager", "admin"] },
+  { label: "Approve an ad written by someone else", roles: ["reviewer", "brand_manager", "admin"] },
+  { label: "Request changes with a note to the author", roles: ["reviewer", "brand_manager", "admin"] },
+  { label: "Override a single flagged issue, with a reason", roles: ["brand_manager", "admin"] },
   { label: "Override a decision, with a written reason", roles: ["admin"] },
   { label: "Approve their own ad", roles: [] },
 ];
@@ -104,12 +106,12 @@ export default function TeamPage() {
         <section aria-labelledby="roles-h" className="glass overflow-x-auto rounded-2xl p-5 sm:p-6">
           <h2 id="roles-h" className="text-base font-semibold text-text-primary">What each role can do</h2>
           <p className="mt-1 text-[13px] text-text-muted">Approvals checks these rules: if your role cannot take an action, it tells you why.</p>
-          <table className="mt-4 w-full min-w-[480px] text-left text-sm">
+          <table className="mt-4 w-full min-w-[560px] text-left text-sm">
             <thead>
               <tr className="border-b border-border-subtle text-[13px] text-text-muted">
                 <th scope="col" className="py-2 pr-4 font-normal">Action</th>
-                {(["creator", "reviewer", "admin"] as Role[]).map((r) => (
-                  <th key={r} scope="col" className="px-2 py-2 text-center font-normal capitalize">{r}</th>
+                {TABLE_ROLES.map((r) => (
+                  <th key={r} scope="col" className="px-2 py-2 text-center font-normal">{ROLE_LABEL[r]}</th>
                 ))}
               </tr>
             </thead>
@@ -117,7 +119,7 @@ export default function TeamPage() {
               {ABILITIES.map((a) => (
                 <tr key={a.label} className="border-b border-border-subtle last:border-0">
                   <th scope="row" className="py-3 pr-4 font-normal text-text-primary">{a.label}</th>
-                  {(["creator", "reviewer", "admin"] as Role[]).map((r) => (
+                  {TABLE_ROLES.map((r) => (
                     <td key={r} className="px-2 py-3 text-center">
                       {a.roles.includes(r)
                         ? <Check className="mx-auto h-4 w-4 text-status-success" aria-label="Yes" />

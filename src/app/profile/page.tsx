@@ -126,23 +126,6 @@ export default function ProfilePage() {
     else say("email", true, `Confirm the change from the link sent to ${email}.`);
   }
 
-  async function changePassword(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = new FormData(form);
-    const password = String(f.get("password") ?? "");
-    if (password.length < 8) return say("password", false, "Use at least 8 characters.");
-    if (password !== String(f.get("confirm") ?? "")) return say("password", false, "The two passwords don’t match.");
-    setBusy("password");
-    const { error } = await supabaseBrowser().auth.updateUser({ password });
-    setBusy(null);
-    if (error) say("password", false, error.message);
-    else {
-      form.reset();
-      say("password", true, "Password changed.");
-    }
-  }
-
   async function signOutEverywhere() {
     setBusy("signout");
     await supabaseBrowser().auth.signOut({ scope: "global" });
@@ -215,16 +198,6 @@ export default function ProfilePage() {
                 </label>
                 <Msg m={msg.email ?? null} />
                 <button type="submit" disabled={busy === "email"} className={secondary}>Change email</button>
-              </form>
-              <form onSubmit={changePassword} className="space-y-3">
-                <label className="block text-sm text-text-primary">New password
-                  <input name="password" type="password" required minLength={8} autoComplete="new-password" className={`mt-1 ${input}`} />
-                </label>
-                <label className="block text-sm text-text-primary">Confirm new password
-                  <input name="confirm" type="password" required minLength={8} autoComplete="new-password" className={`mt-1 ${input}`} />
-                </label>
-                <Msg m={msg.password ?? null} />
-                <button type="submit" disabled={busy === "password"} className={secondary}>Change password</button>
               </form>
               <div className="flex flex-wrap gap-2 border-t border-border-subtle pt-5">
                 <button type="button" onClick={signOutEverywhere} disabled={busy === "signout"} className={secondary}>Sign out on all devices</button>

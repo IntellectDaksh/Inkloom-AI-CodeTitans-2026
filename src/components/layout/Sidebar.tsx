@@ -3,7 +3,8 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, PanelLeftClose, PanelLeft, X } from "lucide-react";
+import { LogoMark } from "@/components/landing/LogoMark";
+import { PanelLeftClose, PanelLeft, X } from "lucide-react";
 import { NAV, isActive } from "../guide/nav";
 import { usePrefs, useWorkspaceCounts, focusRing, personaOf } from "../guide/workspace";
 
@@ -83,9 +84,7 @@ function NavList({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
 function Logo({ onClick }: { onClick?: () => void }) {
   return (
     <Link href="/dashboard" onClick={onClick} className={`flex min-h-10 items-center gap-2.5 rounded-lg ${focusRing}`}>
-      <span className="app-brand-mark h-7 w-7">
-        <ShieldCheck className="h-4 w-4 text-ice" aria-hidden="true" />
-      </span>
+      <LogoMark size={26} className="shrink-0 text-text-primary" />
       <span className="text-base font-semibold tracking-tight text-text-primary" translate="no">AdSnitch</span>
     </Link>
   );

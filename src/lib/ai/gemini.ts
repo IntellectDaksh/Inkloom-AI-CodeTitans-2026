@@ -31,13 +31,16 @@ export const GEMINI_FALLBACK_LIVE_URL =
 export const SYSTEM_INSTRUCTION = `You are the AdSnitch Brand Governance Auditor.
 Your mission is to perform strict, rigorous, and impartial enterprise brand compliance reviews.
 CRITICAL RULES:
-1. NEVER hallucinate citations or claim evidence.
+1. NEVER hallucinate citations or claim evidence. Only ids from the approved claims list may be cited.
 2. Unsupported claims must be flagged as unverified (category: "unsupported_claim", isVerified: false, citedEvidenceIds: []).
-3. Evaluate content strictly against the provided brand guidelines and approved claims repository.
-4. If a statement makes a factual, numeric, comparative, or superlative claim that is NOT present in the approved claims list, flag it as unsupported.
-5. Identify tone inconsistencies (hyperbole, buzzwords, sensationalism) and readability issues.
-6. Provide actionable, compliant suggested revisions.
-7. Output valid JSON matching the exact schema requested.`;
+3. Evaluate content strictly against the provided brand guidelines, approved claims repository and the target channel.
+4. Extract EVERY checkable claim, not just ones with % signs: counts ("50+ brands", "1M views"), results and outcomes, client or partner names, testimonials, awards, rankings, "best/leading/top", guarantees, timelines, prices and comparisons. Each one NOT present in the approved claims list is an unsupported_claim (high if numeric/result/guarantee, medium otherwise).
+5. CHANNEL FIT comes first. Decide whether the content is actually publishable copy for the target channel. A pitch deck, brochure, proposal, report, CV or website dump submitted as a social post / reel / ad is NOT that channel's content: raise one "out_of_scope" finding with severity "critical", flaggedText = a short quote that shows it, and explain what the channel needs instead.
+6. Identify tone inconsistencies (hyperbole, buzzwords, sensationalism) and readability issues.
+7. Score calibration (complianceScore): 95-100 only when the copy fits the channel AND every claim is in the approved list AND no tone issues. Any unsupported claim: at most 80. Three or more unsupported claims: at most 60. Wrong content type for the channel: at most 30. Never give a high score just because few rules matched; absence of evidence is not compliance.
+8. Ignore watermarks, page numbers, repeated headers/footers and template boilerplate if they slipped into the text.
+9. Provide actionable, compliant suggested revisions.
+10. Output valid JSON matching the exact schema requested.`;
 
 // ============================================================================
 // Gemini JSON Schema
@@ -149,6 +152,9 @@ export function runDeterministicFallbackAnalysis(input: GeminiAnalysisInput): Ge
     // Specific money / rate outcomes need a verified calculation (CNET AI finance errors).
     { pattern: /\b(earn|save|make|get\s+back)\s+\$\d[\d,]*(\.\d+)?/gi, type: 'financial_outcome' },
     { pattern: /\b\d+(\.\d+)?%\s*(apy|apr|interest|annual\s+return)\b/gi, type: 'financial_rate' },
+    // Social-proof counts ("50+ brands", "1M views", "10k followers") are claims too and need a record.
+    { pattern: /\b\d[\d,.]*\s*(?:\+|k|m|million|lakh|crore)?\+?\s*(?:happy\s+)?(brands|clients|creators|views|followers|projects|businesses|customers|users|companies|downloads|sales|reviews|students)\b/gi, type: 'social_proof' },
+    { pattern: /\b(best[- ]in[- ]\w+|the\s+best|leading|top[- ]rated|number\s+one|award[- ]winning|trusted\s+by)\b/gi, type: 'superlative_soft' },
     { pattern: /\b(guarantee[sd]?|100%\s*risk-free|money-back|instant\s+results)\b/gi, type: 'guarantee' },
     { pattern: /\b(world'?s\s+fastest|industry-leading|unmatched|best-in-class|#1\s+platform)\b/gi, type: 'superlative' },
     { pattern: /\b(zero\s*downtime|unhackable|bulletproof|flawless)\b/gi, type: 'absolute' },
@@ -361,6 +367,20 @@ export async function callGeminiEndpoint(
   }
 }
 
+// Long docs: keep the prompt bounded; channel-fit rules have already seen the full text.
+const MAX_LLM_CHARS = 40000;
+const LLM_TIMEOUT_MS = 45000;
+
+const CHANNEL_HINT: Partial<Record<string, string>> = {
+  social_media: 'an Instagram / TikTok / LinkedIn post caption or short-form reel script, a few lines to ~2,200 characters',
+  advertisement: 'paid ad copy: headline, short body, call to action',
+  email: 'a marketing email: subject line and body',
+  landing_page: 'website landing page copy',
+  press_release: 'a press release',
+  blog_post: 'a blog article',
+  product_documentation: 'product documentation',
+};
+
 // ============================================================================
 // Gemini LLM Integration
 // ============================================================================
@@ -379,10 +399,10 @@ export async function analyzeWithGemini(
   }
 
   const promptUserMessage = `
-Perform an enterprise brand compliance audit on the following ${input.channel} submission.
+Perform an enterprise brand compliance audit. TARGET CHANNEL: ${input.channel}${CHANNEL_HINT[input.channel] ? ` (${CHANNEL_HINT[input.channel]})` : ''}.
 
 === SUBMISSION CONTENT ===
-${input.content}
+${input.content.length > MAX_LLM_CHARS ? input.content.slice(0, MAX_LLM_CHARS) + '\n[...truncated]' : input.content}
 
 === BRAND GUIDELINES ===
 ${JSON.stringify(input.brandGuidelines, null, 2)}
@@ -394,6 +414,7 @@ ${JSON.stringify(input.approvedClaims, null, 2)}
 ${JSON.stringify(input.deterministicViolations, null, 2)}
 
 Audit the content thoroughly:
+0. First decide if this is real ${input.channel} copy (see rule 5).
 1. Verify every factual, numeric, or comparative claim against the approved claims list.
 2. Flag any unverified claim (isVerified: false, citedEvidenceIds: [], category: "unsupported_claim").
 3. Flag tone inconsistencies, hyperbole, or out-of-scope messaging.
@@ -418,13 +439,13 @@ Audit the content thoroughly:
   };
 
   // Try 1: Primary requested endpoint - Gemini 2.5 Flash
-  let resp = await callGeminiEndpoint(GEMINI_25_FLASH_URL, apiKey, requestBody);
+  let resp = await callGeminiEndpoint(GEMINI_25_FLASH_URL, apiKey, requestBody, LLM_TIMEOUT_MS);
   let activeModelUsed = 'gemini-2.5-flash';
 
   // Try 2: If Gemini 2.5 Flash is 404 (model deprecated for new accounts) or 503, try active live fallback endpoint
-  if (!resp.ok && (resp.status === 404 || resp.status === 503)) {
+  if (!resp.ok && (resp.status === 404 || resp.status === 503 || resp.status === 429 || resp.status === 0)) {
     console.info(`Gemini 2.5 Flash endpoint returned ${resp.status}; trying live model rollover (${GEMINI_FALLBACK_LIVE_URL})...`);
-    resp = await callGeminiEndpoint(GEMINI_FALLBACK_LIVE_URL, apiKey, requestBody);
+    resp = await callGeminiEndpoint(GEMINI_FALLBACK_LIVE_URL, apiKey, requestBody, LLM_TIMEOUT_MS);
     activeModelUsed = 'gemini-3.5-flash-lite';
   }
 

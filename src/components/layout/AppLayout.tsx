@@ -7,6 +7,7 @@ import { CommandK } from "../ui/CommandK";
 import { PageMotion } from "./Motion";
 import { FloatingLayer } from "./FloatingLayer";
 import { WorkspacePicker } from "../guide/WorkspacePicker";
+import { DemoOverlay } from "../tour/DemoOverlay";
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -27,7 +28,7 @@ export function AppLayout({
   breadcrumbs,
   currentBrand = "Apex Nutrition",
   onBrandChange,
-  unreadNotifications = 2,
+  unreadNotifications = 0,
   fullWidth = false,
   className = "",
 }: AppLayoutProps) {
@@ -67,6 +68,7 @@ export function AppLayout({
 
       <FloatingLayer density="app" />
       <WorkspacePicker />
+      <DemoOverlay />
 
       {/* Global CommandK Quick Switcher Dialog */}
       <CommandK

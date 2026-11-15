@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import "./landing.css";
 import { FloatingLayer } from "@/components/layout/FloatingLayer";
 import { SkyClouds } from "@/components/landing/SkyClouds";
 import { HeroCharacter } from "@/components/landing/HeroCharacter";
+import { LogoMark } from "@/components/landing/LogoMark";
+import { supabaseBrowser } from "@/lib/auth/client";
 
 type IconName =
   | "shield"
@@ -365,11 +367,71 @@ type OwnResult = {
 function Logo() {
   return (
     <a className="brand" href="#top" aria-label="AdSnitch home">
-      <span className="brand-mark">
-        <Icon name="shield" size={19} />
-      </span>
-      <span>AdSnitch</span>
+      <LogoMark size={28} className="brand-logo" />
+      <span translate="no">AdSnitch</span>
     </a>
+  );
+}
+
+function AuthMenu({ signedIn, onNavigate }: { signedIn: boolean; onNavigate?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    rootRef.current?.querySelector<HTMLAnchorElement>("a")?.focus();
+    const onDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  if (signedIn) {
+    return (
+      <a className="nav-auth" href="/dashboard" onClick={onNavigate}>
+        Open app <Icon name="arrow" size={14} />
+      </a>
+    );
+  }
+
+  return (
+    <div className="auth-menu" ref={rootRef}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="nav-auth"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((v) => !v)}
+      >
+        Sign in / Sign up
+      </button>
+      {open && (
+        <div className="auth-pop" id={menuId}>
+          <a href="/auth/login" onClick={onNavigate}>
+            <b>Sign in</b>
+            <small>Pick up where you left off</small>
+          </a>
+          <a href="/auth/register" onClick={onNavigate}>
+            <b>Create account</b>
+            <small>Set up your brand workspace</small>
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -444,6 +506,22 @@ function Contours() {
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    try {
+      supabaseBrowser()
+        .auth.getSession()
+        .then(({ data }) => alive && setSignedIn(Boolean(data.session)))
+        .catch(() => {});
+    } catch {
+      // Supabase env missing: stay signed-out, the auth pages surface the real error.
+    }
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [activeScenario, setActiveScenario] = useState(0);
   const [showFix, setShowFix] = useState(false);
   const [activeStage, setActiveStage] = useState(0);
@@ -540,25 +618,19 @@ export default function Home() {
         <nav className="nav-inner" aria-label="Primary navigation">
           <Logo />
           <div className="nav-center">
-            <a href="#problem">Problem</a>
             <a href="#live-check">Live check</a>
             <a href="#pipeline">How it works</a>
             <a href="#proof">Proof</a>
-            <a href="#faq">FAQ</a>
-            <a href="/knowledge-base/claims">Claims Library</a>
+            <a href="/knowledge-base/claims">Claims library</a>
           </div>
           <div className="nav-end">
-            <a className="nav-signin" href="/auth/login">
-              Sign In
-            </a>
-            <a className="nav-launch" href="/dashboard?workspace=pick">
-              Launch App <Icon name="arrow" size={14} />
-            </a>
+            <AuthMenu signedIn={signedIn} />
           </div>
           <button
             className="nav-menu"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle navigation"
+            aria-expanded={menuOpen}
           >
             <Icon name={menuOpen ? "close" : "menu"} size={20} />
           </button>
@@ -571,14 +643,13 @@ export default function Home() {
               ["How it works", "#pipeline"],
               ["Proof", "#proof"],
               ["FAQ", "#faq"],
-              ["Claims Library", "/knowledge-base/claims"],
-              ["Sign In", "/auth/login"],
-              ["Launch App", "/dashboard?workspace=pick"],
+              ["Claims library", "/knowledge-base/claims"],
             ].map(([label, href]) => (
               <a key={label} href={href} onClick={() => setMenuOpen(false)}>
                 {label} <Icon name="arrow" size={15} />
               </a>
             ))}
+            <AuthMenu signedIn={signedIn} onNavigate={() => setMenuOpen(false)} />
           </div>
         )}
       </header>

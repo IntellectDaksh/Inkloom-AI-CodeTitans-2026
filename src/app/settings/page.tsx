@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Bell, Bot, Check, Database, Gauge, Palette, Pencil, Upload, Users, Briefcase, Download, RotateCcw, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Slider, Toggle, Segmented } from "@/components/settings/controls";
 import {
@@ -43,7 +44,7 @@ const btn = `inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg borde
 
 function Panel({ id, title, desc, children }: { id: string; title: string; desc: string; children: React.ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-t`} className="glass scroll-mt-24 rounded-2xl p-6">
+    <section id={`panel-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} tabIndex={0} className={`glass rounded-2xl p-6 ${focusRing}`}>
       <h2 id={`${id}-t`} className="font-display text-xl font-semibold tracking-tight text-text-primary">
         {title}
       </h2>
@@ -76,21 +77,33 @@ export default function SettingsPage() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Highlight the section nearest the top while scrolling.
+  // Selected tab lives in ?tab= so refresh and back/forward restore it.
   useEffect(() => {
-    const io = new IntersectionObserver(
-      (es) => {
-        const vis = es.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (vis[0]) setActive(vis[0].target.id);
-      },
-      { rootMargin: "-80px 0px -60% 0px" },
-    );
-    SECTIONS.forEach((s) => {
-      const el = document.getElementById(s.id);
-      if (el) io.observe(el);
-    });
-    return () => io.disconnect();
+    const sync = () => {
+      const t = new URLSearchParams(window.location.search).get("tab");
+      setActive(SECTIONS.some((s) => s.id === t) ? t! : "workspace");
+    };
+    sync();
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
   }, []);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const selectTab = (id: string, focus = false) => {
+    if (focus) tabRefs.current[id]?.focus();
+    if (id === active) return;
+    setActive(id);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", id);
+    window.history.pushState(null, "", url);
+  };
+  const onTabKey = (e: React.KeyboardEvent) => {
+    const i = SECTIONS.findIndex((s) => s.id === active);
+    const n = SECTIONS.length;
+    const to = { ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: n - 1 }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    selectTab(SECTIONS[(to + n) % n].id, true);
+  };
 
   const current = workspaces.find((w) => w.name === prefs.brand) ?? workspaces[0];
   const [edit, setEdit] = useState(false);
@@ -174,30 +187,39 @@ export default function SettingsPage() {
         <header className="mb-8">
           <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">Settings</h1>
           <p className="mt-1 max-w-2xl text-sm text-text-secondary">
-            Changes save as soon as you make them. They're kept in this browser until accounts are connected.
+            Changes save as soon as you make them. They're saved in this browser.
           </p>
         </header>
 
-        <div className="grid gap-8 lg:grid-cols-[200px_1fr]">
-          <nav aria-label="Settings sections" className="hidden lg:block">
-            <ul className="sticky top-24 space-y-1">
-              {SECTIONS.map(({ id, label, icon: Icon }) => (
-                <li key={id}>
-                  <a
-                    href={`#${id}`}
-                    aria-current={active === id ? "true" : undefined}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      active === id ? "bg-ink font-medium text-white" : "text-text-secondary hover:bg-panel-hover hover:text-text-primary"
+        <div className="grid gap-6 lg:grid-cols-[200px_1fr] lg:gap-8">
+          <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
+            <div role="tablist" aria-label="Settings sections" aria-orientation="vertical" onKeyDown={onTabKey} className="flex gap-1 lg:sticky lg:top-24 lg:flex-col">
+              {SECTIONS.map(({ id, label, icon: Icon }) => {
+                const on = active === id;
+                return (
+                  <button
+                    key={id}
+                    ref={(el) => { tabRefs.current[id] = el; }}
+                    id={`tab-${id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={on}
+                    aria-controls={`panel-${id}`}
+                    tabIndex={on ? 0 : -1}
+                    onClick={() => selectTab(id)}
+                    className={`flex shrink-0 cursor-pointer items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      on ? "bg-ink font-medium text-white" : "text-text-secondary hover:bg-panel-hover hover:text-text-primary"
                     } ${focusRing}`}
                   >
                     <Icon className="h-4 w-4" aria-hidden /> {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="min-w-0 space-y-6">
+            {active === "workspace" && (
             <Panel id="workspace" title="Workspace" desc="The brand you're reviewing ads for. Each workspace has its own claims and guidelines.">
               {!current ? (
                 <p className="text-sm text-text-muted">Loading workspace…</p>
@@ -266,7 +288,9 @@ export default function SettingsPage() {
               )}
               {current && !current.custom && <p className="text-[13px] text-text-muted">Built-in workspaces can't be edited. Create your own from Switch workspace.</p>}
             </Panel>
+            )}
 
+            {active === "review" && (
             <Panel id="review" title="Review strictness" desc="Decides when an ad counts as safe, needs changes, or is blocked. Applied on every result page.">
               <div className="grid gap-8 xl:grid-cols-[1fr_280px]">
                 <div className="space-y-6">
@@ -304,13 +328,17 @@ export default function SettingsPage() {
                 </aside>
               </div>
             </Panel>
+            )}
 
+            {active === "ai" && (
             <Panel id="ai" title="AI" desc="How the assistant reads your ads and files.">
               <Divided>
                 <Toggle label="Read PDFs and images (OCR)" hint="When off, PDF and image uploads are skipped with a message. Text and Word files still work." checked={prefs.ocr} onChange={(v) => save({ ocr: v })} />
               </Divided>
             </Panel>
+            )}
 
+            {active === "appearance" && (
             <Panel id="appearance" title="Appearance" desc="Applies across the whole app on this device.">
               <Segmented label="Motion" value={prefs.motion} onChange={(v) => save({ motion: v })} options={[{ value: "full", label: "Full" }, { value: "reduced", label: "Reduced" }, { value: "off", label: "Off" }]} />
               <Segmented label="Density" value={prefs.density} onChange={(v) => save({ density: v })} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />
@@ -319,13 +347,17 @@ export default function SettingsPage() {
                 <Toggle label="Breathing background" hint={prefs.motion === "full" ? "The soft moving glow behind every page." : "Turn Motion back to Full to use this."} checked={prefs.breathing} disabled={prefs.motion !== "full"} onChange={(v) => save({ breathing: v })} />
               </Divided>
             </Panel>
+            )}
 
+            {active === "notifications" && (
             <Panel id="notifications" title="Notifications" desc="How you hear about approvals and requested changes.">
               <Divided>
                 <Toggle label="In-app" hint="Shows the unread dot on the bell in the header." checked={prefs.notifyInApp} onChange={(v) => save({ notifyInApp: v })} />
               </Divided>
             </Panel>
+            )}
 
+            {active === "team" && (
             <Panel id="team" title="Team & roles" desc="Pick who you're acting as. This changes what you can approve.">
               <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Current person">
                 {PERSONAS.map((p) => {
@@ -341,8 +373,13 @@ export default function SettingsPage() {
                   );
                 })}
               </div>
+              <p className="text-[13px] text-text-muted">
+                This previews the app as each role. Real roles for your account are set by an admin on <Link href="/team" className={`rounded underline underline-offset-4 ${focusRing}`}>Team</Link>.
+              </p>
             </Panel>
+            )}
 
+            {active === "data" && (
             <Panel id="data" title="Data" desc="Everything here lives in this browser. Move it, back it up, or start over.">
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={btn} onClick={exportAll}>
@@ -361,6 +398,7 @@ export default function SettingsPage() {
               </div>
               <p aria-live="polite" className="text-sm text-text-secondary">{ioMsg}</p>
             </Panel>
+            )}
           </div>
         </div>
       </div>

@@ -495,6 +495,55 @@ export function checkChannelDisclosures(content: string, channel: ContentChannel
   return out;
 }
 
+/**
+ * 6. Channel fit. A pitch deck, brochure or report pasted in as an Instagram reel or ad is not
+ * publishable copy for that channel, whatever its wording. Without this, long non-ad documents that
+ * happen to dodge every claim regex score near 100.
+ */
+const CHANNEL_MAX_CHARS: Partial<Record<ContentChannel, { max: number; label: string }>> = {
+  social_media: { max: 2200, label: 'Instagram / social captions cap at 2,200 characters' },
+  advertisement: { max: 1500, label: 'Ad copy (headline + body + CTA) rarely runs past 1,500 characters' },
+  email: { max: 12000, label: 'Marketing emails past ~12,000 characters get clipped by Gmail' },
+};
+// ponytail: keyword heuristic for "this is a deck/document, not ad copy"; Stage 4 LLM makes the real call.
+const DOCUMENT_SIGNALS =
+  /\b(table of contents|agenda|about us|our team|meet the team|our services|case stud(y|ies)|our clients|our process|pricing|packages|investors?|pitch deck|thank you|contact us|portfolio|mission|vision|roadmap|slide \d+|appendix|executive summary)\b/gi;
+
+export function checkChannelFit(content: string, channel: ContentChannel): RuleViolation[] {
+  const out: RuleViolation[] = [];
+  const len = content.trim().length;
+  const signals = new Set((content.match(DOCUMENT_SIGNALS) || []).map(s => s.toLowerCase()));
+  const shortForm = channel === 'social_media' || channel === 'advertisement';
+  const limit = CHANNEL_MAX_CHARS[channel];
+
+  if (shortForm && signals.size >= 3 && len > 800) {
+    out.push({
+      id: 'fit_document_on_short_channel',
+      ruleId: 'fit_document_type',
+      ruleType: 'out_of_scope_claim',
+      category: 'out_of_scope',
+      severity: 'critical',
+      matchedText: '',
+      message: `This reads like a pitch deck or company document (${[...signals].slice(0, 4).join(', ')}), not ${channel === 'social_media' ? 'a social post or reel script' : 'ad copy'}. It cannot be approved for this channel as-is.`,
+      suggestedReplacement: 'Write the actual caption / script / ad copy for this channel and check that instead.',
+      metadata: { targetChannel: channel, signals: [...signals] },
+    });
+  } else if (limit && len > limit.max) {
+    out.push({
+      id: 'fit_length',
+      ruleId: 'fit_length',
+      ruleType: 'out_of_scope_claim',
+      category: 'out_of_scope',
+      severity: 'high',
+      matchedText: '',
+      message: `${limit.label}; this is ${len.toLocaleString('en-US')}. Trim it to what will actually be published.`,
+      suggestedReplacement: 'Cut to the copy that will actually run on this channel.',
+      metadata: { targetChannel: channel, chars: len },
+    });
+  }
+  return out;
+}
+
 // ============================================================================
 // Main Stage 2 Deterministic Rule Runner
 // ============================================================================
@@ -528,6 +577,9 @@ export function runDeterministicRuleChecks(
 
   // 5. Regulatory (FTC endorsement / FDA DSHEA) disclosures per channel
   violations.push(...checkChannelDisclosures(content, channel));
+
+  // 6. Does the content even fit the channel (deck pasted as a reel, over-length captions)
+  violations.push(...checkChannelFit(content, channel));
 
   const totalRulesEvaluated =
     rulesData.prohibitedTerms.length +

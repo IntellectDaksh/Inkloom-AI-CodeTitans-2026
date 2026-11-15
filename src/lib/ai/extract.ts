@@ -159,10 +159,51 @@ function countPdfPages(buf: Buffer): number {
   return m ? m.length : 1;
 }
 
-const OCR_PROMPT = `Transcribe all readable text in this file verbatim.
-Preserve the original line breaks and reading order. Keep headings, bullets and numbers as written.
-Do not summarise, translate, correct, or add any commentary, labels or markdown fences.
-If there is no readable text, reply with exactly: NO_TEXT_FOUND`;
+export const PAGE_BREAK = '<<<PAGE>>>';
+
+const OCR_PROMPT = `You are extracting the publishable marketing content from this file so it can be compliance-checked.
+Return the real content a reader is meant to read: headlines, body copy, claims, stats, captions, CTAs, testimonials, offers, disclaimers.
+DROP everything that is not content:
+- watermarks and diagonal/background stamps (e.g. "CONFIDENTIAL", "DRAFT", "SAMPLE", tool names like "Made with Canva/Gamma")
+- page and slide numbers, running headers and footers, repeated logos/brand marks, repeated URLs or social handles in the footer
+- UI chrome, decorative labels, image alt noise, garbled OCR fragments
+Write each fact or line once; never repeat text that appears identically on every page.
+Keep the original wording verbatim (do not summarise, translate, correct or rephrase). Preserve reading order and line breaks.
+Put a line containing exactly ${'<<<PAGE>>>'} between pages or slides.
+No commentary, labels or markdown fences.
+If there is no readable content, reply with exactly: NO_TEXT_FOUND`;
+
+/**
+ * Deterministic second pass after OCR: a short line that shows up on many pages is a watermark,
+ * header or footer, not copy. Also drops bare page numbers. Keeps the first occurrence only when
+ * it looks like real copy (long line), so a repeated tagline survives once.
+ */
+export function stripPageNoise(text: string): string {
+  const pages = text.split(PAGE_BREAK).map(p => p.split('\n'));
+  const norm = (l: string) => l.toLowerCase().replace(/^[\d\s|•·–—/-]+|[\d\s|•·–—/-]+$/g, '').replace(/\s+/g, ' ');
+  const pageCount = new Map<string, number>();
+  for (const lines of pages) {
+    for (const k of new Set(lines.map(norm).filter(Boolean))) pageCount.set(k, (pageCount.get(k) || 0) + 1);
+  }
+  const threshold = Math.max(3, Math.ceil(pages.length * 0.4));
+  const isPageNo = (l: string) => /^\s*(page|slide)?\s*\d{1,3}(\s*(\/|of)\s*\d{1,3})?\s*$/i.test(l);
+  const kept = new Set<string>();
+  const out = pages.map(lines =>
+    lines
+      .filter(l => {
+        if (isPageNo(l)) return false;
+        const k = norm(l);
+        if (!k || pages.length < 3 || (pageCount.get(k) || 0) < threshold) return true;
+        if (l.trim().length > 60 && !kept.has(k)) {
+          kept.add(k);
+          return true;
+        }
+        return false;
+      })
+      .join('\n')
+  );
+  return out.join('\n\n');
+}
 
 async function geminiOcr(buf: Buffer, mime: string, apiKey: string): Promise<string> {
   const body = {
@@ -247,8 +288,8 @@ export async function extractText(
         throw new ExtractError('Reading PDFs and images needs a GEMINI_API_KEY on the server. Paste the text instead.', 503);
       }
       method = 'gemini-ocr';
-      text = tidy(await geminiOcr(buf, entry.mime, apiKey));
-      warnings.push('Text was read by AI from a scan or image. Check it matches the original before checking your ad.');
+      text = tidy(stripPageNoise(await geminiOcr(buf, entry.mime, apiKey)));
+      warnings.push('Text was read by AI. Watermarks, page numbers and repeated headers/footers were removed. Check it matches the original before checking your ad.');
       break;
     default:
       text = tidy(utf8());
