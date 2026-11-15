@@ -1,164 +1,91 @@
-<div align="center">
-  <h1>AdSnitch</h1>
-  <p><strong>Pre-publication brand governance and marketing claim verification layer.</strong></p>
-  <p><em>(Formerly Inkloom AI — upgraded to AdSnitch for CodeTitans 2026)</em></p>
+<p align="center"><img src="public/adsnitch-logo.svg" alt="AdSnitch" height="56"></p>
 
-  <p>
-    🚀 <strong>Live Deployed Application:</strong> <a href="https://inkloom-ai-tau.vercel.app"><strong>https://inkloom-ai-tau.vercel.app</strong></a>
-  </p>
+# AdSnitch
 
-  <p>
-    <a href="https://inkloom-ai-tau.vercel.app"><img src="https://img.shields.io/badge/Deployed_Website-inkloom--ai--tau.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Deployed Website" /></a>
-    <a href="https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026"><img src="https://img.shields.io/badge/Tests-58%2F58_Passing-10B981?style=for-the-badge" alt="Tests" /></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" /></a>
-  </p>
-</div>
+Checks your ad before the internet does.
 
-AdSnitch is an automated pre-publication firewall for marketing copy. It audits ad variants, landing pages, and campaign drafts against registered clinical trial records, ISO standards, and brand guidelines before publication.
+> **Renamed:** this project was **Inkloom AI**. It is now **AdSnitch**. Same repo, same deployment.
 
-Generic AI writing tools churn out convincing text but routinely hallucinate clinical claims and skip statutory disclosures. AdSnitch enforces a strict zero-hallucination verification policy: unsupported claims are flagged, evidence citations must resolve to real registered records, and creators get single-click surgical diff fixes grounded in evidence.
+**Live:** [inkloom-ai-tau.vercel.app](https://inkloom-ai-tau.vercel.app)
+
+Paste or upload ad copy (a caption, reel script, email, landing page, PDF or image). AdSnitch flags claims you can't back up, missing disclosures, banned wording and copy that doesn't fit the channel, then suggests a compliant rewrite and routes risky drafts to a reviewer.
+
+It never invents evidence. A claim is "verified" only when it matches a record in your brand's claims library; everything else is marked unsupported.
 
 ---
 
-> [!IMPORTANT]
-> ### Live Application & Judge Quick Access
-> * **Production Link:** [https://inkloom-ai-tau.vercel.app](https://inkloom-ai-tau.vercel.app)
-> * **Live Audit Workbench:** Test copy on the home page hero with three pre-loaded vertical presets (Clinical Nutrition, Enterprise SaaS SLA, and Skincare).
-> * **1-Click Persona Logins:** Switch roles on the [Login Page](https://inkloom-ai-tau.vercel.app/auth/login) as Admin (Daksh), Legal Reviewer (Reviewer), or Content Creator (Creator).
-> * **Automated Test Suite:** 58 out of 58 automated assertions passing green (`npm test`).
+## Highlights
 
----
+| Area | What it does |
+|---|---|
+| **Live check** | Score 0–100 with a breakdown, findings highlighted inline, one-click fixes |
+| **File reading** | TXT, MD, HTML, RTF, JSON, CSV, DOCX locally; PDF and images read by AI with watermarks, page numbers and repeated headers/footers stripped |
+| **Channel fit** | A pitch deck or brochure submitted as a reel or ad is rejected, not scored |
+| **Claims library** | Approved claims with sources, excerpts, expiry dates and owners; CSV/JSON import |
+| **Cascade re-review** | When a claim expires or changes, every draft that used it is flagged again |
+| **Disclosures** | FTC `#ad` endorsement and FDA DSHEA disclaimer checks |
+| **Approvals** | Creator, reviewer, brand manager and admin roles; disputes and overrides logged |
+| **Workspaces** | One claims library and rule set per brand |
+| **Audit log** | Every decision on the record |
+| **First-run demo** | Two-minute walkthrough for new accounts, skippable |
 
-## Where It Fits
+## How a check runs
 
-| Feature | Generic LLMs (ChatGPT / Claude) | Manual Legal Review (Spreadsheets / Slack) | AdSnitch |
-|---|---|---|---|
-| **Claim Substantiation** | Hallucinates plausible proof | Buried in static PDF files | Versioned library with DOIs and ISO standards |
-| **Hallucination Guardrails** | Generates fake clinical quotes | Relies on manual human memory | Strictly marks unverified; never fakes sources |
-| **Evidence Citations** | Unverified or invented URLs | Email attachments and drive links | Verbatim clinical excerpts with SHA-256 hashes |
-| **Cascade Re-Review** | None | Manual retroactive audits | Auto-flags live drafts when claims expire |
-| **Surgical Diff Viewer** | Regenerates entire paragraphs | Manual redlines in Word | Inline token diffs with 1-click apply |
-| **Dispute & Override Gate** | None | Undocumented Slack chats | Immutable audit log with reviewer signatures |
-| **Statutory Disclosures** | Blind to channel rules | Human reviewers must remember rules | Automated FTC `#ad` and FDA DSHEA checks |
-| **Tenant Isolation** | Potential cross-prompt bleeding | Human error in shared folders | Scoped multi-tenant row isolation |
+1. **Segment** the copy and pick out candidate claims (numbers, guarantees, superlatives, comparisons).
+2. **Rules** catch banned terms, missing required phrases, expired claims and channel misfit.
+3. **Retrieve** only the active brand's claims and guidelines.
+4. **Model review** (Gemini) audits every claim against that evidence. A deterministic engine takes over if the model is unavailable.
+5. **Safety net:** any claim nobody commented on and no record covers is still flagged unsupported.
+6. **Score** with hard caps, so the number matches the verdict (any critical finding caps at 40, any high at 75).
 
----
+## Repository layout
 
-## How It Works
+```
+adsnitch/
+├── src/
+│   ├── app/                  Next.js App Router pages and API routes
+│   │   ├── api/              check, extract, submissions, claims, approvals, profile …
+│   │   ├── auth/             sign in, sign up, code-based password reset
+│   │   ├── dashboard/        home for signed-in users
+│   │   ├── submissions/      new check, results, history
+│   │   ├── knowledge-base/   claims, guidelines, terminology, assets
+│   │   └── settings/         tabbed settings
+│   ├── components/           UI, landing, layout, tour and demo, submission views
+│   └── lib/
+│       ├── ai/               pipeline, rules, retrieval, Gemini, file extraction
+│       ├── db/               store and seed data
+│       └── auth/             Supabase clients
+├── supabase/migrations/      Postgres schema and policies
+└── tests/                    end-to-end, brand isolation, feature tests
+```
 
-AdSnitch runs an automated 6-stage compliance pipeline in under 400 milliseconds:
-
-1. **Content Segmentation:** Parses incoming text into semantic units and extracts candidate metrics, timeframes, and guarantees.
-2. **Deterministic Pre-Flight (<5ms):** Fast regex scanner catches banned marketing superlatives ("miracle", "cheat code", "unhackable") and mandatory channel notices (FTC `#ad` disclosures, FDA disclaimers).
-3. **Scoped Tenant Retrieval:** Pulls approved claims, clinical assays, and tone guidelines filtered strictly to the active brand.
-4. **Contextual Analysis:** Evaluates copy against retrieved evidence using Gemini Flash models with deterministic offline fallbacks.
-5. **Findings & Evidence Linking:** Associates every flagged violation with exact token offsets, severity ratings, and clinical provenance records.
-6. **Surgical Diff & Approval Routing:** Decomposes the compliance score (0 to 100), builds an inline redline diff with compliant replacement text, and routes high-risk drafts to the approval queue.
-
----
-
-## Key Capabilities
-
-* **Living Claims Library:** Approved claims store validity dates, clinical study IDs, DOIs, and assigned medical/legal owners.
-* **Cascade Re-Review Engine:** When an approved claim expires or is edited, AdSnitch flags every historical campaign draft that relied on it and queues it for re-review.
-* **Finding Disputes & Reasoned Dismissals:** Creators can contest false alarms with explanations, and authorized legal reviewers can record binding overrides with permanent audit logging.
-* **Empirical Benchmark Suite:** Validated against real-world regulatory failures:
-  * *FTC v. Teami (2020):* $15.2M settlement for ungrounded detox claims and missing `#ad` tags.
-  * *Adidas Boston Marathon (2017):* Tone insensitivity in automated marketing.
-  * *CNET Financial Hallucinations (2023):* AI factual and compound interest calculation errors.
-  * *Benchmark Score:* 97.9% precision, 100% recall on statutory violations, 0% missed critical issues.
-* **Zero External Cold Starts:** Features a dual-tier persistence system combining production PostgreSQL schemas with an embedded persistence store for instant evaluation.
-
----
-
-## Tech Stack
-
-* **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4
-* **AI & Governance:** Google Gemini API (gemini-2.5-flash / gemini-3.5-flash-lite) with deterministic rule engines
-* **Styling & UI:** Swiss International Minimalism, monochromatic surfaces (`#0A0A0A`, `#141414`), 44px touch targets
-* **Database & Persistence:** Dual-tier engine with 25-table PostgreSQL schema, RLS policies, and embedded transactional JSON storage
-* **Deployment:** Vercel Serverless Edge
-
----
-
-## Quick Start
-
-### Prerequisites
-* Node.js 20+ installed
-* Git
-
-### Installation
+## Run locally
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/IntellectDaksh/Inkloom-AI-CodeTitans-2026.git
-cd Inkloom-AI-CodeTitans-2026
-
-# 2. Install dependencies
 npm install
-
-# 3. Configure environment variables (optional: pre-configured for offline fallback)
-cp .env.example .env.local
-
-# 4. Start local development server
+cp .env.example .env.local   # or create it with the keys below
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+| Variable | Needed for |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Accounts and storage |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side data access |
+| `GEMINI_API_KEY` | Model review and PDF/image reading (checks still run without it) |
 
----
+Password reset sends a 6-digit code: the Supabase "Reset Password" email template must include `{{ .Token }}`.
 
-### File upload and claim import APIs
-
-* `POST /api/extract` (multipart field `file`, max 15 MB) returns `{ text, fileName, mime, method, pages, chars, warnings }`.
-  `.txt .md .json .csv .html .rtf .docx` are read locally; `.pdf .png .jpg .jpeg .webp` are transcribed by Gemini and need `GEMINI_API_KEY` (503 without it).
-* `POST /api/claims/import` takes a JSON array or CSV text (columns: claim, brand, type, channels, source name, DOI/reference, excerpt, expiry).
-  Returns `{ imported, rejected: [{ row, reason }] }`. Imported claims are stored as `under_review` with unverified evidence until a human approves them.
-* `POST /api/submissions` also accepts `text` (alias of `content`) and `sourceFile: { fileName, mime, method }`, saved to submission metadata.
-* Test: `npx tsx src/lib/ai/__tests__/extract.test.ts`
-
-
----
-
-## Running Automated Tests
-
-Run the complete 58-assertion test suite:
+## Tests
 
 ```bash
-# Run master end-to-end verification (16 tests)
-npx tsx tests/full-e2e.test.ts
-
-# Run proposal core features: cascade re-review, disputes, overrides (4 tests)
-npx tsx tests/proposal-features.test.ts
-
-# Run 6-stage AI pipeline and multi-tenant isolation tests (38 tests)
-npx tsx src/lib/ai/__tests__/governance.test.ts
+npm test        # pipeline, governance, brand isolation, extraction, channel fit
+npm run eval    # benchmark against the evaluation dataset
 ```
 
-All 58 tests run locally without external cloud dependencies.
+## Stack
 
----
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl+Enter` / `Cmd+Enter` | Execute compliance preflight audit |
-| `Ctrl+K` / `Cmd+K` | Open global navigation command palette |
-| `Escape` | Close modals and provenance drawers |
-
----
-
-## Team
-
-**Team AGRAWALDAKSH008 — CodeTitans India 2026**
-* **Daksh Agrawal:** Lead & Full-Stack Architect
-* **Demo Reviewer:** Lead Regulatory Reviewer
-* **Demo Creator:** Senior Content Producer
-* **Demo Analyst:** VP of Brand Governance
-
----
+Next.js 16, React 19, TypeScript, Tailwind CSS 4, Supabase (Postgres, Auth, Storage), Gemini 2.5 Flash, deployed on Vercel.
 
 ## License
 
-Distributed under the [MIT License](LICENSE).
+MIT
