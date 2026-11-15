@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { flushToRemote, runWithStore, StoreConflictError, syncFromRemote } from "./store";
 import { supabaseAdmin, supabaseServer } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
@@ -53,9 +53,13 @@ export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts =
       if (!orgId) return NextResponse.json({ success: false, error: "Your account has no workspace yet. Sign out and in again." }, { status: 403 });
     }
 
-    const original = args[0] instanceof Request ? args[0] : null;
+    // Buffer the body once so a retry after a write conflict can replay the request.
+    // (NextRequest.clone() throws inside Next's request proxy, so rebuild instead.)
+    const original = args[0] instanceof Request ? (args[0] as NextRequest) : null;
+    const body = original && original.method !== "GET" && original.method !== "HEAD" ? await original.arrayBuffer() : null;
+    const rebuild = () => new NextRequest(original!.url, { method: original!.method, headers: original!.headers, body });
     for (let attempt = 1; ; attempt++) {
-      const callArgs = (original ? [original.clone(), ...args.slice(1)] : args) as A;
+      const callArgs = (original ? [rebuild(), ...args.slice(1)] : args) as A;
       const out = await runWithStore(async () => {
         try {
           await syncFromRemote(orgId);
