@@ -161,7 +161,7 @@ export default function SettingsPage() {
       setIoMsg("Settings reset to defaults.");
     } else {
       try {
-        [KEY, "adsnitch:workspaces", "adsnitch:pending-upload", "inkloom:session", "inkloom:sidebar-collapsed"].forEach((k) => localStorage.removeItem(k));
+        [KEY, "adsnitch:pending-upload", "inkloom:session", "inkloom:sidebar-collapsed"].forEach((k) => localStorage.removeItem(k));
         sessionStorage.removeItem(PICKED_KEY);
       } catch {}
       window.location.reload();

@@ -197,87 +197,9 @@ export const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas";
 
 // ---------------------------------------------------------------------------
-// Workspaces: one per brand. Built-in ones match the stored brands; custom ones are
-// kept in this browser for now.
-export interface Workspace {
-  name: string;
-  industry: string;
-  channels: string[];
-  description?: string;
-  custom?: boolean;
-  createdAt?: string;
-}
-
-export const SEED_WORKSPACES: Workspace[] = [
-  { name: "Apex Nutrition", industry: "Health & nutrition", channels: ["Instagram", "Landing page", "Email"], description: "Sports supplements and recovery products." },
-  { name: "Zenith Cloud", industry: "Software", channels: ["LinkedIn", "Landing page", "Ads"], description: "Enterprise cloud hosting and security." },
-  { name: "Lumina Skincare", industry: "Beauty & skincare", channels: ["Instagram", "TikTok", "Product page"], description: "Clinical skincare and serums." },
-];
-
-export const WS_KEY = "adsnitch:workspaces";
-export const WS_EVT = "adsnitch:workspaces";
+// Workspaces live on the server (src/lib/workspaces/client.ts); these only drive the picker.
 export const PICKER_EVT = "adsnitch:open-picker";
 export const PICKED_KEY = "adsnitch:workspace-picked";
-
-function readCustom(): Workspace[] {
-  try {
-    const v = JSON.parse(localStorage.getItem(WS_KEY) || "[]");
-    return Array.isArray(v) ? v : [];
-  } catch {
-    return [];
-  }
-}
-
-export function useWorkspaces(): Workspace[] {
-  const [custom, set] = useState<Workspace[]>([]);
-  useEffect(() => {
-    set(readCustom());
-    const on = () => set(readCustom());
-    window.addEventListener(WS_EVT, on);
-    return () => window.removeEventListener(WS_EVT, on);
-  }, []);
-  return [...SEED_WORKSPACES, ...custom];
-}
-
-/** Edits a custom workspace in place. Built-in ones are read-only. Returns an error message or null. */
-export function updateWorkspace(name: string, patch: Partial<Workspace>): string | null {
-  const list = readCustom();
-  const i = list.findIndex((w) => w.name === name);
-  if (i < 0) return "Built-in workspaces can't be edited.";
-  if (patch.name !== undefined) {
-    const n = patch.name.trim().replace(/\s+/g, " ");
-    if (n.length < 2 || n.length > 60) return "Use a name between 2 and 60 characters.";
-    if (n.toLowerCase() !== name.toLowerCase() && [...SEED_WORKSPACES, ...list].some((w) => w.name.toLowerCase() === n.toLowerCase()))
-      return `A workspace called "${n}" already exists.`;
-    patch = { ...patch, name: n };
-  }
-  list[i] = { ...list[i], ...patch };
-  try {
-    localStorage.setItem(WS_KEY, JSON.stringify(list));
-  } catch {
-    return "Your browser blocked saving.";
-  }
-  window.dispatchEvent(new Event(WS_EVT));
-  return null;
-}
-
-/** Adds a workspace and returns its name, or an error message. */
-export function addWorkspace(ws: Workspace): { ok: true; name: string } | { ok: false; error: string } {
-  const name = ws.name.trim().replace(/\s+/g, " ");
-  if (name.length < 2) return { ok: false, error: "Give the workspace a name of at least 2 characters." };
-  if (name.length > 60) return { ok: false, error: "Keep the name under 60 characters." };
-  const all = [...SEED_WORKSPACES, ...readCustom()];
-  if (all.some((w) => w.name.toLowerCase() === name.toLowerCase()))
-    return { ok: false, error: `A workspace called "${name}" already exists. Pick it from the list instead.` };
-  const next = [...readCustom(), { ...ws, name, custom: true, createdAt: new Date().toISOString() }];
-  try {
-    localStorage.setItem(WS_KEY, JSON.stringify(next));
-  } catch {
-    return { ok: false, error: "Your browser blocked saving. Turn off private mode and try again." };
-  }
-  window.dispatchEvent(new Event(WS_EVT));
-  return { ok: true, name };
-}
 
 export function openWorkspacePicker() {
   window.dispatchEvent(new Event(PICKER_EVT));
