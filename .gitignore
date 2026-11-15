@@ -36,3 +36,17 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# internal notes, never published
+/*.md
+!/README.md
+/*.html
+/*.pdf
+/*.svg
+/VISUAL_ASSETS/
+/.agent/
+/.gemini/
+/guide/
+/docs/
+/figma-src/
+build_pdr_pdf.js
