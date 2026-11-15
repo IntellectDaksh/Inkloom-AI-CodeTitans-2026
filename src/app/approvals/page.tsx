@@ -209,7 +209,7 @@ export default function ApprovalsPage() {
           <span>
             Signed in as <strong className="font-medium text-text-primary">{me.name}</strong> ({me.label}). {ROLE_HELP[me.role]}
           </span>
-          <span className="text-text-muted">Switch person in the header.</span>
+          <a href="/team" className="text-text-muted underline-offset-4 hover:underline">Roles are managed in Team.</a>
         </div>
 
         <div role="tablist" aria-label="Approval status" className="flex gap-1 overflow-x-auto rounded-lg border border-border-default bg-panel p-1">

@@ -41,6 +41,7 @@ const EXAMPLE_FINDINGS: FindingItem[] = [
   { id: "s1", category: "unsupported_claim", severity: "medium", flaggedText: "x", explanation: "", status: "resolved" },
 ];
 const btn = `inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border-default bg-panel px-4 text-sm font-medium text-text-primary hover:bg-panel-hover ${focusRing}`;
+const btnPrimary = `inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-ink bg-ink px-4 text-sm font-medium text-canvas hover:opacity-90 ${focusRing}`;
 
 function Panel({ id, title, desc, children }: { id: string; title: string; desc: string; children: React.ReactNode }) {
   return (
@@ -245,7 +246,7 @@ export default function SettingsPage() {
                         <Pencil className="h-4 w-4" aria-hidden /> Edit
                       </button>
                     ) : null}
-                    <button type="button" className={`${btn} border-ink bg-ink text-white hover:bg-ink/90`} onClick={openWorkspacePicker}>
+                    <button type="button" className={btnPrimary} onClick={openWorkspacePicker}>
                       Switch workspace
                     </button>
                   </div>
@@ -281,7 +282,7 @@ export default function SettingsPage() {
                   </fieldset>
                   {wsErr && <p role="alert" className="text-sm text-status-critical">{wsErr}</p>}
                   <div className="flex gap-2">
-                    <button type="submit" disabled={wsSaving} className={`${btn} border-ink bg-ink text-white hover:bg-ink/90 disabled:opacity-60`}>{wsSaving ? "Saving…" : "Save workspace"}</button>
+                    <button type="submit" disabled={wsSaving} className={`${btnPrimary} disabled:opacity-60`}>{wsSaving ? "Saving…" : "Save workspace"}</button>
                     <button type="button" className={btn} onClick={() => setEdit(false)}>Cancel</button>
                   </div>
                 </form>
