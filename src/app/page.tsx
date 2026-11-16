@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { postFile } from "@/lib/files/stage";
 import "./landing.css";
 import { FloatingLayer } from "@/components/layout/FloatingLayer";
 import { SkyClouds } from "@/components/landing/SkyClouds";
@@ -539,9 +540,7 @@ export default function Home() {
     setOwnError("");
     setBusy(/\.(pdf|png|jpe?g|webp)$/i.test(file.name) ? "ocr" : "extract");
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/extract", { method: "POST", body: form });
+      const res = await postFile("/api/extract", file);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not read this file.");
       setOwnText(data.text);

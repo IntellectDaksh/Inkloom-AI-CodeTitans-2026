@@ -1,6 +1,7 @@
 "use client";
 
 import React, { forwardRef, useCallback, useEffect, useId, useRef, useState } from "react";
+import { postFile } from "@/lib/files/stage";
 import { usePrefs } from "@/components/guide/workspace";
 import Link from "next/link";
 import { FileUp, Loader2, X } from "lucide-react";
@@ -29,11 +30,9 @@ const MAX_BYTES = 15 * 1024 * 1024;
 
 export async function extractFile(file: File): Promise<Extracted> {
   if (file.size > MAX_BYTES) throw new Error("That file is over 15 MB. Try a smaller file.");
-  const body = new FormData();
-  body.append("file", file);
   let res: Response;
   try {
-    res = await fetch("/api/extract", { method: "POST", body });
+    res = await postFile("/api/extract", file);
   } catch {
     throw new Error("Could not reach the server. Check your connection and try again.");
   }

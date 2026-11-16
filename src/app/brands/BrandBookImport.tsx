@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { postFile } from "@/lib/files/stage";
 import { FileUp, Loader2 } from "lucide-react";
 import { focusRing } from "@/components/guide/workspace";
 
@@ -36,9 +37,7 @@ export function BrandBookImport({ brandId, brandName, onDone }: { brandId: strin
     if (file.size > 15 * 1024 * 1024) return setError("This file is larger than 15 MB.");
     setBusy("read");
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const d = await json(await fetch("/api/brandbook", { method: "POST", body: fd }));
+      const d = await json(await postFile("/api/brandbook", file));
       const on = <X,>(xs: X[]) => xs.map((x) => ({ ...x, on: true }));
       setDrafts({ fileName: d.fileName, truncated: d.truncated, guidelines: on(d.guidelines), terms: on(d.terms), claims: on(d.claims) });
     } catch (e) {

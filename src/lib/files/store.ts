@@ -1,3 +1,5 @@
+import { postFile } from "./stage";
+
 // Uploaded originals live in Supabase Storage (private bucket 'evidence'), uploaded through
 // /api/files. Opening one asks /api/files/[id] for a signed URL that expires after a minute.
 
@@ -15,11 +17,8 @@ export async function putFile(file: File, brand?: string): Promise<string | null
 
 /** Same as putFile, with the server's reason when it fails. */
 export async function uploadFile(file: File, brand?: string): Promise<{ id: string | null; error?: string }> {
-  const body = new FormData();
-  body.append("file", file);
-  if (brand) body.append("brand", brand);
   try {
-    const r = await fetch("/api/files", { method: "POST", body });
+    const r = await postFile("/api/files", file, brand ? { brand } : {});
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.success) return { id: null, error: d.error || `Upload failed (error ${r.status}).` };
     return { id: (d.file as StoredFileInfo).id };

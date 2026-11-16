@@ -5,6 +5,7 @@ import { withStore } from "@/lib/db/withStore";
 import { brandFrom, userId } from "@/lib/files/kbRoute";
 import { BUCKET, MAX_FILE_BYTES, storage } from "@/lib/files/server";
 import { validateUpload } from "@/lib/files/validate";
+import { fileFromRequest } from "@/lib/files/staged";
 import { currentOrgId } from "@/lib/db/store";
 
 // POST multipart { file, brand? } -> stores the original in the private 'evidence' bucket.
@@ -13,9 +14,11 @@ async function POST_handler(req: NextRequest) {
   if (!sb) return NextResponse.json({ success: false, error: "File storage is not configured on the server." }, { status: 503 });
   const uid = await userId();
   if (!uid) return NextResponse.json({ success: false, error: "Sign in to upload files." }, { status: 401 });
-  const form = await req.formData().catch(() => null);
-  const file = form?.get("file");
-  if (!(file instanceof File)) return NextResponse.json({ success: false, error: "Attach a file." }, { status: 400 });
+  const got = await fileFromRequest(req);
+  if ("error" in got) return NextResponse.json({ success: false, error: got.error }, { status: got.status });
+  const { file } = got;
+  await got.cleanup();
+  const form = { get: (k: string) => got.fields[k] ?? null };
   const check = await validateUpload(file, MAX_FILE_BYTES);
   if (!check.ok) return NextResponse.json({ success: false, error: check.error }, { status: check.status });
   const brand = brandFrom(String(form?.get("brand") ?? ""));

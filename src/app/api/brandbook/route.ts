@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withStore } from "@/lib/db/withStore";
 import { extractText, ExtractError, MAX_EXTRACT_BYTES } from "@/lib/ai/extract";
+import { fileFromRequest } from "@/lib/files/staged";
 import { callGeminiEndpoint, GEMINI_25_FLASH_URL, GEMINI_FALLBACK_LIVE_URL } from "@/lib/ai/gemini";
 
 export const maxDuration = 120;
@@ -62,14 +63,10 @@ const pick = <T extends string>(v: unknown, allowed: readonly T[], d: T): T => (
 async function POST_handler(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return bad("Brand book import needs AI, which isn't set up on this server (GEMINI_API_KEY is missing). Add rules by hand for now.", 503);
-  let form: FormData;
-  try {
-    form = await req.formData();
-  } catch {
-    return bad('Send the file as multipart/form-data in a field named "file".', 400);
-  }
-  const file = form.get("file");
-  if (!file || typeof file === "string") return bad("No file was attached.", 400);
+  const got = await fileFromRequest(req);
+  if ("error" in got) return bad(got.error, got.status);
+  const { file } = got;
+  await got.cleanup();
   if (file.size > MAX_EXTRACT_BYTES) return bad("This file is larger than 15 MB.", 400);
   const ext = (file.name.split(".").pop() || "").toLowerCase();
   if (!ALLOWED.includes(ext)) return bad("Upload a PDF, DOCX or TXT file.", 400);

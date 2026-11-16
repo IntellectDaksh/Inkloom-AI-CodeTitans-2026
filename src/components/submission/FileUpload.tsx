@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { postFile } from "@/lib/files/stage";
 import { AlertCircle, FileImage, FileText, FileType2, Loader2, RotateCcw, Upload, X } from "lucide-react";
 import { ACCEPTED_EXT, MAX_FILE_BYTES, formatBytes, isOcrFile } from "./shared";
 import { readPrefs } from "../guide/workspace";
@@ -26,11 +27,9 @@ export async function extractFile(file: File): Promise<Pick<UploadItem, "text" |
   if (isOcrFile(file.name) && !readPrefs().ocr)
     throw new Error("Reading PDFs and images is turned off in Settings. Turn on OCR, or paste the text instead.");
   if (file.size > MAX_FILE_BYTES) throw new Error(`File is ${formatBytes(file.size)}. The limit is 15 MB.`);
-  const fd = new FormData();
-  fd.append("file", file);
   let res: Response;
   try {
-    res = await fetch("/api/extract", { method: "POST", body: fd });
+    res = await postFile("/api/extract", file);
   } catch {
     throw new Error("Could not reach the server. Check your connection and try again.");
   }
