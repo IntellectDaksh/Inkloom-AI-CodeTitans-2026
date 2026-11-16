@@ -39,9 +39,10 @@ import {
   AuditEvent,
   Notification,
 } from './types';
+import { LIB_CLAIMS, LIB_EVIDENCE, LIB_GUIDELINES, LIB_TERMS, LIB_ASSETS, LIB_DOCUMENTS, CLAIM_PATCHES, EVIDENCE_FOR_OLD_CLAIMS, TERM_SEVERITY, DOC_SUMMARY, daysFromToday } from './seedLibrary';
 
 /** ISO date n days from process start, so expiry alerts stay live whenever the app runs. */
-const daysFromNow = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString();
+const daysFromNow = daysFromToday;
 
 // ============================================================================
 // CONSTANT IDENTIFIERS (Deterministic UUIDs)
@@ -329,7 +330,7 @@ export const seedBrandMembers: BrandMember[] = [
 // 6. BRAND GUIDELINES
 // ============================================================================
 
-export const seedBrandGuidelines: BrandGuideline[] = [
+const seedBrandGuidelinesBase: BrandGuideline[] = [
   {
     id: '00000000-0000-4000-g000-000000000101',
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
@@ -376,7 +377,7 @@ export const seedBrandGuidelines: BrandGuideline[] = [
     category: 'dos_and_donts',
     title: "Do's and Don'ts: Body Transformations & Timelines",
     description: 'Strict guidelines on timeframe promises, arbitrary weight gain/loss, and comparison against competitors.',
-    rule_content: "DO: Emphasize micro-filtered whey isolate, rapid leucine kinetic absorption, Informed-Sport certification, and natural fermentation. DON'T: Never guarantee a specific number of pounds gained or lost (e.g. '10 lbs of muscle in 14 days'), never promise results without dietary adherence, and never claim superiority over unnamed competitor products without direct head-to-head published data.",
+    rule_content: "Do: Emphasize micro-filtered whey isolate, fast leucine absorption, third-party batch testing and natural fermentation\nDon't: Never guarantee a specific number of pounds gained or lost (e.g. '10 lbs of muscle in 14 days'), never promise results without dietary adherence\nDon't: Never claim superiority over unnamed competitor products without direct head-to-head published data.",
     severity_level: 'critical',
     is_active: true,
     created_at: '2026-01-05T00:00:00.000Z',
@@ -442,7 +443,7 @@ export const seedGuidelineVersions: GuidelineVersion[] = [
 // Current Date Reference: November 2026
 // ============================================================================
 
-export const seedApprovedClaims: ApprovedClaim[] = [
+const seedApprovedClaimsBase: ApprovedClaim[] = [
   {
     id: '00000000-0000-4000-clm0-000000000001',
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
@@ -625,7 +626,7 @@ export const seedApprovedClaims: ApprovedClaim[] = [
 // 9. CLAIM EVIDENCE
 // ============================================================================
 
-export const seedClaimEvidence: ClaimEvidence[] = [
+const seedClaimEvidenceBase: ClaimEvidence[] = [
   {
     id: '00000000-0000-4000-ev00-000000000101',
     claim_id: '00000000-0000-4000-clm0-000000000101',
@@ -704,7 +705,7 @@ export const seedClaimEvidence: ClaimEvidence[] = [
 // 10. BRAND TERMS
 // ============================================================================
 
-export const seedBrandTerms: BrandTerm[] = [
+const seedBrandTermsBase: BrandTerm[] = [
   {
     id: '00000000-0000-4000-t000-000000000101',
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
@@ -783,7 +784,7 @@ export const seedBrandTerms: BrandTerm[] = [
 // 11. BRAND ASSETS & DOCUMENTS (6 total items)
 // ============================================================================
 
-export const seedDocuments: Document[] = [
+const seedDocumentsBase: Document[] = [
   {
     id: '00000000-0000-4000-doc0-000000000001',
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
@@ -825,7 +826,7 @@ export const seedDocuments: Document[] = [
   },
 ];
 
-export const seedBrandAssets: BrandAsset[] = [
+const seedBrandAssetsBase: BrandAsset[] = [
   {
     id: '00000000-0000-4000-ast0-000000000001',
     organisation_id: SEED_IDS.ORGANISATION_UIDEAS,
@@ -1533,6 +1534,76 @@ export const seedNotifications: Notification[] = [
 ];
 
 // ============================================================================
+// BUILT-IN LIBRARY (older seed rows + seedLibrary.ts)
+// ============================================================================
+
+export const seedBrandGuidelines: BrandGuideline[] = [...seedBrandGuidelinesBase, ...LIB_GUIDELINES];
+export const seedApprovedClaims: ApprovedClaim[] = [...seedApprovedClaimsBase.map((c) => ({ ...c, ...CLAIM_PATCHES[c.id] })), ...LIB_CLAIMS];
+const oldEvidence = new Map(EVIDENCE_FOR_OLD_CLAIMS.map((e) => [e.id, e]));
+export const seedClaimEvidence: ClaimEvidence[] = [
+  ...seedClaimEvidenceBase.map((e) => oldEvidence.get(e.id) ?? e),
+  ...EVIDENCE_FOR_OLD_CLAIMS.filter((e) => !seedClaimEvidenceBase.some((b) => b.id === e.id)),
+  ...LIB_EVIDENCE,
+];
+export const seedBrandTerms: BrandTerm[] = [...seedBrandTermsBase, ...LIB_TERMS];
+export const seedDocuments: Document[] = [...seedDocumentsBase, ...LIB_DOCUMENTS];
+export const seedBrandAssets: BrandAsset[] = [...seedBrandAssetsBase, ...LIB_ASSETS];
+
+/** Every built-in knowledge row id. Read-only: the UI hides edit controls and the API refuses writes. */
+export const BUILT_IN_IDS = new Set<string>(
+  [seedBrandGuidelines, seedApprovedClaims, seedClaimEvidence, seedBrandTerms, seedDocuments, seedBrandAssets].flatMap((t) => t.map((r) => r.id))
+);
+export const isBuiltInId = (id: unknown): boolean => typeof id === 'string' && BUILT_IN_IDS.has(id);
+
+const GUIDE_CATEGORY: Record<string, string> = {
+  voice_and_tone: 'Voice and tone', messaging_rules: 'Messaging standards', prohibited_words: 'Prohibited language',
+  regulatory_standards: 'Legal and disclosures', visual_identity: 'Visual identity', dos_and_donts: 'Channel rules',
+};
+const kbSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
+const label = (s: string) => s[0].toUpperCase() + s.slice(1).replace(/_/g, ' ');
+
+/** Built-in knowledge-base records for one brand, in the shape the knowledge-base pages use. */
+export function builtInKb(brandId: string, kind: string): Record<string, unknown>[] {
+  if (kind === 'guideline') {
+    return seedBrandGuidelines.filter((g) => g.brand_id === brandId).map((g) => {
+      const lines = g.rule_content.split('\n').map((l) => l.trim());
+      const dos = lines.filter((l) => /^do:/i.test(l)).map((l) => l.replace(/^do:\s*/i, ''));
+      const donts = lines.filter((l) => /^don'?t:/i.test(l)).map((l) => l.replace(/^don'?t:\s*/i, ''));
+      return {
+        id: g.id, category: GUIDE_CATEGORY[g.category] ?? 'Messaging standards', title: g.title, description: g.description ?? '',
+        dos, donts, rule: dos.length + donts.length ? undefined : g.rule_content, severity: g.severity_level, builtIn: true,
+      };
+    });
+  }
+  if (kind === 'term') {
+    return seedBrandTerms.filter((t) => t.brand_id === brandId).map((t) => ({
+      id: t.id, term: t.term, kind: t.term_type === 'prohibited' || t.term_type === 'restricted' ? 'blocked' : 'preferred',
+      replacement: t.term_type === 'trademark' ? '' : t.replacement ?? '',
+      note: [t.rationale, t.context_rules].filter(Boolean).join(' '),
+      severity: TERM_SEVERITY[t.id] ?? (t.term_type === 'prohibited' ? 'high' : 'medium'),
+      termType: t.term_type, builtIn: true,
+    }));
+  }
+  if (kind === 'document') {
+    const docs = seedDocuments.filter((d) => d.brand_id === brandId).map((d) => ({
+      id: d.id, name: d.title, size: kbSize(d.file_size_bytes), type: d.file_type.toUpperCase(), date: d.created_at.slice(0, 10),
+      reference: 'Evidence document', excerpt: DOC_SUMMARY[d.id], meta: [['Status', label(d.status)]], builtIn: true,
+    }));
+    const assets = seedBrandAssets.filter((a) => a.brand_id === brandId).map((a) => {
+      const { description, ...rest } = a.metadata;
+      return {
+        id: a.id, name: a.name, size: kbSize(a.file_size_bytes ?? 0), type: label(a.asset_type), date: a.created_at.slice(0, 10),
+        reference: 'Brand asset', excerpt: typeof description === 'string' ? description : undefined,
+        meta: Object.entries(rest).map(([k, v]) => [label(k), Array.isArray(v) ? v.join(', ') : String(v)]), builtIn: true,
+      };
+    });
+    return [...docs, ...assets];
+  }
+  return [];
+}
+
+// ============================================================================
+
 // COMPLETE DATABASE STATE SEED OBJECT
 // ============================================================================
 

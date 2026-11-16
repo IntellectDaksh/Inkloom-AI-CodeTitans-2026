@@ -205,6 +205,8 @@ export default function ProfilePage() {
               </div>
               <Msg m={msg.delete ?? null} />
             </section>
+
+            <DataAccount isAdmin={me.role === "admin"} />
           </>
         )}
 
@@ -220,5 +222,98 @@ export default function ProfilePage() {
         </dialog>
       </div>
     </AppLayout>
+  );
+}
+
+interface Usage { checksThisMonth: number; hourly: { resetsAt: string; buckets: { name: string; used: number; limit: number }[] } }
+const BUCKET_LABEL: Record<string, string> = { check: "Quick checks", analyze: "Full analyses", extract: "File extractions", upload: "Uploads" };
+
+/** Usage card, org export and org deletion. Delete is two steps: open the dialog, then type the org name. */
+function DataAccount({ isAdmin }: { isAdmin: boolean }) {
+  const router = useRouter();
+  const [usage, setUsage] = useState<Usage | null>(null);
+  const [usageErr, setUsageErr] = useState(false);
+  const [orgName, setOrgName] = useState("");
+  const [typed, setTyped] = useState("");
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    fetch("/api/usage").then((r) => (r.ok ? r.json() : Promise.reject())).then(setUsage).catch(() => setUsageErr(true));
+    if (isAdmin) fetch("/api/profile/setup").then((r) => r.json()).then((d) => setOrgName(d.company ?? "")).catch(() => {});
+  }, [isAdmin]);
+  useEffect(() => {
+    const d = ref.current;
+    if (open && d && !d.open) d.showModal();
+    if (!open && d?.open) d.close();
+  }, [open]);
+
+  async function deleteOrg() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await fetch("/api/org", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmName: typed }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not delete the organisation.");
+      await refreshMe();
+      router.replace("/dashboard");
+      router.refresh();
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section aria-labelledby="data-h" className="glass space-y-5 rounded-2xl p-5 sm:p-6">
+      <h2 id="data-h" className="text-base font-semibold text-text-primary">Data &amp; account</h2>
+      <div className="rounded-xl border border-border-subtle p-4">
+        <h3 className="text-sm font-medium text-text-primary">Usage</h3>
+        {usageErr ? (
+          <p className="mt-2 text-[13px] text-text-muted">Usage is unavailable right now.</p>
+        ) : !usage ? (
+          <p className="mt-2 text-[13px] text-text-muted">Loading…</p>
+        ) : (
+          <>
+            <p className="mt-2 text-[13px] text-text-secondary"><strong className="text-lg font-semibold tabular-nums text-text-primary">{usage.checksThisMonth}</strong> checks run by your organisation this month</p>
+            <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {usage.hourly.buckets.map((b) => (
+                <li key={b.name} className="text-[13px] text-text-secondary">
+                  <div className="flex justify-between"><span>{BUCKET_LABEL[b.name] ?? b.name}</span><span className="tabular-nums">{b.used} / {b.limit}</span></div>
+                  <div className="mt-1 h-1.5 rounded-full bg-panel" role="meter" aria-label={`${BUCKET_LABEL[b.name] ?? b.name} this hour`} aria-valuemin={0} aria-valuemax={b.limit} aria-valuenow={b.used}>
+                    <div className={`h-full rounded-full ${b.used >= b.limit ? "bg-status-red" : "bg-ink"}`} style={{ width: `${Math.min(100, (b.used / b.limit) * 100)}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-text-muted">Your hourly limits reset at {new Date(usage.hourly.resetsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.</p>
+          </>
+        )}
+      </div>
+      {isAdmin ? (
+        <div className="flex flex-wrap gap-2">
+          <a href="/api/org/export" download className={secondary}>Export organisation data</a>
+          <button type="button" onClick={() => { setTyped(""); setErr(null); setOpen(true); }} className={`${btn} border border-status-red/40 text-status-red hover:bg-status-red/10`}>Delete organisation</button>
+        </div>
+      ) : (
+        <p className="text-[13px] text-text-secondary">Only an admin can export or delete the organisation.</p>
+      )}
+      <dialog ref={ref} onClose={() => setOpen(false)} aria-labelledby="delorg-h" className="glass-strong m-auto w-[min(30rem,calc(100vw-2rem))] rounded-2xl p-6 text-text-primary backdrop:bg-black/40">
+        <h2 id="delorg-h" className="text-lg font-semibold">Delete {orgName || "this organisation"}?</h2>
+        <p className="mt-2 text-sm text-text-secondary">Reviews, library, settings, invites and uploaded files are deleted for good. Every member moves to their own empty workspace. The audit log is append-only and is kept.</p>
+        <label className="mt-4 block text-sm">Type <strong className="font-semibold">{orgName}</strong> to confirm
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} className={`mt-1 ${input}`} />
+        </label>
+        <Msg m={err ? { ok: false, text: err } : null} />
+        <div className="mt-6 flex justify-end gap-2">
+          <button type="button" onClick={() => setOpen(false)} className={secondary} autoFocus>Cancel</button>
+          <button type="button" onClick={deleteOrg} disabled={busy || !orgName || typed.trim() !== orgName.trim()} className={`${btn} bg-status-red text-white hover:opacity-90`}>
+            {busy ? "Deleting…" : "Delete organisation"}
+          </button>
+        </div>
+      </dialog>
+    </section>
   );
 }

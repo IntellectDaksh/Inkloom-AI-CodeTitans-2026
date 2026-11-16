@@ -22,7 +22,7 @@ export interface EvalItem {
   kind: 'violation' | 'clean' | 'near_miss';
   note?: string;
   /** Named group shown separately on the evaluation page. */
-  group?: 'landmark';
+  group?: 'landmark' | 'off_brand' | 'wrong_type' | 'disclosure' | 'subtle';
   /** Real-world case the item is modelled on (landmark group only). */
   caseRef?: string;
   text: string;
@@ -39,6 +39,7 @@ const P = (span: string, severity: FindingSeverity = 'high'): ExpectedIssue => (
 const U = (span: string, severity: FindingSeverity = 'high'): ExpectedIssue => ({ span, category: 'unsupported_claim', severity });
 const T = (span: string, severity: FindingSeverity = 'medium'): ExpectedIssue => ({ span, category: 'tone_inconsistency', severity });
 const D = (span: string, severity: FindingSeverity = 'high'): ExpectedIssue => ({ span, category: 'missing_disclosure', severity });
+const O = (span: string): ExpectedIssue => ({ span, category: 'out_of_scope', severity: 'critical' });
 const X = (span: string, severity: FindingSeverity = 'high'): ExpectedIssue => ({ span, category: 'time_bound_claim', severity });
 
 export const EVAL_DATASET: EvalItem[] = [
@@ -189,4 +190,68 @@ export const EVAL_DATASET: EvalItem[] = [
     note: 'Specific numeric outcome with no verified source (and arithmetically wrong: interest earned is $300).',
     text: 'If you deposit $10,000 into a savings account that pays 3% APY, you will earn $10,300 in interest after the first year.',
     expected: [U('3% APY'), U('earn $10,300')] },
+
+  // ---------------- Off-brand content (must be blocked for the brand it was checked against) ----------------
+  { id: 'offbrand-01', brand: 'apex', channel: 'social_media', kind: 'violation', group: 'off_brand',
+    note: 'An agency pitch deck checked against a nutrition brand.',
+    text: 'Uideas creative studio pitch deck\n\nAbout us\nWe edit videos, design motion graphics and build brand identities.\n\nOur clients\nWe have worked with 50+ brands.\n\nPricing\nPackages start at 20k per month.\n\nContact us\nhello@uideas.example',
+    expected: [O('Uideas creative studio pitch deck')] },
+  { id: 'offbrand-02', brand: 'apex', channel: 'landing_page', kind: 'violation', group: 'off_brand',
+    note: 'Cloud infrastructure copy checked against a nutrition brand.',
+    text: 'Route your event streams across regions with automatic failover and per-partition ordering.',
+    expected: [O('Route your event streams across regions with automatic failover and per-partition ordering.')] },
+  { id: 'offbrand-03', brand: 'flowscale', channel: 'social_media', kind: 'violation', group: 'off_brand',
+    note: 'Protein-shake copy checked against a cloud infrastructure brand.',
+    text: 'Our new chocolate protein shake tastes like dessert after leg day. #gains',
+    expected: [O('Our new chocolate protein shake tastes like dessert after leg day. #gains')] },
+
+  // ---------------- Wrong document type for the channel ----------------
+  { id: 'wrongtype-01', brand: 'flowscale', channel: 'social_media', kind: 'violation', group: 'wrong_type',
+    note: 'A CV submitted as a social post.',
+    text: 'Jane Doe - Curriculum Vitae\n\nExperience\nSenior Platform Engineer, Flowscale (2019-2024). Built the event routing layer.\n\nEducation\nBSc Computer Science\n\nSkills\nKafka, Go, Kubernetes\n\nReferences available on request.',
+    expected: [O('Jane Doe - Curriculum Vitae')] },
+  { id: 'wrongtype-02', brand: 'apex', channel: 'advertisement', kind: 'violation', group: 'wrong_type',
+    note: 'An internal campaign proposal submitted as an ad.',
+    text: 'Proposal: Apex Nutrition Q3 influencer campaign\n\nObjectives\nGrow awareness of Apex Whey among gym-goers aged 18-30.\n\nScope of work\nTwelve creator reels, four static posts, one launch event.\n\nBudget\nINR 6,00,000 across three months.\n\nTimeline\nKick-off in July, wrap in September.\n\nNext steps\nSign off on the scope and budget.',
+    expected: [O('Proposal: Apex Nutrition Q3 influencer campaign')] },
+
+  // ---------------- Regulatory disclosures (FTC #ad, FDA/DSHEA) ----------------
+  { id: 'disc-ad-01', brand: 'apex', channel: 'social_media', kind: 'violation', group: 'disclosure',
+    note: 'Creator endorsement with a promo code and no #ad.',
+    text: "I've been using Apex Whey every morning and my lifts feel great. Use code MIKE15 for 15% off!",
+    expected: [D('Use code MIKE15')] },
+  { id: 'disc-ad-c1', brand: 'apex', channel: 'social_media', kind: 'clean', group: 'disclosure',
+    note: 'Same endorsement, correctly disclosed.',
+    text: "#ad I've been using Apex Whey every morning and my lifts feel great. Use code MIKE15 for 15% off.",
+    expected: [] },
+  { id: 'disc-fda-01', brand: 'apex', channel: 'landing_page', kind: 'violation', group: 'disclosure',
+    note: 'Supplement structure/function claim without the DSHEA disclaimer.',
+    text: 'Apex Greens powder supports healthy digestion with 12 whole-food ingredients.',
+    expected: [D('supports healthy digestion')] },
+  { id: 'disc-fda-c1', brand: 'apex', channel: 'landing_page', kind: 'clean', group: 'disclosure',
+    note: 'Same claim with the DSHEA disclaimer.',
+    text: 'Apex Greens powder supports healthy digestion with 12 whole-food ingredients.\n\n*These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease.',
+    expected: [] },
+
+  // ---------------- Subtle claims (no banned word, still needs proof) ----------------
+  { id: 'subtle-01', brand: 'flowscale', channel: 'landing_page', kind: 'violation', group: 'subtle',
+    text: 'Trusted by 500 brands to move their data between clouds.',
+    expected: [U('Trusted by 500 brands')] },
+  { id: 'subtle-02', brand: 'apex', channel: 'social_media', kind: 'violation', group: 'subtle',
+    text: "The dietitians' favourite plant protein. #ApexFuel",
+    expected: [U("dietitians' favourite")] },
+  { id: 'subtle-03', brand: 'flowscale', channel: 'email', kind: 'violation', group: 'subtle',
+    text: 'Hi Priya,\n\nMost teams see results within the first week of switching to Flowscale.',
+    expected: [U('Most teams see results within the first week')] },
+  { id: 'subtle-04', brand: 'nexus', channel: 'landing_page', kind: 'violation', group: 'subtle',
+    text: 'Rated 4.9 stars by makers around the world.',
+    expected: [U('Rated 4.9 stars')] },
+
+  // ---------------- More compliant copy ----------------
+  { id: 'flow-c3', brand: 'flowscale', channel: 'blog_post', kind: 'clean',
+    text: 'This guide walks through setting up a dead-letter queue in Flowscale, step by step.',
+    expected: [] },
+  { id: 'apex-c3', brand: 'apex', channel: 'email', kind: 'clean',
+    text: 'Hi Sam,\n\nYour Apex order has shipped and should arrive on Thursday.',
+    expected: [] },
 ];

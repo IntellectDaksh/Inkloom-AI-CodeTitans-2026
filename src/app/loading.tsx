@@ -1,10 +1,11 @@
-import { PageSkeleton } from "@/components/layout/Motion";
+import { Suspense } from "react";
+import { AppLoading } from "@/components/layout/AppLoading";
 
-// Shown by Next.js while a route's server work is still streaming.
+// The shell reads the current path, which must sit inside Suspense when routes are prerendered.
 export default function Loading() {
   return (
-    <div style={{ padding: "40px clamp(16px, 4vw, 40px)" }}>
-      <PageSkeleton />
-    </div>
+    <Suspense fallback={<div className="min-h-dvh bg-canvas" aria-busy="true" />}>
+      <AppLoading />
+    </Suspense>
   );
 }

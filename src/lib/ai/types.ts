@@ -245,6 +245,29 @@ export interface GeminiAnalysisInput {
     evidence: Array<{ source: string; excerpt: string }>;
   }>;
   deterministicViolations: RuleViolation[];
+  /** Who the copy is being checked for; the model must judge whether the content is even about them. */
+  brand?: BrandProfile;
+  /** Reader preference for explanations only; never changes what gets flagged. */
+  style?: { language?: 'en' | 'hi'; tone?: 'plain' | 'formal' };
+}
+
+export interface BrandProfile {
+  name: string;
+  industry?: string | null;
+  description?: string | null;
+}
+
+export type ContentKind =
+  | 'ad_copy' | 'social_caption' | 'video_script' | 'email' | 'landing_page' | 'press_release' | 'blog_post'
+  | 'product_docs' | 'pitch_deck' | 'proposal' | 'company_profile' | 'report' | 'resume' | 'other';
+
+/** Stage 4 gate verdicts. Code enforces them; the model's score never overrides them. */
+export interface ContentGate {
+  contentKind: ContentKind;
+  isAboutBrand: boolean;
+  brandReason: string;
+  fitsChannel: boolean;
+  channelReason: string;
 }
 
 export interface GeminiFindingPayload {
@@ -259,6 +282,7 @@ export interface GeminiFindingPayload {
 }
 
 export interface GeminiStructuredOutput {
+  gate?: ContentGate;
   complianceScore: number;
   summaryAssessment: string;
   findings: GeminiFindingPayload[];

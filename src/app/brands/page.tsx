@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Plus, Check } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InfoTip } from "@/components/guide/HelpPanel";
-import { usePrefs, setPrefs, openWorkspacePicker, focusRing } from "@/components/guide/workspace";
+import { usePrefs, setPrefs, openWorkspacePicker, focusRing, visibleWorkspaces, samplesShown, isSample } from "@/components/guide/workspace";
+import { BrandBookImport } from "./BrandBookImport";
 import { useWorkspaces } from "@/lib/workspaces/client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -16,7 +17,10 @@ const REVIEW = ["submitted", "under_review", "resubmitted", "needs_re_review"];
 export default function BrandsPage() {
   const router = useRouter();
   const prefs = usePrefs();
-  const workspaces = useWorkspaces();
+  const allWorkspaces = useWorkspaces();
+  const workspaces = visibleWorkspaces(prefs, allWorkspaces);
+  const showSamples = samplesShown(prefs, allWorkspaces);
+  const [importFor, setImportFor] = useState<string | null>(null);
   const [data, setData] = useState<{ subs: any[]; claims: any[] } | null>(null);
   const [error, setError] = useState(false);
 
@@ -69,6 +73,12 @@ export default function BrandsPage() {
           </button>
         </header>
 
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-text-secondary">
+          <input type="checkbox" checked={showSamples} onChange={(e) => setPrefs({ showSamples: e.target.checked })} />
+          Show sample brands
+          <span className="text-[12px] text-text-muted">(read-only demos; never deleted)</span>
+        </label>
+
         {error && (
           <p role="alert" className="rounded-lg border border-status-warning/30 bg-status-warning/5 px-4 py-3 text-[13px] text-text-secondary">
             Could not load counts from the server. You can still open any workspace.
@@ -86,11 +96,14 @@ export default function BrandsPage() {
               { label: "Claims", value: c.claims, href: "/knowledge-base/claims", tip: "Approved statements with proof, used to check this brand's ads." },
             ];
             return (
-              <li key={w.id} className={`glass flex flex-col rounded-2xl p-5 ${active ? "ring-1 ring-ink/30" : ""}`}>
+              <li key={w.id} className={`glass flex flex-col rounded-2xl p-5 ${active ? "ring-1 ring-ink/30" : ""} ${importFor === w.id ? "md:col-span-2 lg:col-span-3" : ""}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="truncate text-base font-semibold text-text-primary">{w.name}</h2>
                     <p className="mt-0.5 text-[13px] text-text-muted">{w.industry}</p>
+                    {isSample(w) && (
+                      <span className="mt-1 inline-block rounded-full border border-border-default px-2 py-0.5 text-[11px] text-text-muted">Sample</span>
+                    )}
                   </div>
                   {active && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-border-default px-2 py-0.5 text-xs text-text-secondary">
@@ -115,6 +128,18 @@ export default function BrandsPage() {
                   ))}
                 </dl>
 
+                {!isSample(w) && (
+                  importFor === w.id ? (
+                    <div className="mt-4 rounded-xl border border-border-subtle p-3">
+                      <BrandBookImport brandId={w.id} brandName={w.name} />
+                      <button type="button" onClick={() => setImportFor(null)} className={`mt-2 rounded text-[13px] text-text-muted hover:text-text-primary ${focusRing}`}>Close</button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setImportFor(w.id)} className={`mt-4 h-10 rounded-lg border border-border-default text-sm text-text-secondary hover:bg-panel-hover hover:text-text-primary ${focusRing}`}>
+                      Import brand book
+                    </button>
+                  )
+                )}
                 <button
                   type="button"
                   onClick={() => open(w.name)}

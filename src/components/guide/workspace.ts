@@ -25,8 +25,9 @@ export interface Persona {
   avatarUrl: string | null;
   bio: string;
   profileComplete: boolean;
+  isOwner: boolean;
 }
-const SIGNED_OUT: Persona = { id: "", userId: "", name: "", email: "", role: "creator", label: ROLE_LABEL.creator, avatarUrl: null, bio: "", profileComplete: true };
+const SIGNED_OUT: Persona = { id: "", userId: "", name: "", email: "", role: "creator", label: ROLE_LABEL.creator, avatarUrl: null, bio: "", profileComplete: true, isOwner: false };
 let current: Persona = SIGNED_OUT;
 let loading: Promise<void> | null = null;
 const ME_EVT = "adsnitch:me";
@@ -46,7 +47,7 @@ export function refreshMe(): Promise<void> {
         } catch {}
       }
       current = m
-        ? { id: m.id, userId: m.id, name: m.name, email: m.email, role: m.role, label: ROLE_LABEL[m.role as Role] ?? m.role, avatarUrl: m.avatarUrl, bio: m.bio, profileComplete: m.profileComplete !== false }
+        ? { id: m.id, userId: m.id, name: m.name, email: m.email, role: m.role, label: ROLE_LABEL[m.role as Role] ?? m.role, avatarUrl: m.avatarUrl, bio: m.bio, profileComplete: m.profileComplete !== false, isOwner: m.isOwner === true }
         : SIGNED_OUT;
     })
     .catch(() => {})
@@ -108,7 +109,45 @@ export interface Prefs {
   // Notifications
   notifyInApp: boolean;
   notifyEmail: boolean;
+  /** Notification types hidden from the bell and the notifications page. */
+  mutedTypes: string[];
+  /** Claims expiring within this many days get warned about (dashboard, analytics, claims). */
+  expiryDays: number;
+  notifySound: boolean;
+  notifyDesktop: boolean;
+  // Appearance (more)
+  accent: Accent;
+  corners: "rounded" | "sharp";
+  backgroundFx: boolean;
+  sidebarCollapsed: boolean;
+  dateFormat: "auto" | "dmy" | "mdy" | "iso";
+  clock: "12" | "24";
+  // Checking defaults + result page
+  defaultBrandId: string;
+  defaultChannel: string;
+  defaultInput: "paste" | "upload";
+  resultsView: "annotated" | "diff";
+  issueOrder: "severity" | "text";
+  hideLowSeverity: boolean;
+  expandFirstIssue: boolean;
+  // AI display
+  showConfidence: boolean;
+  aiLanguage: "en" | "hi";
+  aiTone: "plain" | "formal";
+  // Workspace / dashboard
+  landing: string;
+  dashCheck: boolean;
+  dashExpiry: boolean;
+  dashStats: boolean;
+  dashAttention: boolean;
+  dashRecent: boolean;
+  attentionCount: number;
+  claimsSort: "expiry" | "updated";
+  /** Show the built-in sample brands in lists. null = auto: on until the account has its own brand. */
+  showSamples: boolean | null;
 }
+
+export type Accent = "sky" | "violet" | "emerald" | "amber" | "rose";
 
 export type Strictness = "relaxed" | "balanced" | "strict";
 export const STRICTNESS_PRESETS: Record<Strictness, { passScore: number; blockBelow: number }> = {
@@ -126,6 +165,15 @@ export const DEFAULTS: Prefs = {
   useGemini: true, aiConfidence: 60, ocr: true,
   motion: "full", density: "comfortable", breathing: true, textSize: 16,
   notifyInApp: true, notifyEmail: false,
+  mutedTypes: [], expiryDays: 30, notifySound: false, notifyDesktop: false,
+  accent: "sky", corners: "rounded", backgroundFx: true, sidebarCollapsed: false, dateFormat: "auto", clock: "12",
+  defaultBrandId: "brand_apex", defaultChannel: "Instagram Reel", defaultInput: "paste",
+  resultsView: "annotated", issueOrder: "severity", hideLowSeverity: false, expandFirstIssue: false,
+  showConfidence: true,
+  aiLanguage: "en",
+  aiTone: "plain",
+  landing: "/dashboard", dashCheck: true, dashExpiry: true, dashStats: true, dashAttention: true, dashRecent: true,
+  attentionCount: 5, claimsSort: "expiry", showSamples: null,
 };
 
 export function readPrefs(): Prefs {
@@ -221,4 +269,22 @@ function syncPrefs(p: Prefs) {
     if (!current.id) return;
     fetch("/api/profile/prefs", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) }).catch(() => {});
   }, 800);
+}
+
+// ---------------------------------------------------------------------------
+// Sample brands: labelled everywhere, listed after own brands, hidden per account pref.
+export function isSample(w: WorkspaceLite): boolean {
+  return w.sample ?? !w.custom;
+}
+type WorkspaceLite = { custom: boolean; sample?: boolean };
+
+/** Whether sample brands are shown, resolving the "auto" default against the account's own brands. */
+export function samplesShown(prefs: Prefs, list: WorkspaceLite[]): boolean {
+  return prefs.showSamples ?? !list.some((w) => !isSample(w));
+}
+
+/** Own brands first, then samples (if shown). The server already sorts; this keeps it stable client-side. */
+export function visibleWorkspaces<T extends WorkspaceLite>(prefs: Prefs, list: T[]): T[] {
+  const show = samplesShown(prefs, list);
+  return [...list.filter((w) => !isSample(w)), ...(show ? list.filter(isSample) : [])];
 }

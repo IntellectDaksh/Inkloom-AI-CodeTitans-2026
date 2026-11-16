@@ -1,7 +1,7 @@
 import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { SEED_IDS } from "@/lib/db/seed";
+import { SEED_IDS, isBuiltInId } from "@/lib/db/seed";
 
 async function GET_handler(req: NextRequest) {
   try {
@@ -11,7 +11,7 @@ async function GET_handler(req: NextRequest) {
     const status = searchParams.get("status") || undefined;
 
     const claims = db.listClaims(brandId, orgId, status as any);
-    return NextResponse.json({ success: true, claims });
+    return NextResponse.json({ success: true, claims: claims.map((c) => ({ ...c, built_in: isBuiltInId(c.id) })) });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

@@ -3,12 +3,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Plus, Search, Menu, ChevronRight, ChevronsUpDown, User, Settings, LogOut } from "lucide-react";
+import { Bell, Plus, Search, Menu, ChevronRight, ChevronsUpDown, User, Settings, LogOut, Lock } from "lucide-react";
 import { openCommandK } from "../ui/CommandK";
 import { HelpButton } from "../guide/HelpPanel";
 import { findPage } from "../guide/nav";
 import { openWorkspacePicker, usePrefs, useMe, focusRing } from "../guide/workspace";
 import { supabaseBrowser } from "@/lib/auth/client";
+import { OrgSwitcher } from "./OrgSwitcher";
+import { useLivePoll } from "../ops/useLivePoll";
 
 export interface HeaderBreadcrumb {
   label: string;
@@ -34,6 +36,8 @@ interface Notif {
   link_url?: string | null;
   isRead?: boolean;
   is_read?: boolean;
+  notification_type?: string;
+  created_at?: string;
 }
 
 export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onToggleMobileMenu }: HeaderProps) {
@@ -41,7 +45,10 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
   const page = findPage(path);
   const prefs = usePrefs();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [notifs, setNotifs] = useState<Notif[] | null>(null);
+  const [allNotifs, setNotifs] = useState<Notif[] | null>(null);
+  // Muted types (Settings > Notifications) never reach the bell, its dot, sound or desktop alerts.
+  const visible = allNotifs?.filter((n) => !prefs.mutedTypes.includes(n.notification_type ?? "")) ?? null;
+  const notifs = visible?.slice(0, 5) ?? null;
   const [notifError, setNotifError] = useState(false);
   const [isMac, setIsMac] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -51,9 +58,16 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
   useEffect(() => {
     fetch("/api/notifications")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setNotifs((d.notifications ?? []).slice(0, 5)))
+      .then((d) => setNotifs(d.notifications ?? []))
       .catch(() => setNotifError(true));
   }, []);
+  // Live bell: background polls bypass the device cache and keep the last good list on failure.
+  useLivePoll(() => {
+    fetch("/api/notifications?fresh=1")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => { setNotifs(d.notifications ?? []); setNotifError(false); })
+      .catch(() => {});
+  });
 
   useEffect(() => {
     if (!isNotifOpen) return;
@@ -75,7 +89,43 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
         ? [{ label: page.group, href: undefined }, { label: title ?? page.name }]
         : [{ label: title ?? "AdSnitch" }];
   const heading = crumbs[crumbs.length - 1].label;
-  const unread = (notifs ?? []).filter((n) => !(n.isRead ?? n.is_read)).length;
+  const unread = (visible ?? []).filter((n) => !(n.isRead ?? n.is_read)).length;
+
+  // Sound / desktop alerts for unread notifications newer than the last ones this browser has seen.
+  useEffect(() => {
+    if (!visible) return;
+    const SEEN = "adsnitch:notif-seen";
+    const ts = (n: Notif) => Date.parse(n.created_at ?? "") || 0;
+    let seen: number | null = null;
+    try {
+      const v = localStorage.getItem(SEEN);
+      seen = v === null ? null : Number(v);
+    } catch {}
+    const latest = Math.max(seen ?? 0, ...visible.map(ts));
+    try {
+      localStorage.setItem(SEEN, String(latest));
+    } catch {}
+    if (seen === null) return; // first visit on this browser: set the baseline, don't alert on history
+    const fresh = visible.filter((n) => !(n.isRead ?? n.is_read) && ts(n) > seen!);
+    if (!fresh.length) return;
+    if (prefs.notifySound) {
+      try {
+        const ctx = new AudioContext();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.frequency.value = 880;
+        g.gain.setValueAtTime(0.08, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+        o.connect(g).connect(ctx.destination);
+        o.start();
+        o.stop(ctx.currentTime + 0.25);
+      } catch {}
+    }
+    if (prefs.notifyDesktop && typeof Notification !== "undefined" && Notification.permission === "granted") {
+      for (const n of fresh.slice(0, 3)) new Notification(n.title, { body: n.message, tag: n.id });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allNotifs]);
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border-subtle bg-glass px-3 backdrop-blur-xl backdrop-saturate-150 sm:gap-3 sm:px-6">
@@ -106,6 +156,8 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
         )}
         <p className="truncate text-base font-semibold tracking-tight text-text-primary">{heading}</p>
       </div>
+
+      <OrgSwitcher />
 
       {/* Brand switcher */}
       <button
@@ -267,6 +319,7 @@ function AccountMenu() {
           )}
           <Link role="menuitem" href="/profile" onClick={() => setOpen(false)} className={item}><User className="h-4 w-4" aria-hidden="true" />Profile</Link>
           <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className={item}><Settings className="h-4 w-4" aria-hidden="true" />Settings</Link>
+          <Link role="menuitem" href="/security" onClick={() => setOpen(false)} className={item}><Lock className="h-4 w-4" aria-hidden="true" />Security</Link>
           <button role="menuitem" type="button" onClick={signOut} className={item}><LogOut className="h-4 w-4" aria-hidden="true" />Sign out</button>
         </div>
       )}

@@ -506,7 +506,7 @@ const CHANNEL_MAX_CHARS: Partial<Record<ContentChannel, { max: number; label: st
   email: { max: 12000, label: 'Marketing emails past ~12,000 characters get clipped by Gmail' },
 };
 // ponytail: keyword heuristic for "this is a deck/document, not ad copy"; Stage 4 LLM makes the real call.
-const DOCUMENT_SIGNALS =
+export const DOCUMENT_SIGNALS =
   /\b(table of contents|agenda|about us|our team|meet the team|our services|case stud(y|ies)|our clients|our process|pricing|packages|investors?|pitch deck|thank you|contact us|portfolio|mission|vision|roadmap|slide \d+|appendix|executive summary)\b/gi;
 
 export function checkChannelFit(content: string, channel: ContentChannel): RuleViolation[] {

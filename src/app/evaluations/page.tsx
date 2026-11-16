@@ -83,12 +83,90 @@ function ProblemRow({ r }: { r: ItemResult }) {
   );
 }
 
+function Confusion({ d }: { d: EvalReport["decision"] }) {
+  const cell = (n: number, good: boolean, title: string) => (
+    <td className={`px-4 py-3 text-center ${good ? "bg-status-success/10" : n ? "bg-status-warning/15" : ""}`}>
+      <span className="block text-xl font-semibold tabular-nums text-text-primary">{n}</span>
+      <span className="text-[12px] text-text-muted">{title}</span>
+    </td>
+  );
+  return (
+    <table className="w-full max-w-md text-sm" aria-label="Confusion matrix of block and pass decisions">
+      <thead><tr><td /><th scope="col" className="px-4 py-2 font-medium text-text-muted">AdSnitch blocked</th><th scope="col" className="px-4 py-2 font-medium text-text-muted">AdSnitch passed</th></tr></thead>
+      <tbody className="divide-y divide-border-default">
+        <tr><th scope="row" className="py-3 pr-3 text-left font-medium text-text-muted">Should block</th>{cell(d.tp, true, "correct block")}{cell(d.fn, false, "violation let through")}</tr>
+        <tr><th scope="row" className="py-3 pr-3 text-left font-medium text-text-muted">Should pass</th>{cell(d.fp, false, "compliant copy blocked")}{cell(d.tn, true, "correct pass")}</tr>
+      </tbody>
+    </table>
+  );
+}
+
+function CaseList({ title, rows, empty }: { title: string; rows: ItemResult[]; empty: string }) {
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-text-primary">{title} ({rows.length})</h3>
+      {rows.length === 0 ? <p className="mt-2 text-[13px] text-text-muted">{empty}</p> : (
+        <ul className="mt-2 space-y-2">
+          {rows.map((r) => (
+            <li key={r.id} className="rounded-lg border border-border-default bg-canvas px-3 py-2 text-[13px]">
+              <p className="text-text-muted"><span className="font-mono">{r.id}</span> · {r.brand}, {r.channel.replace(/_/g, " ")} · {r.error ? `error: ${r.error}` : `${r.status?.replace(/_/g, " ")}, score ${r.complianceScore}`}{r.note ? ` · ${r.note}` : ""}</p>
+              <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-text-primary">{r.text}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+const GROUP: Record<string, string> = { violation: "Clear violations", compliant: "Compliant copy", landmark: "Landmark cases", off_brand: "Off-brand content", wrong_type: "Wrong document type", disclosure: "#ad / FDA disclosures", subtle: "Subtle claims" };
+
+function DecisionSection({ report }: { report: EvalReport }) {
+  const d = report.decision;
+  const fp = report.results.filter((r) => r.expectedDecision === "pass" && r.predictedDecision === "block");
+  const fn = report.results.filter((r) => r.expectedDecision === "block" && r.predictedDecision === "pass");
+  return (
+    <section aria-labelledby="decision" className="space-y-4">
+      <h2 id="decision" className="text-lg font-semibold text-text-primary">Block or pass: did it make the right call?</h2>
+      <p className="text-sm text-text-secondary">Each draft is labelled &ldquo;should block&rdquo; or &ldquo;should pass&rdquo;. Block is the positive class.</p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat value={pct(d.accuracy)} label="Accuracy" hint={`${d.tp + d.tn} of ${report.items} decisions right.`} />
+        <Stat value={pct(d.precision)} label="Precision" hint="Of drafts it blocked, how many should have been." />
+        <Stat value={pct(d.recall)} label="Recall" hint="Of drafts that should be blocked, how many it caught." />
+        <Stat value={pct(d.f1)} label="F1" hint="Balance of precision and recall." />
+      </div>
+      <div className="grid gap-6 rounded-xl border border-border-default bg-panel p-5 lg:grid-cols-2">
+        <Confusion d={d} />
+        <ul className="space-y-1 text-[13px]" aria-label="Correct decisions by case type">
+          {(report.byGroup ?? []).map((g) => (
+            <li key={g.group} className="flex justify-between gap-3"><span className="text-text-primary">{GROUP[g.group] ?? g.group}</span><span className="tabular-nums text-text-secondary">{g.correct} of {g.items} right</span></li>
+          ))}
+        </ul>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CaseList title="False negatives: violations it let through" rows={fn} empty="None. Every violation was blocked or sent for review." />
+        <CaseList title="False positives: compliant copy it blocked" rows={fp} empty="None. Every compliant draft passed." />
+      </div>
+    </section>
+  );
+}
+
 export default function EvaluationsPage() {
   const [report, setReport] = useState<EvalReport | null>(null);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [canRun, setCanRun] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    fetch("/api/evaluations", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (d.success) { setReport(d.report); setCanRun(!!d.canRun); } else setError(d.error); })
+      .catch(() => setError("Could not load the last run."))
+      .finally(() => setLoaded(true));
+  }, []);
 
   const run = async () => {
     setRunning(true);
@@ -97,7 +175,7 @@ export default function EvaluationsPage() {
     const t0 = Date.now();
     timer.current = setInterval(() => setElapsed(Math.round((Date.now() - t0) / 1000)), 500);
     try {
-      const res = await fetch("/api/evaluations", { cache: "no-store" });
+      const res = await fetch("/api/evaluations", { method: "POST", cache: "no-store" });
       const d = await res.json();
       if (!res.ok || !d.success) throw new Error(d.error ?? `Request failed (${res.status})`);
       setReport(d.report);
@@ -124,9 +202,11 @@ export default function EvaluationsPage() {
               We run a set of drafts, each already marked up by a person, through the same checking pipeline your ads go through, then count what it caught, what it missed, and where it raised a false alarm.
             </p>
           </div>
-          <Button onClick={run} loading={running} icon={<Play className="h-4 w-4" />} className="h-10">
-            {report ? "Run again" : "Run evaluation"}
-          </Button>
+          {canRun ? (
+            <Button onClick={run} loading={running} icon={<Play className="h-4 w-4" />} className="h-10">
+              {report ? "Run again" : "Run evaluation"}
+            </Button>
+          ) : loaded && <p className="text-[13px] text-text-muted">Only admins can start a run.</p>}
         </header>
 
         <div aria-live="polite">
@@ -141,9 +221,9 @@ export default function EvaluationsPage() {
           {error && <p role="alert" className="rounded-lg border border-status-danger/30 bg-status-danger/5 px-4 py-3 text-sm text-text-primary">{error}</p>}
         </div>
 
-        {!report && !running && !error && (
+        {loaded && !report && !running && !error && (
           <p className="rounded-xl border border-dashed border-border-default px-4 py-10 text-center text-sm text-text-secondary">
-            No results yet. Press &ldquo;Run evaluation&rdquo; to score the current pipeline. Nothing is cached, so the numbers always reflect the code running now.
+            No run stored for this organisation yet. {canRun ? "Press \u201cRun evaluation\u201d to score the live pipeline." : "Ask an admin to run it."} Each run is saved here until the next one.
           </p>
         )}
 
@@ -175,8 +255,11 @@ export default function EvaluationsPage() {
               )}
             </section>
 
+            {report.decision && <DecisionSection report={report} />}
+
             <section aria-labelledby="bycat">
-              <h2 id="bycat" className="text-lg font-semibold text-text-primary">By type of issue</h2>
+              <h2 id="bycat" className="text-lg font-semibold text-text-primary">By type of issue (flag level)</h2>
+              <p className="mt-1 text-sm text-text-secondary">Stricter than block/pass: each labelled phrase must be flagged under the right issue type.</p>
               <div className="mt-3 overflow-x-auto rounded-xl border border-border-default bg-panel">
                 <table className="w-full min-w-[560px] text-left text-sm">
                   <thead className="text-xs uppercase tracking-wide text-text-muted">
@@ -217,6 +300,29 @@ export default function EvaluationsPage() {
               </section>
             )}
 
+            <section aria-labelledby="latency">
+              <h2 id="latency" className="text-lg font-semibold text-text-primary">Every case</h2>
+              <div className="mt-3 max-h-[480px] overflow-auto rounded-xl border border-border-default bg-panel">
+                <table className="w-full min-w-[640px] text-left text-[13px]">
+                  <thead className="sticky top-0 bg-panel text-xs uppercase tracking-wide text-text-muted">
+                    <tr><th scope="col" className="px-4 py-2 font-medium">Case</th><th scope="col" className="px-4 py-2 font-medium">Brand / channel</th><th scope="col" className="px-4 py-2 font-medium">Expected</th><th scope="col" className="px-4 py-2 font-medium">Got</th><th scope="col" className="px-4 py-2 text-right font-medium">Score</th><th scope="col" className="px-4 py-2 text-right font-medium">Latency</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-default tabular-nums">
+                    {report.results.map((r) => (
+                      <tr key={r.id} className={r.expectedDecision && r.expectedDecision !== r.predictedDecision ? "bg-status-warning/10" : ""}>
+                        <th scope="row" className="px-4 py-2 font-mono text-xs font-normal text-text-primary">{r.id}</th>
+                        <td className="px-4 py-2 text-text-secondary">{r.brand}, {r.channel.replace(/_/g, " ")}</td>
+                        <td className="px-4 py-2 text-text-secondary">{r.expectedDecision ?? "-"}</td>
+                        <td className="px-4 py-2 text-text-primary">{r.error ? "error" : r.predictedDecision ?? "-"}{r.expectedDecision && r.expectedDecision !== r.predictedDecision ? " (wrong)" : ""}</td>
+                        <td className="px-4 py-2 text-right text-text-secondary">{r.complianceScore ?? "-"}</td>
+                        <td className="px-4 py-2 text-right text-text-secondary">{r.latencyMs} ms</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
             <section aria-labelledby="problems">
               <h2 id="problems" className="text-lg font-semibold text-text-primary">Every miss and false alarm ({problems.length} drafts)</h2>
               <p className="mt-1 text-sm text-text-secondary">Open a row to see the draft, what the reviewer expected, and what AdSnitch flagged.</p>
@@ -231,7 +337,8 @@ export default function EvaluationsPage() {
           <h2 id="limits" className="text-base font-semibold text-text-primary">Limitations</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>The drafts are synthetic and were labelled by our own team, not an independent reviewer.</li>
-            <li>The set is small ({report?.items ?? 39} drafts across three built-in brands), so one draft can swing a percentage by several points.</li>
+            <li>Block/pass counts &ldquo;needs review&rdquo; as block: the ad cannot go out without a person looking.</li>
+            <li>The set is small ({report?.items ?? 54} drafts across three built-in brands), so one draft can swing a percentage by several points.</li>
             <li>Rule-only gaps found by earlier runs (negations, proper nouns, verbatim approved claims, medical wording) were fixed against this same set, so these numbers flatter performance on copy it has never seen.</li>
             <li>A flag counts as caught only when it lands on the labelled text with the same issue type. Right text under the wrong label is shown separately and counts against &ldquo;flags that were right&rdquo;.</li>
             <li>Missing disclosures have no text to point at, so they are matched on issue type alone.</li>

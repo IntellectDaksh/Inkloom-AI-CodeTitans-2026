@@ -5,11 +5,11 @@ import { Check, FileUp, Plus, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { GUIDELINE_STARTER, type GuidelineRule } from "@/components/knowledge/starters";
-import { Extracted, FileDrop, KbHeader, Modal, Toast, area, field, labelCls, useKb, KbError } from "@/components/knowledge/kb";
+import type { GuidelineRule } from "@/components/knowledge/starters";
+import { BuiltInBadge, Extracted, FileDrop, KbHeader, Modal, Toast, area, field, focusRing, labelCls, useKb, KbError } from "@/components/knowledge/kb";
 
 
-const CATEGORIES = ["Voice and tone", "Messaging standards", "Legal and disclosures", "Visual identity"];
+const CATEGORIES = ["Voice and tone", "Messaging standards", "Prohibited language", "Legal and disclosures", "Visual identity", "Channel rules"];
 
 
 /** Turn uploaded guideline text into a rule: lines starting with do/avoid/don't become lists. */
@@ -26,7 +26,9 @@ function ruleFromText(r: Extracted): GuidelineRule {
 }
 
 export default function BrandGuidelinesPage() {
-  const [rules, setRules, kb] = useKb<GuidelineRule>("/api/guidelines", GUIDELINE_STARTER);
+  const [rules, setRules, kb] = useKb<GuidelineRule>("/api/guidelines");
+  const [view, setView] = useState<GuidelineRule | null>(null);
+  const viewRef = useRef<HTMLDialogElement>(null);
   const [cat, setCat] = useState("all");
   const [draft, setDraft] = useState<GuidelineRule | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -109,10 +111,15 @@ export default function BrandGuidelinesPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="neutral" size="xs">{r.category}</Badge>
+                    {r.builtIn && <BuiltInBadge />}
                     {r.source && <span className="text-[13px] text-text-muted">From {r.source}</span>}
                   </div>
-                  <h2 className="mt-2 text-lg font-semibold text-text-primary">{r.title}</h2>
+                  <h2 className="mt-2 text-lg font-semibold text-text-primary">
+                    <button type="button" onClick={() => { setView(r); viewRef.current?.showModal(); }}
+                      className={`rounded text-left hover:underline hover:underline-offset-4 ${focusRing}`}>{r.title}</button>
+                  </h2>
                   {r.description && <p className="mt-1 text-sm leading-relaxed text-text-secondary">{r.description}</p>}
+                  {r.rule && <p className="mt-2 text-sm leading-relaxed text-text-secondary">{r.rule}</p>}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {([["Do", r.dos, Check, "text-status-success"], ["Don't", r.donts, X, "text-status-critical"]] as const).map(([h, list, Icon, color]) => (
@@ -161,6 +168,26 @@ export default function BrandGuidelinesPage() {
               <Button type="submit" size="sm" className="h-10">Save as guideline</Button>
             </div>
           </form>
+        )}
+      </Modal>
+      <Modal ref={viewRef} title={view?.title ?? "Guideline"} wide onClose={() => setView(null)}>
+        {view && (
+          <div className="space-y-4 text-sm text-text-secondary">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="neutral" size="xs">{view.category}</Badge>
+              {view.builtIn && <BuiltInBadge />}
+              {view.severity && <span className="text-[13px] text-text-muted">Severity: {view.severity}</span>}
+            </div>
+            {view.description && <p className="leading-relaxed">{view.description}</p>}
+            {view.rule && <p className="leading-relaxed">{view.rule}</p>}
+            {([["Do", view.dos], ["Don't", view.donts]] as const).map(([h, list]) => list.length > 0 && (
+              <div key={h}>
+                <h3 className="font-semibold text-text-primary">{h}</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-5">{list.map((t) => <li key={t}>{t}</li>)}</ul>
+              </div>
+            ))}
+            {view.builtIn && <p className="text-[13px] text-text-muted">Built-in rule. It ships with this workspace and can&apos;t be edited or removed.</p>}
+          </div>
         )}
       </Modal>
       <Toast msg={toast} />

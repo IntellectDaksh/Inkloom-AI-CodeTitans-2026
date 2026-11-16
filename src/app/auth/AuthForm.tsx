@@ -5,7 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/auth/client";
 import { safeNext } from "@/lib/auth/next";
-import { focusRing } from "@/components/guide/workspace";
+import { focusRing, readPrefs, refreshMe } from "@/components/guide/workspace";
+import { LANDING_PAGES } from "@/components/settings/options";
+import { AuthBackdrop } from "@/components/auth/AuthBackdrop";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
+import { LogoMark } from "@/components/landing/LogoMark";
 
 type Mode = "login" | "register" | "forgot" | "reset";
 
@@ -43,7 +47,14 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
       if (mode === "login") {
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.replace(next);
+        // No explicit ?next: go to the account's chosen start page (Settings > Workspace).
+        let to = next;
+        if (!rawNext) {
+          await refreshMe();
+          const l = readPrefs().landing;
+          if (LANDING_PAGES.includes(l)) to = l;
+        }
+        router.replace(to);
         router.refresh();
       } else if (mode === "register") {
         const name = String(f.get("name") ?? "").trim();
@@ -80,15 +91,20 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
   const c = COPY[mode];
   const social = mode === "login" || mode === "register";
   return (
-    <main className="min-h-dvh bg-canvas px-4 py-10 sm:py-16">
-      <div className="mx-auto max-w-md space-y-8">
-        <Link href="/" className={`inline-block rounded text-lg font-semibold tracking-tight text-text-primary ${focusRing}`}>AdSnitch</Link>
+    <main className="relative min-h-dvh overflow-hidden px-4 py-10 sm:py-16">
+      <AuthBackdrop />
+      <FeedbackButton />
+      <div className="relative z-10 mx-auto max-w-md space-y-6">
+        <Link href="/" className={`inline-flex items-center gap-2 rounded text-lg font-semibold tracking-tight text-white drop-shadow-sm ${focusRing}`}>
+          <LogoMark size={26} className="text-white" /> AdSnitch
+        </Link>
+        <div className="space-y-6 rounded-3xl border border-white/60 bg-white/75 p-6 shadow-[0_30px_80px_-20px_rgba(16,45,64,0.45)] backdrop-blur-2xl sm:p-8">
         <header>
           <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-text-primary">{c.title}</h1>
           {social && <p className="mt-2 text-sm leading-relaxed text-text-secondary">{PURPOSE}</p>}
         </header>
 
-        <section className="glass space-y-4 rounded-2xl p-5 sm:p-6">
+        <section className="space-y-4">
           {social && (
             <>
               <button type="button" onClick={google} className={`flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border-default bg-panel text-sm font-medium text-text-primary hover:bg-panel-hover ${focusRing}`}>
@@ -142,6 +158,10 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
           {mode === "login" && <>New here? <A href={`/auth/register${rawNext ? `?next=${encodeURIComponent(rawNext)}` : ""}`}>Create an account</A> · <A href="/auth/forgot">Forgot password?</A></>}
           {mode === "register" && <>Already have an account? <A href="/auth/login">Sign in</A></>}
           {(mode === "forgot" || mode === "reset") && <A href="/auth/login">Back to sign in</A>}
+        </p>
+        </div>
+        <p className="text-center text-xs text-white/85 drop-shadow-sm">
+          <a href="/terms" className="underline-offset-4 hover:underline">Terms</a> · <a href="/privacy" className="underline-offset-4 hover:underline">Privacy</a>
         </p>
       </div>
     </main>

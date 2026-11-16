@@ -1,5 +1,7 @@
 import { withStore } from "@/lib/db/withStore";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { getMe } from "@/lib/auth/server";
+import { fireWebhooks } from "@/lib/notify/webhooks";
 import { db } from "@/lib/db";
 import { runGovernancePipeline } from "@/lib/ai";
 import { withSources } from "../sources";
@@ -31,6 +33,7 @@ async function GET_handler(
       revisions,
       brand,
       auditEvents,
+      runs: db.listAnalysisRuns(id),
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -84,6 +87,11 @@ async function PATCH_handler(
       previousValue: { content: submission.currentContent, status: submission.status },
       updatedValue: updates,
     });
+
+    if (status === "under_review" && submission.status !== "under_review") {
+      const me = await getMe();
+      if (me) after(() => fireWebhooks(me.organizationId, "approval_requested", { title: submission.title, submissionId: id, actor: me.name }));
+    }
 
     return NextResponse.json({
       success: true,

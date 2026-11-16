@@ -8,7 +8,8 @@ import { PageMotion } from "./Motion";
 import { FloatingLayer } from "./FloatingLayer";
 import { WorkspacePicker } from "../guide/WorkspacePicker";
 import { DemoOverlay } from "../tour/DemoOverlay";
-import { useMe } from "../guide/workspace";
+import { useMe, usePrefs, setPrefs, readPrefs } from "../guide/workspace";
+import { FeedbackButton } from "../feedback/FeedbackButton";
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -38,31 +39,13 @@ export function AppLayout({
   React.useEffect(() => {
     if (me && !me.profileComplete) window.location.replace(`/welcome?next=${encodeURIComponent(location.pathname + location.search)}`);
   }, [me]);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        return localStorage.getItem("inkloom:sidebar-collapsed") === "true";
-      } catch {
-        return false;
-      }
-    }
-    return false;
-  });
+  // Sidebar state is an account pref (Settings > Appearance), so it follows the user across devices.
+  const { sidebarCollapsed: isSidebarCollapsed } = usePrefs();
 
   const [isCommandKOpen, setIsCommandKOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleToggleSidebar = () => {
-    setIsSidebarCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem("inkloom:sidebar-collapsed", String(next));
-      } catch {
-        // Ignore
-      }
-      return next;
-    });
-  };
+  const handleToggleSidebar = () => setPrefs({ sidebarCollapsed: !readPrefs().sidebarCollapsed });
 
   return (
     <div className="relative isolate flex min-h-screen bg-canvas text-text-primary overflow-x-hidden">
@@ -73,6 +56,7 @@ export function AppLayout({
       </div>
 
       <FloatingLayer density="app" />
+      <FeedbackButton signedInEmail={me?.email} />
       <WorkspacePicker />
       {me?.profileComplete !== false && <DemoOverlay />}
 

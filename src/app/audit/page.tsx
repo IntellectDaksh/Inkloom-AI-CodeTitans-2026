@@ -1,8 +1,9 @@
 "use client";
 
+import { fmtDateTime } from "@/components/settings/format";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { RotateCcw, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Download, RotateCcw, ShieldCheck, ShieldAlert } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { focusRing } from "@/components/guide/workspace";
@@ -20,6 +21,9 @@ interface AuditRow {
   hash: string | null;
 }
 
+interface Facets { users: { id: string; name: string }[]; actions: string[]; entities: string[] }
+const PAGE_SIZE = 50;
+
 interface Verification {
   intact: boolean;
   checked: number;
@@ -28,32 +32,49 @@ interface Verification {
 }
 
 const humanize = (s: string) => s.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-const fmt = (iso: string) => {
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-};
+const fmt = fmtDateTime;
 const input = `h-9 rounded-lg border border-border-default bg-panel px-2 text-[13px] text-text-primary ${focusRing}`;
 
 export default function AuditPage() {
   const [rows, setRows] = useState<AuditRow[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [facets, setFacets] = useState<Facets>({ users: [], actions: [], entities: [] });
   const [loadError, setLoadError] = useState(false);
-  const [q, setQ] = useState("");
+  const [user, setUser] = useState("");
   const [action, setAction] = useState("");
-  const [role, setRole] = useState("");
+  const [entity, setEntity] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState<Verification | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
+  const filterQs = useMemo(() => {
+    const p = new URLSearchParams();
+    if (user) p.set("user", user);
+    if (action) p.set("action", action);
+    if (entity) p.set("entity", entity);
+    if (from) p.set("from", from);
+    if (to) p.set("to", to);
+    return p.toString();
+  }, [user, action, entity, from, to]);
+
   const load = useCallback(() => {
     setLoadError(false);
-    fetch("/api/audit")
+    fetch(`/api/audit?${filterQs}&page=${page}&pageSize=${PAGE_SIZE}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setRows(d.events ?? []))
+      .then((d) => {
+        setRows(d.events ?? []);
+        setTotal(d.total ?? 0);
+        if (d.facets) setFacets(d.facets);
+      })
       .catch(() => setLoadError(true));
-  }, []);
+  }, [filterQs, page]);
   useEffect(() => load(), [load]);
+  useEffect(() => setPage(1), [filterQs]);
 
-  const verify = async () => {
+  const verify = useCallback(async () => {
     setVerifying(true);
     setVerifyError(null);
     try {
@@ -66,19 +87,12 @@ export default function AuditPage() {
     } finally {
       setVerifying(false);
     }
-  };
+  }, []);
+  // The indicator is always on: verify once on open, again on demand.
+  useEffect(() => { verify(); }, [verify]);
 
-  const actions = useMemo(() => [...new Set((rows ?? []).map((r) => r.action))].sort(), [rows]);
-  const roles = useMemo(() => [...new Set((rows ?? []).map((r) => r.role).filter(Boolean) as string[])].sort(), [rows]);
-  const list = (rows ?? []).filter((r) => {
-    if (action && r.action !== action) return false;
-    if (role && r.role !== role) return false;
-    if (q) {
-      const hay = `${r.actor} ${r.action} ${r.entityType} ${r.entityId} ${r.reason ?? ""} ${r.hash ?? ""}`.toLowerCase();
-      if (!hay.includes(q.toLowerCase())) return false;
-    }
-    return true;
-  });
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const list = rows ?? [];
 
   return (
     <AppLayout title="Audit log">
@@ -90,9 +104,14 @@ export default function AuditPage() {
               Every check, edit, decision and override. Each event is sealed with a SHA-256 hash of the event before it, so editing history breaks the chain.
             </p>
           </div>
-          <Button onClick={verify} loading={verifying} icon={<ShieldCheck className="h-4 w-4" />}>
-            Verify chain
-          </Button>
+          <div className="flex gap-2">
+            <a href={`/api/audit?${filterQs}${filterQs ? "&" : ""}format=csv`} download className={`inline-flex h-9 items-center gap-1.5 rounded-lg border border-border-default bg-panel px-3 text-[13px] font-medium text-text-primary hover:bg-panel-hover ${focusRing}`}>
+              <Download className="h-4 w-4" aria-hidden /> Export CSV
+            </a>
+            <Button onClick={verify} loading={verifying} icon={<ShieldCheck className="h-4 w-4" />}>
+              Verify chain
+            </Button>
+          </div>
         </header>
 
         {(result || verifyError) && (
@@ -108,8 +127,8 @@ export default function AuditPage() {
               <>
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-status-success" aria-hidden />
                 <span>
-                  Chain intact. {result!.checked} sealed event{result!.checked === 1 ? "" : "s"} recomputed on the server and matched.
-                  {result!.unsealed > 0 && ` ${result!.unsealed} older seed event${result!.unsealed === 1 ? " was" : "s were"} written before hashing and ${result!.unsealed === 1 ? "is" : "are"} not sealed.`}
+                  Chain intact. {result!.checked} sealed event{result!.checked === 1 ? "" : "s"} in the append-only log recomputed on the server and matched.
+                  {result!.unsealed > 0 && ` ${result!.unsealed} event${result!.unsealed === 1 ? " is" : "s are"} not sealed (team changes and events written before hashing).`}
                 </span>
               </>
             ) : (
@@ -124,19 +143,31 @@ export default function AuditPage() {
           </div>
         )}
 
-        <div className="glass flex flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center">
-          <label className="sr-only" htmlFor="audit-q">Search</label>
-          <input id="audit-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search actor, entity, reason or hash" className={`${input} flex-1`} />
-          <label className="sr-only" htmlFor="audit-action">Action</label>
-          <select id="audit-action" value={action} onChange={(e) => setAction(e.target.value)} className={input}>
-            <option value="">All actions</option>
-            {actions.map((a) => <option key={a} value={a}>{humanize(a)}</option>)}
-          </select>
-          <label className="sr-only" htmlFor="audit-role">Role</label>
-          <select id="audit-role" value={role} onChange={(e) => setRole(e.target.value)} className={input}>
-            <option value="">All roles</option>
-            {roles.map((r) => <option key={r} value={r}>{humanize(r)}</option>)}
-          </select>
+        <div className="glass grid grid-cols-1 gap-2 rounded-xl p-3 sm:grid-cols-5">
+          <label className="text-xs text-text-muted">User
+            <select value={user} onChange={(e) => setUser(e.target.value)} className={`${input} mt-1 w-full`}>
+              <option value="">Everyone</option>
+              {facets.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </label>
+          <label className="text-xs text-text-muted">Action
+            <select value={action} onChange={(e) => setAction(e.target.value)} className={`${input} mt-1 w-full`}>
+              <option value="">All actions</option>
+              {facets.actions.map((a) => <option key={a} value={a}>{humanize(a)}</option>)}
+            </select>
+          </label>
+          <label className="text-xs text-text-muted">Entity
+            <select value={entity} onChange={(e) => setEntity(e.target.value)} className={`${input} mt-1 w-full`}>
+              <option value="">All entities</option>
+              {facets.entities.map((a) => <option key={a} value={a}>{humanize(a)}</option>)}
+            </select>
+          </label>
+          <label className="text-xs text-text-muted">From
+            <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className={`${input} mt-1 w-full`} />
+          </label>
+          <label className="text-xs text-text-muted">To
+            <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className={`${input} mt-1 w-full`} />
+          </label>
         </div>
 
         {loadError ? (
@@ -190,6 +221,16 @@ export default function AuditPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {rows !== null && !loadError && total > 0 && (
+          <nav aria-label="Audit pages" className="flex items-center justify-between text-[13px] text-text-secondary">
+            <span>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+              <Button size="sm" variant="secondary" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            </div>
+          </nav>
         )}
       </div>
     </AppLayout>

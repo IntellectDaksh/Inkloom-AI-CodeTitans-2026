@@ -27,14 +27,18 @@ import {
   ClaimEvidenceRecord,
   StageExecutionTimings,
   ComplianceScoreBreakdown,
+  BrandProfile,
+  ContentGate,
+  ContentKind,
 } from './types';
-import { runDeterministicRuleChecks } from './rules';
+import { runDeterministicRuleChecks, DOCUMENT_SIGNALS } from './rules';
 import {
   BrandKnowledgeRepository,
   defaultBrandKnowledgeRepository,
   retrieveScopedBrandKnowledge,
 } from './retrieval';
 import { analyzeWithGemini } from './gemini';
+import { buildRepoFromStore } from './storeKnowledge';
 
 // ============================================================================
 // Stage 1: Content Segmentation & Claims Detection
@@ -146,6 +150,10 @@ export function segmentContent(
       },
       {
         regex: /\b(\d+(\.\d+)?%\s*(faster|reduction|increase|uptime|sla)?|\d+x|\d+([,\d]+)?\s*(tps|qps|transactions|users|ms|seconds))\b/gi,
+        type: 'numeric',
+      },
+      {
+        regex: /\b\d[\d,.]*\s*(?:\+|k|m|million|lakh|crore)?\+?\s*(?:happy\s+)?(?:brands|clients|creators|views|followers|projects|businesses|customers|users|companies|downloads|reviews|students)\b/gi,
         type: 'numeric',
       },
       {
@@ -366,15 +374,16 @@ export function computeScoreBreakdown(findings: GovernanceFinding[], modelScore:
   const claims = verifiedClaims + unsupported;
   const clamp = (x: number) => Math.max(0, Math.min(100, Math.round(x)));
   const factors: ComplianceScoreBreakdown['factors'] = [
-    { key: 'severity', label: 'Severity-weighted findings', weight: 0.45, score: clamp(100 - penalty), detail: `${penalty} penalty points (critical 30, high 18, medium 8, low 3)` },
+    { key: 'severity', label: 'Severity-weighted findings', weight: 0.55, score: clamp(100 - penalty), detail: `${penalty} penalty points (critical 30, high 18, medium 8, low 3)` },
     { key: 'coverage', label: 'Claim evidence coverage', weight: 0.15, score: claims ? clamp((verifiedClaims / claims) * 100) : 100, detail: claims ? `${verifiedClaims} of ${claims} claims verified` : 'No checkable claims detected' },
     { key: 'disclosure', label: 'Required disclosures', weight: 0.15, score: clamp(100 - disclosures * 25), detail: disclosures ? `${disclosures} missing disclosure(s), 25 points each` : 'All required disclosures present' },
-    { key: 'model', label: 'Contextual model review', weight: 0.25, score: clamp(modelScore), detail: 'Stage 4 score' },
+    { key: 'model', label: 'Contextual model review', weight: 0.15, score: clamp(modelScore), detail: 'Stage 4 score' },
   ];
   // Hard caps keep the number honest with the status: a weighted average alone let one critical
   // finding (e.g. a pitch deck submitted as a reel) still land at 80+.
   const has = (s: FindingSeverity) => findings.some(f => f.severity === s && !f.isVerified);
-  const cap = has('critical') ? 40 : has('high') ? 75 : unsupported >= 3 ? 65 : unsupported > 0 ? 85 : 100;
+  const gateFailed = findings.some(f => f.id === 'gate_off_brand' || f.id === 'gate_wrong_type');
+  const cap = gateFailed ? 15 : has('critical') ? 40 : has('high') ? 75 : unsupported >= 3 ? 65 : unsupported > 0 ? 85 : 100;
   return { final: Math.min(cap, clamp(factors.reduce((n, f) => n + f.score * f.weight, 0))), factors };
 }
 
@@ -482,6 +491,115 @@ export function generateReviewSummary(
 export interface GovernancePipelineOptions {
   apiKey?: string;
   repo?: BrandKnowledgeRepository;
+  /** Brand the copy is checked for; looked up from the store when omitted. */
+  brand?: BrandProfile;
+  style?: { language?: 'en' | 'hi'; tone?: 'plain' | 'formal' };
+}
+
+/** Validated reader style from a request body (`style: { language, tone }`). */
+export function styleFrom(body: unknown): GovernancePipelineOptions['style'] {
+  const st = (body as { style?: { language?: unknown; tone?: unknown } } | null)?.style;
+  return {
+    language: st?.language === 'hi' ? 'hi' : 'en',
+    tone: st?.tone === 'formal' ? 'formal' : 'plain',
+  };
+}
+
+// Legacy brand ids used by the built-in rule seed and the evaluation set.
+const LEGACY_BRANDS: Record<string, BrandProfile | string> = {
+  brand_apex: '00000000-0000-4000-b000-000000000001',
+  brand_zenith: '00000000-0000-4000-b000-000000000002',
+  brand_flowscale: { name: 'Flowscale', industry: 'Real-time data streaming and cloud infrastructure SaaS', description: 'Event streaming, uptime, latency and throughput for engineering teams.' },
+  brand_nexus: { name: 'Nexus', industry: 'Consumer fintech app', description: 'Savings, payments and investing for consumers.' },
+};
+
+async function lookupBrand(brandId: string): Promise<BrandProfile | undefined> {
+  const legacy = LEGACY_BRANDS[brandId];
+  if (legacy && typeof legacy !== 'string') return legacy;
+  try {
+    const { db } = await import('../db');
+    const b = db.getBrand(typeof legacy === 'string' ? legacy : brandId);
+    return b ? { name: b.name, industry: b.industry, description: b.description } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// ============================================================================
+// Hard gates: content must be about the brand and be the right kind of document for the channel.
+// Enforced in code so no model output or weighting can score off-brand or wrong-type content well.
+// ============================================================================
+
+const STOP = new Set(
+  'about above after again against their there these those which while with within without would could should your yours from have this that than then them they what when where will into over under more most some such only other also just very much many each been being were does doing because before between both during further here once same through until upon whom whose'.split(' ')
+);
+const words = (t: string) => new Set((t.toLowerCase().match(/[a-z][a-z-]{3,}/g) || []).filter(w => !STOP.has(w)));
+
+/** Deterministic brand relevance: brand named, or real vocabulary overlap with its industry, description and claims. */
+export function brandRelevance(content: string, brand: BrandProfile | undefined, claimTexts: string[]): { relevant: boolean; overlap: string[] } {
+  if (!brand) return { relevant: true, overlap: [] };
+  const lower = content.toLowerCase();
+  if (brand.name.toLowerCase().split(/\s+/).filter(w => w.length > 3).some(w => lower.includes(w))) {
+    return { relevant: true, overlap: [brand.name] };
+  }
+  const vocab = words([brand.industry, brand.description, ...claimTexts].filter(Boolean).join(' '));
+  const overlap = [...words(content)].filter(w => vocab.has(w));
+  return { relevant: overlap.length >= 3, overlap };
+}
+
+const CHANNEL_KINDS: Partial<Record<ContentChannel, ContentKind[]>> = {
+  social_media: ['social_caption', 'video_script', 'ad_copy'],
+  advertisement: ['ad_copy', 'social_caption', 'video_script'],
+  email: ['email', 'ad_copy'],
+  landing_page: ['landing_page', 'ad_copy'],
+  press_release: ['press_release'],
+  blog_post: ['blog_post'],
+  product_documentation: ['product_docs'],
+};
+const NEVER_PUBLISHABLE: ContentKind[] = ['pitch_deck', 'proposal', 'company_profile', 'report', 'resume'];
+
+export function enforceGates(
+  findings: GovernanceFinding[],
+  submissionId: string,
+  content: string,
+  channel: ContentChannel,
+  brand: BrandProfile | undefined,
+  claimTexts: string[],
+  gate: ContentGate | undefined
+): void {
+  const add = (id: string, flagged: string, explanation: string, fix: string) => {
+    if (findings.some(f => f.id === id)) return;
+    findings.unshift({
+      id, submissionId, stage: 'stage_2_rules', category: 'out_of_scope', severity: 'critical', confidence: 'high',
+      flaggedText: flagged, explanation, evidenceRecords: [], citedEvidenceIds: [], citedExcerpt: undefined,
+      isVerified: false, unverified: true, suggestedCorrection: fix, ruleId: id,
+    });
+  };
+  const opening = content.trim().split('\n').find(l => l.trim())?.trim().slice(0, 80) ?? '';
+  const det = brandRelevance(content, brand, claimTexts);
+  // Short ads often never name the brand or its industry words, so vocabulary alone only decides
+  // for document-length content (decks, brochures); for short copy only the model's verdict counts.
+  const docSignals = new Set((content.match(DOCUMENT_SIGNALS) || []).map(s => s.toLowerCase())).size;
+  const long = content.trim().split(/\s+/).length >= 60 || docSignals >= 2;
+  const offBrand = !!brand && (gate ? !gate.isAboutBrand || (long && det.overlap.length === 0) : long && !det.relevant);
+  if (offBrand && brand) {
+    add(
+      'gate_off_brand',
+      opening,
+      `This isn't about ${brand.name}${brand.industry ? ` (${brand.industry})` : ''}. ${gate?.brandReason || 'Nothing in it refers to the brand, its products or its industry.'} It can't be approved for this brand.`,
+      `Check copy written for ${brand.name}, or switch to the workspace this content belongs to.`
+    );
+  }
+  const kind = gate?.contentKind;
+  const allowed = CHANNEL_KINDS[channel];
+  if (kind && (NEVER_PUBLISHABLE.includes(kind) || (allowed && !gate.fitsChannel && !allowed.includes(kind)))) {
+    add(
+      'gate_wrong_type',
+      opening,
+      `This is a ${kind.replace(/_/g, ' ')}, not ${channel.replace(/_/g, ' ')} copy. ${gate.channelReason ?? ''}`.trim(),
+      'Write the actual copy that will run on this channel and check that.'
+    );
+  }
 }
 
 /**
@@ -502,7 +620,8 @@ export async function runGovernancePipeline(
   options?: GovernancePipelineOptions
 ): Promise<GovernanceReviewSummary> {
   const pipelineStartTime = performance.now();
-  const repo = options?.repo || defaultBrandKnowledgeRepository;
+  // The workspace's own claims, terminology and guidelines; falls back to the built-in seed outside a request.
+  const repo = options?.repo || (await buildRepoFromStore(orgId, brandId)) || defaultBrandKnowledgeRepository;
 
   // --------------------------------------------------------------------------
   // STAGE 1: Content Segmentation & Claims Detection
@@ -546,6 +665,7 @@ export async function runGovernancePipeline(
   // STAGE 4: LLM Contextual Analysis (Gemini 2.5 Flash / Fallback)
   // --------------------------------------------------------------------------
   const stage4Start = performance.now();
+  const brandProfile = options?.brand ?? (await lookupBrand(brandId));
   const geminiInput = {
     submissionId,
     channel: resolvedChannel,
@@ -565,6 +685,8 @@ export async function runGovernancePipeline(
       })),
     })),
     deterministicViolations: ruleCheckResult.violations,
+    brand: brandProfile,
+    style: options?.style,
   };
 
   const { result: geminiResult, modelUsed } = await analyzeWithGemini(
@@ -584,6 +706,10 @@ export async function runGovernancePipeline(
     scopedKnowledge.relevantEvidence
   );
   addUncoveredClaims(findings, segmentationResult.detectedClaims, scopedKnowledge.matchedApprovedClaims, submissionId);
+  enforceGates(
+    findings, submissionId, content, resolvedChannel, brandProfile,
+    scopedKnowledge.matchedApprovedClaims.map(c => c.claimText), geminiResult.gate
+  );
   const stage5FindingsCompilationMs = performance.now() - stage5Start;
 
   // --------------------------------------------------------------------------

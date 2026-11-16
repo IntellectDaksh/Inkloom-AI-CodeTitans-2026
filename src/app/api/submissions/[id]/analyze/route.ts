@@ -1,8 +1,11 @@
 import { withStore } from "@/lib/db/withStore";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { fireWebhooks } from "@/lib/notify/webhooks";
 import { db } from "@/lib/db";
 import { runGovernancePipeline } from "@/lib/ai";
+import { styleFrom } from "@/lib/ai/pipeline";
 import { withSources } from "../../sources";
+import { getMe } from "@/lib/auth/server";
 
 async function POST_handler(
   req: NextRequest,
@@ -27,7 +30,8 @@ async function POST_handler(
       contentToAnalyze,
       submission.brandId,
       submission.organizationId,
-      (submission.channel as any) || "social_media"
+      (submission.channel as any) || "social_media",
+      { style: styleFrom(body) }
     );
 
     // Re-check replaces open findings instead of stacking duplicates.
@@ -71,6 +75,27 @@ async function POST_handler(
       });
     }
 
+    const me = await getMe().catch(() => null);
+    db.recordAnalysisRun(id, {
+      content: contentToAnalyze,
+      score: report.complianceScore,
+      status: report.status,
+      summary: report.executiveSummary,
+      modelUsed: report.modelUsed,
+      durationMs: report.stageExecutionTimes?.totalMs ?? 0,
+      findings: report.findings.map((f) => ({
+        category: f.category,
+        severity: f.severity,
+        flaggedText: f.flaggedText,
+        explanation: f.explanation,
+        suggestedCorrection: f.suggestedCorrection,
+      })),
+      scoreBreakdown: report.scoreBreakdown ?? null,
+      userId: me?.id ?? body.userId ?? null,
+      userName: me?.name ?? null,
+    });
+    if (contentToAnalyze !== submission.currentContent) db.updateSubmission(id, { currentContent: contentToAnalyze });
+
     // Update submission status based on findings
     const newStatus = report.findings.some(
       (f) => f.severity === "critical" || f.severity === "high"
@@ -96,6 +121,11 @@ async function POST_handler(
         status: report.status,
       },
     });
+
+    if (report?.status === "rejected") {
+      const me = await getMe();
+      if (me) after(() => fireWebhooks(me.organizationId, "ad_blocked", { title: submission.title, submissionId: id, actor: me.name, note: report!.executiveSummary }));
+    }
 
     return NextResponse.json({
       success: true,

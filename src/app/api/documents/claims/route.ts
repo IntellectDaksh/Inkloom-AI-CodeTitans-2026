@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { SEED_IDS } from "@/lib/db/seed";
+import { SEED_IDS, isBuiltInId } from "@/lib/db/seed";
 import { withStore } from "@/lib/db/withStore";
 import { userId } from "@/lib/files/kbRoute";
 
@@ -11,7 +11,7 @@ const ACTIONS = ["claim_edited", "evidence_attached", "evidence_verified", "clai
 
 async function GET_handler() {
   const records: Record<string, unknown>[] = [];
-  for (const b of db.getBrands(ORG)) records.push(...db.listKbItems(ORG, b.id, "claim").items);
+  for (const b of db.getBrands(ORG)) records.push(...db.listKbItems(ORG, b.id, "claim").items.filter((r) => !isBuiltInId(r.id)));
   return NextResponse.json({ success: true, records });
 }
 
@@ -22,6 +22,8 @@ async function PUT_handler(req: NextRequest) {
   } catch {
     return NextResponse.json({ success: false, error: "Invalid JSON." }, { status: 400 });
   }
+  if (isBuiltInId(body.claimId))
+    return NextResponse.json({ success: false, error: "Built-in claims are read-only and can't be edited." }, { status: 403 });
   const claim = body.claimId ? db.getClaimById(ORG, body.claimId) : undefined;
   if (!claim) return NextResponse.json({ success: false, error: "Claim not found." }, { status: 404 });
   const rec = body.record;

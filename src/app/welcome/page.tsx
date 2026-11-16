@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { focusRing, refreshMe } from "@/components/guide/workspace";
 import { safeNext } from "@/lib/auth/next";
 import { LogoMark } from "@/components/landing/LogoMark";
+import { AuthBackdrop } from "@/components/auth/AuthBackdrop";
 
 const input = `mt-1 h-11 w-full rounded-lg border border-border-default bg-panel px-3 text-sm text-text-primary placeholder:text-text-muted ${focusRing}`;
 
@@ -51,8 +52,9 @@ function Welcome() {
   };
 
   return (
-    <main className="min-h-dvh bg-canvas px-4 py-10 sm:py-16">
-      <div className="mx-auto max-w-md space-y-8">
+    <main className="relative min-h-dvh overflow-hidden px-4 py-10 sm:py-16">
+      <AuthBackdrop />
+      <div className="relative z-10 mx-auto max-w-md space-y-6 rounded-3xl border border-white/60 bg-white/75 p-6 shadow-[0_30px_80px_-20px_rgba(16,45,64,0.45)] backdrop-blur-2xl sm:p-8">
         <LogoMark size={32} className="text-text-primary" />
         <header>
           <p className="text-xs font-medium uppercase tracking-wide text-text-muted">Step 1 of 2 · Your profile</p>
@@ -62,7 +64,7 @@ function Welcome() {
           </p>
         </header>
 
-        <section className="glass rounded-2xl p-5 sm:p-6">
+        <section>
           {!pre ? (
             error ? <p role="alert" className="text-[13px] text-status-red">{error}</p> : <p className="text-[13px] text-text-muted">Loading…</p>
           ) : (

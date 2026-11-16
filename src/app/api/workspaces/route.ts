@@ -7,7 +7,12 @@ import { userId } from "@/lib/files/kbRoute";
 const ORG = SEED_IDS.ORGANISATION_UIDEAS;
 
 async function GET_handler() {
-  return NextResponse.json({ success: true, workspaces: db.listWorkspaces(ORG) });
+  // Own brands first (newest first), built-in samples after, each flagged so every list can label them.
+  const list = db
+    .listWorkspaces(ORG)
+    .map((w) => ({ ...w, sample: !w.custom }))
+    .sort((a, b) => Number(a.sample) - Number(b.sample) || (b.sample ? 0 : (b.createdAt ?? "").localeCompare(a.createdAt ?? "")));
+  return NextResponse.json({ success: true, workspaces: list });
 }
 
 async function POST_handler(req: NextRequest) {

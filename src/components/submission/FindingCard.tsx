@@ -26,6 +26,7 @@ export function FindingCard({
   onDispute,
   onOverride,
   onEvidence,
+  showConfidence = true,
 }: {
   finding: FindingItem;
   status: FindingStatus;
@@ -38,6 +39,7 @@ export function FindingCard({
   onDispute: () => void;
   onOverride: () => void;
   onEvidence: () => void;
+  showConfidence?: boolean;
 }) {
   const sev = SEVERITY[sevOf(f.severity)];
   const ev = evidenceOf(f);
@@ -86,10 +88,12 @@ export function FindingCard({
               <dt className="text-xs text-text-muted">Rule</dt>
               <dd className="mt-0.5 break-words text-text-primary">{rule ? humanize(rule) : humanize(f.category)}</dd>
             </div>
-            <div>
-              <dt className="text-xs text-text-muted">Confidence</dt>
-              <dd className="mt-0.5 text-text-primary">{f.confidence ? humanize(f.confidence) : "Not given"}</dd>
-            </div>
+            {showConfidence && (
+              <div>
+                <dt className="text-xs text-text-muted">Confidence</dt>
+                <dd className="mt-0.5 text-text-primary">{f.confidence ? humanize(f.confidence) : "Not given"}</dd>
+              </div>
+            )}
           </dl>
 
           <FindingSource f={f} />

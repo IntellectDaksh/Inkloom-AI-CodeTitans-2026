@@ -24,7 +24,12 @@ export interface ItemResult {
   expected: ExpectedIssue[]; found: FoundIssue[];
   hits: ExpectedIssue[]; missed: ExpectedIssue[]; falseAlarms: FoundIssue[]; wrongCategory: FoundIssue[];
   latencyMs: number; error?: string;
+  /** Pipeline verdict and the block/pass decision derived from it (block = anything not approved). */
+  status?: GovernanceReviewSummary['status']; complianceScore?: number;
+  expectedDecision: Decision; predictedDecision: Decision;
 }
+export type Decision = 'block' | 'pass';
+export interface DecisionStats { tp: number; fp: number; tn: number; fn: number; precision: number | null; recall: number | null; f1: number | null; accuracy: number | null }
 export interface CategoryStats { category: string; labelled: number; caught: number; raised: number; falseAlarms: number; precision: number | null; recall: number | null }
 export interface EvalReport {
   mode: 'gemini' | 'rule_only'; modelUsed: string; ranAt: string; durationMs: number;
@@ -34,6 +39,9 @@ export interface EvalReport {
   latency: { p50: number; p95: number };
   /** Stage 2 deterministic scanner timing, measured with performance.now(). Target < 5 ms. */
   scanner: { evalSetP50Ms: number; evalSetP95Ms: number; longDraftWords: number; longDraftP50Ms: number; longDraftP95Ms: number; runs: number; targetMs: number };
+  /** Positive class = block. tp: should block and did; fp: blocked compliant copy; fn: let a violation through. */
+  decision: DecisionStats;
+  byGroup: { group: string; items: number; correct: number }[];
   byCategory: CategoryStats[]; results: ItemResult[];
 }
 
@@ -82,6 +90,16 @@ export function scoreItem(item: EvalItem, findings: GovernanceFinding[]) {
   };
 }
 
+export const expectedOf = (item: EvalItem): Decision => (item.kind === 'violation' ? 'block' : 'pass');
+
+export function decisionStats(rs: Pick<ItemResult, 'expectedDecision' | 'predictedDecision'>[]): DecisionStats {
+  const c = (e: Decision, p: Decision) => rs.filter(r => r.expectedDecision === e && r.predictedDecision === p).length;
+  const tp = c('block', 'block'), fp = c('pass', 'block'), tn = c('pass', 'pass'), fn = c('block', 'pass');
+  const precision = ratio(tp, tp + fp), recall = ratio(tp, tp + fn);
+  const f1 = precision === null || recall === null || precision + recall === 0 ? null : (2 * precision * recall) / (precision + recall);
+  return { tp, fp, tn, fn, precision, recall, f1, accuracy: ratio(tp + tn, rs.length) };
+}
+
 const toFound = (f: GovernanceFinding): FoundIssue => ({ span: f.flaggedText, category: f.category, severity: f.severity, explanation: f.explanation });
 const ratio = (n: number, d: number) => (d === 0 ? null : n / d);
 
@@ -105,6 +123,8 @@ export async function runEvaluation(opts: { apiKey?: string; onProgress?: (done:
       results.push({
         id: item.id, brand: scope.name, channel: item.channel, kind: item.kind, note: item.note, text: item.text,
         group: item.group, caseRef: item.caseRef, stages: summary.stages, score: summary.scoreBreakdown,
+        status: summary.status, complianceScore: summary.complianceScore,
+        expectedDecision: expectedOf(item), predictedDecision: summary.status === 'approved' ? 'pass' : 'block',
         expected: item.expected, found, hits: s.hits, missed: s.missed,
         falseAlarms: s.falseAlarms.map(same), wrongCategory: s.wrongCategory.map(same), latencyMs,
       });
@@ -114,6 +134,8 @@ export async function runEvaluation(opts: { apiKey?: string; onProgress?: (done:
       results.push({
         id: item.id, brand: scope.name, channel: item.channel, kind: item.kind, note: item.note, text: item.text,
         group: item.group, caseRef: item.caseRef,
+        // A crash is scored as the wrong decision so errors can only lower accuracy.
+        expectedDecision: expectedOf(item), predictedDecision: expectedOf(item) === 'block' ? 'pass' : 'block',
         expected: item.expected, found: [], hits: [], missed: item.expected, falseAlarms: [], wrongCategory: [],
         latencyMs: Math.round(performance.now() - t0), error: err instanceof Error ? err.message : String(err),
       });
@@ -151,6 +173,11 @@ export async function runEvaluation(opts: { apiKey?: string; onProgress?: (done:
     precision: ratio(raised - falseAlarms - wrongCategory, raised), recall: ratio(caught, labelled),
     latency: { p50: percentile(lat, 50), p95: percentile(lat, 95) },
     scanner,
+    decision: decisionStats(results),
+    byGroup: [...new Set(results.map(r => r.group ?? (r.kind === 'violation' ? 'violation' : 'compliant')))].map(group => {
+      const rs = results.filter(r => (r.group ?? (r.kind === 'violation' ? 'violation' : 'compliant')) === group);
+      return { group, items: rs.length, correct: rs.filter(r => r.expectedDecision === r.predictedDecision).length };
+    }),
     byCategory, results,
   };
 }
@@ -192,12 +219,18 @@ if (process.argv[1] && /eval[\\/]run\.ts$/.test(process.argv[1])) {
   const mk = (flaggedText: string, category: FindingCategory) => ({ flaggedText, category, severity: 'high', isVerified: false } as GovernanceFinding);
   const s = scoreItem(probe, [mk('miracle', 'prohibited_term'), mk('miracle', 'tone_inconsistency'), mk('b', 'readability')]);
   if (s.hits.length !== 1 || s.wrongCategory.length !== 1 || s.falseAlarms.length !== 1) throw new Error('scoreItem self-check failed');
+  const ds = decisionStats([{ expectedDecision: 'block', predictedDecision: 'block' }, { expectedDecision: 'pass', predictedDecision: 'block' }, { expectedDecision: 'block', predictedDecision: 'pass' }, { expectedDecision: 'pass', predictedDecision: 'pass' }]);
+  if (ds.tp !== 1 || ds.fp !== 1 || ds.fn !== 1 || ds.tn !== 1 || ds.f1 !== 0.5 || ds.accuracy !== 0.5) throw new Error('decisionStats self-check failed');
   if (percentile([1, 2, 3, 4, 100], 50) !== 3 || percentile([1, 2, 3, 4, 100], 95) !== 100) throw new Error('percentile self-check failed');
 
   runEvaluation({ apiKey: process.env.GEMINI_API_KEY }).then(r => {
     console.log(`\nMode: ${r.mode === 'gemini' ? 'Gemini' : 'Rule-only (no GEMINI_API_KEY)'}  [${r.modelUsed}]`);
     console.log(`Items: ${r.items}  Clean items passed: ${r.cleanItemsPassed}/${r.cleanItems}`);
     console.log(`Caught ${r.caught} of ${r.labelled} labelled issues  |  ${r.falseAlarms} false alarms  |  ${r.wrongCategory} wrong-category  |  ${r.missed} missed`);
+    const d = r.decision;
+    console.log(`Block/pass: TP ${d.tp} FP ${d.fp} TN ${d.tn} FN ${d.fn} | precision ${pct(d.precision)} recall ${pct(d.recall)} F1 ${pct(d.f1)} accuracy ${pct(d.accuracy)}`);
+    r.results.filter(x => x.expectedDecision !== x.predictedDecision).forEach(x => console.log(`    wrong decision ${x.id}: expected ${x.expectedDecision}, got ${x.predictedDecision} (${x.status}, ${x.complianceScore})`));
+    console.log(`By group: ${r.byGroup.map(g => `${g.group} ${g.correct}/${g.items}`).join('  ')}`);
     console.log(`Precision ${pct(r.precision)}  Recall ${pct(r.recall)}  Latency p50 ${r.latency.p50}ms p95 ${r.latency.p95}ms\n`);
     console.log(`Deterministic scanner (Stage 2): eval set p50 ${r.scanner.evalSetP50Ms}ms p95 ${r.scanner.evalSetP95Ms}ms | ${r.scanner.longDraftWords}-word draft p50 ${r.scanner.longDraftP50Ms}ms p95 ${r.scanner.longDraftP95Ms}ms (${r.scanner.runs} runs, target < ${r.scanner.targetMs}ms)`);
     const lm = r.results.filter(x => x.group === 'landmark');

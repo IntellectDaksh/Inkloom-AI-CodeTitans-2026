@@ -9,6 +9,8 @@ import {
   setPrefs,
   usePrefs,
   useWorkspaceCounts,
+  visibleWorkspaces,
+  isSample,
 } from "./workspace";
 import { createWorkspace, useWorkspaces } from "@/lib/workspaces/client";
 
@@ -37,7 +39,9 @@ function initials(name: string) {
 export function WorkspacePicker() {
   const ref = useRef<HTMLDialogElement>(null);
   const prefs = usePrefs();
-  const workspaces = useWorkspaces();
+  const all = useWorkspaces();
+  const workspaces = visibleWorkspaces(prefs, all);
+  const hiddenSamples = all.length - workspaces.length;
   const counts = useWorkspaceCounts();
   const [mode, setMode] = useState<"pick" | "create">("pick");
   const [canClose, setCanClose] = useState(false);
@@ -45,6 +49,7 @@ export function WorkspacePicker() {
   // Create form state
   const [name, setName] = useState("");
   const [industry, setIndustry] = useState(INDUSTRIES[0]);
+  const [otherIndustry, setOtherIndustry] = useState("");
   const [channels, setChannels] = useState<string[]>(["Instagram"]);
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +110,8 @@ export function WorkspacePicker() {
       return;
     }
     setSaving(true);
-    const res = await createWorkspace({ name, industry, channels, description: description.trim() || undefined });
+    const ind = industry === "Other" ? otherIndustry.trim() || "Other" : industry;
+    const res = await createWorkspace({ name, industry: ind, channels, description: description.trim() || undefined });
     setSaving(false);
     if (!res.ok) {
       setError(res.error);
@@ -165,8 +171,8 @@ export function WorkspacePicker() {
                               <Check className="h-3 w-3" aria-hidden="true" /> Last used
                             </span>
                           )}
-                          {w.custom && !active && (
-                            <span className="rounded-full bg-panel-hover px-2 py-0.5 text-[11px] text-text-muted">New</span>
+                          {isSample(w) && (
+                            <span className="rounded-full border border-border-default px-2 py-0.5 text-[11px] text-text-muted">Sample</span>
                           )}
                         </span>
                         <span className="mt-0.5 block truncate text-[13px] text-text-muted">
@@ -194,6 +200,14 @@ export function WorkspacePicker() {
               </li>
             </ul>
 
+            {hiddenSamples > 0 && (
+              <p className="mt-4 text-[13px] text-text-muted">
+                {hiddenSamples} sample brand{hiddenSamples === 1 ? " is" : "s are"} hidden.{" "}
+                <button type="button" onClick={() => setPrefs({ showSamples: true })} className={`rounded underline underline-offset-4 hover:no-underline ${focusRing}`}>
+                  Show samples
+                </button>
+              </p>
+            )}
             {!counts.loading && !counts.error && (
               <p className="mt-5 text-[13px] text-text-muted">
                 {counts.submissions} review{counts.submissions === 1 ? "" : "s"} across all workspaces
@@ -263,6 +277,16 @@ export function WorkspacePicker() {
                     <option key={x}>{x}</option>
                   ))}
                 </select>
+                {industry === "Other" && (
+                  <input
+                    aria-label="Your industry"
+                    value={otherIndustry}
+                    onChange={(e) => setOtherIndustry(e.target.value)}
+                    maxLength={60}
+                    placeholder="e.g. Pet care"
+                    className={`mt-2 h-11 w-full rounded-xl border border-border-default bg-panel px-3 text-base text-text-primary placeholder:text-text-muted sm:text-sm ${focusRing}`}
+                  />
+                )}
                 <p className="mt-1 text-[12px] text-text-muted">Sets which disclosure rules apply by default.</p>
               </div>
 

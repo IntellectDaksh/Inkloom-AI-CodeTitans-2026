@@ -11,6 +11,7 @@ import { ChoiceCards } from "@/components/submission/ChoiceCards";
 import { putFile } from "@/lib/files/store";
 import { FileDropZone, UploadCard, UploadItem, extractFile } from "@/components/submission/FileUpload";
 import { BRANDS, CHANNELS, brandName } from "@/components/submission/shared";
+import { readPrefs } from "@/components/guide/workspace";
 
 const STEPS = ["Add your ad", "Brand and channel", "Review and check"];
 
@@ -76,12 +77,21 @@ export default function NewSubmissionPage() {
 
   useEffect(() => headingRef.current?.focus(), [step]);
 
+  // Account defaults for new checks (Settings > Review). Runs before the carried-text and dashboard-drop effects so those still win.
+  useEffect(() => {
+    const p = readPrefs();
+    if (BRANDS.some((b) => b.id === p.defaultBrandId)) setBrandId(p.defaultBrandId);
+    if (CHANNELS.some((c) => c.id === p.defaultChannel)) setChannel(p.defaultChannel);
+    setMode(p.defaultInput);
+  }, []);
+
   // Copy carried over from the public live check.
   useEffect(() => {
     try {
       const t = sessionStorage.getItem("adsnitch:pending-text");
       if (t) {
         sessionStorage.removeItem("adsnitch:pending-text");
+        setMode("paste");
         setContent(t);
       }
     } catch {}
@@ -217,6 +227,7 @@ export default function NewSubmissionPage() {
               submissionType: channelMeta?.type,
               campaign,
               runAnalysis: true,
+              style: { language: readPrefs().aiLanguage, tone: readPrefs().aiTone },
             }),
           });
           const data = await res.json().catch(() => ({}));

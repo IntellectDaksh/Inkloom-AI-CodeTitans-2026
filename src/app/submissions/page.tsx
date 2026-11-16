@@ -1,5 +1,6 @@
 "use client";
 
+import { fmtDate } from "@/components/settings/format";
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, FileText, Plus, Search } from "lucide-react";
@@ -49,7 +50,7 @@ const ago = (iso?: string) => {
   if (m < 1) return "just now";
   if (m < 60) return `${m} min ago`;
   if (m < 1440) return `${Math.round(m / 60)} h ago`;
-  return new Date(iso).toLocaleDateString();
+  return fmtDate(iso);
 };
 
 export default function SubmissionsPage() {

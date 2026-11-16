@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMe, supabaseAdmin } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
+import { teamAudit } from "../audit";
 
 const ROLES = ["admin", "brand_manager", "reviewer", "creator"];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,10 +22,19 @@ export async function POST(req: NextRequest) {
 
   const admin = supabaseAdmin();
   const { data: existing } = await admin.from("profiles").select("id").ilike("email", addr).maybeSingle();
-  if (existing) return NextResponse.json({ success: false, error: "That person already has an AdSnitch account." }, { status: 409 });
+  if (existing) {
+    const { data: member } = await admin.from("memberships").select("user_id").eq("user_id", existing.id).eq("organization_id", me.organizationId).maybeSingle();
+    if (member) return NextResponse.json({ success: false, error: "That person is already in this organisation." }, { status: 409 });
+  }
 
   const { error: invErr } = await admin.from("invites").upsert({ email: addr, organization_id: me.organizationId, role, invited_by: me.id });
   if (invErr) return NextResponse.json({ success: false, error: "Could not save the invite. Try again." }, { status: 500 });
+
+  // Existing account: the invite waits in their organisation switcher (Join), no signup email needed.
+  if (existing) {
+    await teamAudit(me.organizationId, me.id, "member_invited", addr, { name: addr, role, existingAccount: true });
+    return NextResponse.json({ success: true, existingAccount: true });
+  }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
   const { error } = await admin.auth.admin.inviteUserByEmail(addr, { redirectTo: `${origin}/auth/callback?next=/dashboard` });
@@ -32,5 +42,6 @@ export async function POST(req: NextRequest) {
     await admin.from("invites").delete().eq("email", addr);
     return NextResponse.json({ success: false, error: "The invite email could not be sent. Try again." }, { status: 502 });
   }
+  await teamAudit(me.organizationId, me.id, "member_invited", addr, { name: addr, role });
   return NextResponse.json({ success: true });
 }

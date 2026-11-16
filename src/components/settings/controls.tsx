@@ -195,3 +195,56 @@ export function Segmented<T extends string>({
     </div>
   );
 }
+
+export function Select<T extends string>({
+  label,
+  hint,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="min-w-0">
+        <label htmlFor={id} className="text-sm font-medium text-text-primary">
+          {label}
+        </label>
+        {hint && (
+          <p id={`${id}-h`} className="mt-0.5 text-[13px] text-text-muted">
+            {hint}
+          </p>
+        )}
+      </div>
+      <select
+        id={id}
+        value={value}
+        aria-describedby={hint ? `${id}-h` : undefined}
+        onChange={(e) => onChange(e.target.value as T)}
+        className={`h-10 w-full shrink-0 cursor-pointer rounded-lg border border-border-default bg-panel px-3 text-sm text-text-primary sm:w-56 ${focusRing}`}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Small heading that groups controls inside a settings panel. */
+export function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">{title}</h3>
+      {children}
+    </div>
+  );
+}

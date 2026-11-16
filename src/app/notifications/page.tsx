@@ -1,5 +1,6 @@
 "use client";
 
+import { fmtDateTime } from "@/components/settings/format";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -30,10 +31,7 @@ const TYPES: Record<string, string> = {
 // Older links use /claims/<code>; the claims library lives under /knowledge-base.
 const deepLink = (u?: string | null) => (!u ? null : u.startsWith("/claims") ? "/knowledge-base/claims" : u);
 
-const fmt = (iso: string) => {
-  const d = new Date(iso);
-  return isNaN(+d) ? "" : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-};
+const fmt = fmtDateTime;
 
 export default function NotificationsPage() {
   const prefs = usePrefs();
@@ -71,7 +69,9 @@ export default function NotificationsPage() {
     }
   };
 
-  const all = notes ?? [];
+  // Muted types (Settings > Notifications) are hidden here and from the bell.
+  const all = (notes ?? []).filter((n) => !prefs.mutedTypes.includes(n.notification_type));
+  const mutedCount = (notes ?? []).length - all.length;
   const unread = all.filter((n) => !n.is_read);
   const types = [...new Set(all.map((n) => n.notification_type))];
   const shown = all.filter((n) => (filter === "all" ? true : filter === "unread" ? !n.is_read : n.notification_type === filter));
@@ -122,6 +122,11 @@ export default function NotificationsPage() {
             </button>
           ))}
         </div>
+        {mutedCount > 0 && (
+          <p className="-mt-5 text-[13px] text-text-muted">
+            {mutedCount} from muted types hidden. <Link href="/settings?tab=notifications" className={`rounded underline underline-offset-4 ${focusRing}`}>Change in settings</Link>
+          </p>
+        )}
 
         <section aria-label="Notifications" className="glass rounded-2xl p-2 sm:p-3">
           {notes === null && !error ? (

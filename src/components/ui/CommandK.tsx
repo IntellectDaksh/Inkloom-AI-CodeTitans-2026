@@ -13,12 +13,19 @@ import {
   ArrowRight,
   X,
   Info,
+  FileText,
+  Tag,
+  Building2,
+  Users,
 } from "lucide-react";
+
+type Group = "Reviews" | "Claims" | "Guidelines" | "Terminology" | "Brands" | "Members";
+const GROUP_ICON: Record<Group, React.ElementType> = { Reviews: FileText, Claims: ShieldCheck, Guidelines: BookOpen, Terminology: Tag, Brands: Building2, Members: Users };
 
 export interface CommandItem {
   id: string;
   title: string;
-  category: "Actions" | "Navigation" | "Knowledge Base" | "Brands" | "System";
+  category: "Actions" | "Navigation" | "Knowledge Base" | "Brands" | "System" | Group;
   description?: string;
   href?: string;
   icon: React.ElementType;
@@ -59,6 +66,8 @@ export function CommandK({
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [remote, setRemote] = useState<CommandItem[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const isControlled = controlledIsOpen !== undefined;
   const isOpen = isControlled ? controlledIsOpen : internalIsOpen;
@@ -117,8 +126,35 @@ export function CommandK({
     }
   }, [isOpen]);
 
+  // Workspace search, debounced 150ms; stale responses are dropped via AbortController.
+  useEffect(() => {
+    const q = query.trim();
+    if (!isOpen || q.length < 2) {
+      setRemote([]);
+      setSearching(false);
+      return;
+    }
+    const ctrl = new AbortController();
+    setSearching(true);
+    const t = setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
+        .then((r) => (r.ok ? r.json() : { results: [] }))
+        .then((d: { results?: { id: string; group: Group; title: string; subtitle?: string; href: string }[] }) => {
+          setRemote((d.results ?? []).map((h) => ({ id: `s-${h.group}-${h.id}`, title: h.title, category: h.group, description: h.subtitle, href: h.href, icon: GROUP_ICON[h.group] ?? Search })));
+          setSearching(false);
+        })
+        .catch((e) => {
+          if ((e as Error).name !== "AbortError") { setRemote([]); setSearching(false); }
+        });
+    }, 150);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [query, isOpen]);
+
   // Filter commands
-  const filteredCommands = DEFAULT_COMMANDS.filter((cmd) => {
+  const localCommands = DEFAULT_COMMANDS.filter((cmd) => {
     if (!query.trim()) return true;
     const q = query.toLowerCase();
     return (
@@ -127,6 +163,9 @@ export function CommandK({
       cmd.category.toLowerCase().includes(q)
     );
   });
+  // Ordered the same way they render, so arrow keys follow what's on screen.
+  const categories: CommandItem["category"][] = ["Reviews", "Claims", "Guidelines", "Terminology", "Members", "Actions", "Navigation", "System", "Knowledge Base", "Brands"];
+  const filteredCommands = categories.flatMap((c) => [...remote, ...localCommands].filter((i) => i.category === c));
 
   const handleExecute = (item: CommandItem) => {
     handleClose();
@@ -160,15 +199,6 @@ export function CommandK({
   // The tour lives here because CommandK is mounted once in every app page.
   if (!isOpen) return <><ProductTour /></>;
 
-  // Group items by category
-  const categories: ("Actions" | "Navigation" | "Knowledge Base" | "Brands" | "System")[] = [
-    "Actions",
-    "Navigation",
-    "System",
-    "Knowledge Base",
-    "Brands",
-  ];
-
   let cumulativeIndex = 0;
 
   return (
@@ -198,8 +228,12 @@ export function CommandK({
                 setSelectedIndex(0);
               }}
               onKeyDown={handleInputKeyDown}
-              placeholder="Try “check an ad” or “approvals”…"
-              aria-label="Search actions and pages"
+              placeholder="Search reviews, claims, rules, people…"
+              aria-label="Search reviews, claims, guidelines, terms, brands, members and pages"
+              role="combobox"
+              aria-expanded="true"
+              aria-controls="cmdk-list"
+              aria-activedescendant={filteredCommands[selectedIndex] ? `cmdk-${filteredCommands[selectedIndex].id}` : undefined}
               className="flex-1 bg-transparent text-base sm:text-sm text-text-primary placeholder-text-muted focus:outline-none font-medium"
             />
             {query ? (
@@ -219,10 +253,10 @@ export function CommandK({
         </div>
 
         {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-3">
+        <div id="cmdk-list" role="listbox" className="flex-1 overflow-y-auto p-2 space-y-3">
           {filteredCommands.length === 0 ? (
-            <div className="py-12 text-center text-sm text-text-muted">
-              No results found for &ldquo;{query}&rdquo;
+            <div className="py-12 text-center text-sm text-text-muted" aria-live="polite">
+              {searching ? "Searching…" : <>No results found for &ldquo;{query}&rdquo;</>}
             </div>
           ) : (
             categories.map((cat) => {
@@ -242,7 +276,9 @@ export function CommandK({
                     return (
                       <div
                         key={item.id}
+                        id={`cmdk-${item.id}`}
                         role="option"
+                        ref={isSelected ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
                         aria-selected={isSelected}
                         onClick={() => handleExecute(item)}
                         onMouseEnter={() => setSelectedIndex(thisIndex)}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { flushToRemote, runWithStore, StoreConflictError, syncFromRemote } from "./store";
-import { supabaseAdmin, supabaseServer } from "@/lib/auth/server";
+import { apiKeyFromRequest, supabaseAdmin, supabaseServer } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { reportError } from "@/lib/ops/errors";
 
@@ -12,6 +12,8 @@ interface Opts {
   /** Per-hour request budget for this route: [signed-out, signed-in]. */
   limit?: [number, number];
   name?: string;
+  /** Authenticate with `Authorization: Bearer ask_live_...` instead of the session; org comes from the key. 60/h per key. */
+  apiKey?: boolean;
 }
 
 const MAX_ATTEMPTS = 3;
@@ -29,6 +31,7 @@ async function orgOf(userId: string): Promise<string | null> {
  */
 export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts = {}): Handler<A> {
   return async (...args: A) => {
+    if (opts.apiKey) return withApiKey(handler, args);
     const { data: { user } } = await (await supabaseServer()).auth.getUser().catch(() => ({ data: { user: null } }));
     if (!user && !opts.public) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
 
@@ -54,6 +57,25 @@ export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts =
       if (!orgId) return NextResponse.json({ success: false, error: "Your account has no workspace yet. Sign out and in again." }, { status: 403 });
     }
 
+    return runLoop(handler, args, orgId, user?.id ?? null);
+  };
+}
+
+async function withApiKey<A extends unknown[]>(handler: Handler<A>, args: A): Promise<Response> {
+  let key: Awaited<ReturnType<typeof apiKeyFromRequest>>;
+  try {
+    key = await apiKeyFromRequest(args[0] as Request);
+  } catch {
+    return NextResponse.json({ success: false, error: "The database is unreachable right now. Try again in a moment." }, { status: 503 });
+  }
+  if (!key) return NextResponse.json({ success: false, error: "Missing, invalid or revoked API key." }, { status: 401 });
+  if (!(await rateLimit(`apikey:${key.id}`, 60, 3600))) {
+    return NextResponse.json({ success: false, error: "Hourly limit for this API key reached (60/h)." }, { status: 429 });
+  }
+  return runLoop(handler, args, key.organizationId, null);
+}
+
+async function runLoop<A extends unknown[]>(handler: Handler<A>, args: A, orgId: string | null, userId: string | null): Promise<Response> {
     // Buffer the body once so a retry after a write conflict can replay the request.
     // (NextRequest.clone() throws inside Next's request proxy, so rebuild instead.)
     const original = args[0] instanceof Request ? (args[0] as NextRequest) : null;
@@ -71,7 +93,7 @@ export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts =
         // Handlers catch their own errors and answer 500; record those so failures aren't silent.
         if (res.status >= 500) {
           const msg = await res.clone().json().then((j: { error?: string }) => j?.error).catch(() => null);
-          await reportError({ source: "server", message: msg || `HTTP ${res.status}`, route: original ? `${original.method} ${new URL(original.url).pathname}` : null, userId: user?.id, organizationId: orgId });
+          await reportError({ source: "server", message: msg || `HTTP ${res.status}`, route: original ? `${original.method} ${new URL(original.url).pathname}` : null, userId, organizationId: orgId });
         }
         try {
           await flushToRemote();
@@ -86,5 +108,4 @@ export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts =
         return NextResponse.json({ success: false, error: "Someone else saved at the same moment. Try again." }, { status: 409 });
       }
     }
-  };
 }

@@ -32,6 +32,7 @@ import {
   FindingWithDetails,
   SuggestedRevision,
   ApprovalRequest,
+  ApprovalComment,
   ApprovalDecision,
   Comment,
   Dispute,
@@ -90,6 +91,21 @@ const cur = (): StoreCtx => als.getStore() ?? fallbackCtx;
 
 export class StoreConflictError extends Error {}
 
+/**
+ * A new organisation starts with the starter brands and claims library, but no work history:
+ * reviews, approvals, findings, comments, audit trail and notifications belong to the account
+ * that made them, so a fresh account never shows someone else's past activity.
+ */
+const WORK_HISTORY = [
+  'submissions', 'submission_versions', 'analysis_runs', 'findings', 'finding_evidence', 'suggested_revisions',
+  'approval_requests', 'approval_decisions', 'comments', 'disputes', 'audit_events', 'notifications',
+] as const;
+export function createFreshOrgState(): InkloomDatabaseState {
+  const s = createInitialSeedState() as unknown as Record<string, unknown[]>;
+  for (const k of WORK_HISTORY) s[k] = [];
+  return s as unknown as InkloomDatabaseState;
+}
+
 /** Run fn with an isolated store context (one per request). */
 export function runWithStore<T>(fn: () => Promise<T>): Promise<T> {
   return als.run({ state: null, remote: false, dirty: false, docId: null, version: 0, ephemeral: false, newAudit: [] }, fn);
@@ -117,7 +133,7 @@ export async function syncFromRemote(orgId: string | null): Promise<void> {
     ctx.dirty = false;
   } else {
     ctx.version = 0;
-    ctx.state = createInitialSeedState();
+    ctx.state = createFreshOrgState();
     ctx.dirty = true;
   }
 }
@@ -158,6 +174,7 @@ export function isRemoteStoreActive(): boolean {
 /** Add seed rows (by id) missing from an older data file, e.g. a brand added to the seed later. Never overwrites saved rows. */
 function backfillSeed(state: InkloomDatabaseState): InkloomDatabaseState {
   scrubSeedReferences(state);
+  syncBuiltIns(state);
   if (state.brands?.some((b) => b.id === SEED_IDS.BRAND_LUMINA)) return state; // one-time migration
   const seed = createInitialSeedState() as unknown as Record<string, { id: string }[]>;
   const st = state as unknown as Record<string, { id: string }[]>;
@@ -244,6 +261,37 @@ function scrubSeedReferences(state: InkloomDatabaseState): void {
   st.documents = (st.documents ?? []).map((x) => d.get(x.id) ?? x);
   st._migrations = [...(st._migrations ?? []), SCRUB_TAG];
   if (cur().remote) cur().dirty = true;
+}
+
+/**
+ * Built-in library rows (seed claims, evidence, guidelines, terms, assets, documents) are read-only and
+ * owned by the seed: add missing ones by id and refresh changed ones on load, so older workspace
+ * documents get the full library. Claims keep their dependent_submission_ids. User rows are never touched.
+ * First run is tagged in _migrations; later runs only write when the seed changed (expiry dates move daily).
+ */
+const BUILTIN_TAG = 'builtin_library_v1';
+const BUILTIN_TABLES = ['approved_claims', 'claim_evidence', 'brand_guidelines', 'brand_terms', 'brand_assets', 'documents'] as const;
+function syncBuiltIns(state: InkloomDatabaseState): void {
+  const st = state as InkloomDatabaseState & StoreExtras;
+  const seed = createInitialSeedState() as unknown as Record<string, { id: string; dependent_submission_ids?: string[] }[]>;
+  const tables = st as unknown as Record<string, { id: string; dependent_submission_ids?: string[] }[]>;
+  let changed = false;
+  for (const k of BUILTIN_TABLES) {
+    const rows = (tables[k] ??= []);
+    const at = new Map(rows.map((r, i) => [r.id, i]));
+    for (const row of seed[k]) {
+      const i = at.get(row.id);
+      if (i === undefined) { rows.push(row); changed = true; continue; }
+      const deps = rows[i].dependent_submission_ids;
+      const next = deps ? { ...row, dependent_submission_ids: deps } : row;
+      if (!same(rows[i], next)) { rows[i] = next; changed = true; }
+    }
+  }
+  if (!st._migrations?.includes(BUILTIN_TAG)) {
+    st._migrations = [...(st._migrations ?? []), BUILTIN_TAG];
+    changed = true;
+  }
+  if (changed && cur().remote) cur().dirty = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -947,6 +995,78 @@ export class InkloomStore {
     return before - state.findings.length;
   }
 
+  /**
+   * Records one check: reuses the latest version when the content is unchanged, otherwise adds a new
+   * version, then appends an analysis run carrying a snapshot of the issues found.
+   */
+  public static recordAnalysisRun(
+    submissionId: string,
+    input: {
+      content: string;
+      score: number;
+      status: 'approved' | 'needs_review' | 'rejected';
+      summary: string;
+      modelUsed: string;
+      durationMs: number;
+      findings: AnalysisRun['findings_snapshot'];
+      scoreBreakdown?: AnalysisRun['score_breakdown'];
+      userId?: string | null;
+      userName?: string | null;
+    }
+  ): AnalysisRun | null {
+    const state = loadState();
+    const sub = state.submissions.find((s) => s.id === submissionId);
+    if (!sub) return null;
+    const now = new Date().toISOString();
+    const versions = state.submission_versions
+      .filter((v) => v.submission_id === submissionId)
+      .sort((a, b) => b.version_number - a.version_number);
+    let version = versions[0];
+    if (!version || version.content !== input.content) {
+      const number = Math.max(sub.current_version_number || 0, version?.version_number || 0) + 1;
+      version = {
+        id: crypto.randomUUID(),
+        submission_id: submissionId,
+        version_number: version ? number : 1,
+        content: input.content,
+        change_summary: version ? 'Edited and re-checked' : 'First check',
+        created_by: input.userId ?? null,
+        created_at: now,
+      };
+      state.submission_versions.push(version);
+      sub.current_version_number = version.version_number;
+    }
+    const findings = input.findings ?? [];
+    const run: AnalysisRun = {
+      id: crypto.randomUUID(),
+      submission_id: submissionId,
+      submission_version_id: version.id,
+      triggered_by: input.userId ?? null,
+      triggered_by_name: input.userName ?? null,
+      status: 'completed',
+      overall_score: input.score,
+      compliance_rating: input.status === 'approved' ? 'compliant' : input.status === 'rejected' ? 'non_compliant' : 'warning',
+      summary: input.summary,
+      issues_count: findings.length,
+      critical_issues_count: findings.filter((f) => f.severity === 'critical' || f.severity === 'high').length,
+      run_duration_ms: input.durationMs,
+      model_used: input.modelUsed,
+      created_at: now,
+      completed_at: now,
+      findings_snapshot: findings,
+      score_breakdown: input.scoreBreakdown ?? null,
+    };
+    state.analysis_runs.push(run);
+    saveState(state);
+    return run;
+  }
+
+  public static listAnalysisRuns(submissionId: string): AnalysisRun[] {
+    return loadState()
+      .analysis_runs.filter((r) => r.submission_id === submissionId)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }
+
   public static listFindings(submissionId: string): FindingWithDetails[] {
     const state = loadState();
     return state.findings
@@ -1312,6 +1432,43 @@ export class InkloomStore {
           reviewer,
         };
       });
+  }
+
+  /** The open request for a submission, created if missing. Caller must saveState. */
+  private static openRequest(state: InkloomDatabaseState, sub: Submission): ApprovalRequest {
+    const reqs = state.approval_requests.filter((r) => r.submission_id === sub.id);
+    let req = reqs.find((r) => r.status === 'pending') ?? reqs[reqs.length - 1];
+    if (!req) {
+      const now = new Date().toISOString();
+      req = { id: crypto.randomUUID(), submission_id: sub.id, requested_by: sub.creator_id, status: 'pending', created_at: now, updated_at: now };
+      state.approval_requests.push(req);
+    }
+    return req;
+  }
+
+  public static assignApproval(submissionId: string, p: { assigneeId: string | null; dueDate: string | null; by: string }): ApprovalRequest | null {
+    const state = loadState();
+    const sub = state.submissions.find((s) => s.id === submissionId);
+    if (!sub) return null;
+    const req = this.openRequest(state, sub);
+    req.target_reviewer_id = p.assigneeId;
+    req.due_date = p.dueDate;
+    req.assigned_by = p.by;
+    req.updated_at = new Date().toISOString();
+    saveState(state);
+    return req;
+  }
+
+  public static addApprovalComment(submissionId: string, c: Omit<ApprovalComment, 'id' | 'created_at'>): ApprovalComment | null {
+    const state = loadState();
+    const sub = state.submissions.find((s) => s.id === submissionId);
+    if (!sub) return null;
+    const req = this.openRequest(state, sub);
+    const comment: ApprovalComment = { ...c, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+    req.thread = [...(req.thread ?? []), comment].slice(-200);
+    req.updated_at = comment.created_at;
+    saveState(state);
+    return comment;
   }
 
   public static recordApprovalDecision(
@@ -2129,5 +2286,26 @@ export class InkloomStore {
 
   public static getStoredFile(orgId: string, id: string): StoredFileRecord | undefined {
     return (ext(loadState()).stored_files ?? []).find((f) => f.organisation_id === orgId && f.id === id);
+  }
+
+  // --------------------------------------------------------------------------
+  // Getting-started progress: counts across the org's own (non-sample) brands only
+  // --------------------------------------------------------------------------
+
+  public static ownBrandProgress(orgId: string): {
+    ownBrands: number; guidelines: number; brandBook: boolean; claims: number; checks: number; decisions: number;
+  } {
+    const st = ext(loadState());
+    const own = new Set(st.brands.filter((b) => b.organisation_id === orgId && !SEED_BRAND_IDS.has(b.id)).map((b) => b.id));
+    const guides = (st.kb_items ?? []).filter((i) => i.organisation_id === orgId && own.has(i.brand_id) && i.kind === 'guideline');
+    const subs = new Set(st.submissions.filter((s) => own.has(s.brand_id)).map((s) => s.id));
+    return {
+      ownBrands: own.size,
+      guidelines: guides.length,
+      brandBook: guides.some((g) => g.data?.source === 'Brand book'),
+      claims: st.approved_claims.filter((c) => own.has(c.brand_id)).length,
+      checks: subs.size,
+      decisions: st.approval_decisions.filter((d) => subs.has(d.submission_id)).length,
+    };
   }
 }

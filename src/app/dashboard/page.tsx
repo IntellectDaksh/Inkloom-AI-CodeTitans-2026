@@ -199,7 +199,7 @@ export default function DashboardPage() {
 
   useEffect(() => setHour(new Date().getHours()), []);
 
-  // Expiry alerts from live claim data: approved claims whose proof lapses within 30 days.
+  // Expiry alerts from live claim data: approved claims whose proof lapses within the user's window.
   useEffect(() => {
     fetch("/api/claims", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -209,12 +209,12 @@ export default function DashboardPage() {
           (d.claims ?? [])
             .filter((c: { status?: string; expires_at?: string }) => c.status === "approved" && c.expires_at)
             .map((c: { claim_code: string; expires_at: string }) => ({ code: c.claim_code, days: Math.ceil((Date.parse(c.expires_at) - now) / 86_400_000) }))
-            .filter((x: { days: number }) => x.days >= 0 && x.days <= 30)
+            .filter((x: { days: number }) => x.days >= 0 && x.days <= prefs.expiryDays)
             .sort((a: { days: number }, b: { days: number }) => a.days - b.days),
         );
       })
       .catch(() => setExpiring([]));
-  }, []);
+  }, [prefs.expiryDays]);
 
   useEffect(() => {
     fetch("/api/submissions")
@@ -246,7 +246,7 @@ export default function DashboardPage() {
   const avgScore = scored.length ? Math.round(scored.reduce((n, s) => n + (s.score ?? 0), 0) / scored.length) : null;
 
   const attentionAll = brandSubs.filter((s) => s.status !== "approved");
-  const attention = attentionAll.slice(0, 5);
+  const attention = attentionAll.slice(0, prefs.attentionCount);
   const q = searchQuery.trim().toLowerCase();
   const recent = brandSubs.filter(
     (s) => (filterStatus === "all" || s.status === filterStatus) && [s.title, s.author, s.channel].some((v) => v.toLowerCase().includes(q))
@@ -362,14 +362,14 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
           )}
         </div>
 
-        {expiring.length > 0 && (
+        {prefs.dashExpiry && expiring.length > 0 && (
           <p role="status" className="rounded-lg border border-status-warning/30 bg-status-warning/5 px-4 py-3 text-sm text-text-primary">
-            {expiring.length} approved claim{expiring.length === 1 ? "" : "s"} expire within 30 days (soonest: {expiring[0].code}, {expiring[0].days} days).{" "}
+            {expiring.length} approved claim{expiring.length === 1 ? "" : "s"} expire within {prefs.expiryDays} days (soonest: {expiring[0].code}, {expiring[0].days} days).{" "}
             <Link href={`/knowledge-base/claims?claim=${expiring[0].code}`} className={`rounded underline underline-offset-4 ${focusRing}`}>Review evidence</Link>
           </p>
         )}
 
-        <CheckAnAd />
+        {prefs.dashCheck && <CheckAnAd />}
 
         {loadFailed && (
           <p role="status" className="rounded-lg border border-status-warning/30 bg-status-warning/5 px-4 py-3 text-[13px] text-text-secondary">
@@ -377,6 +377,7 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
           </p>
         )}
 
+        {prefs.dashStats && (
         <section aria-label="Summary" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {stats.map((s) => (
             <div key={s.label} className="glass relative rounded-2xl transition-colors hover:bg-panel-hover">
@@ -393,7 +394,9 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
             </div>
           ))}
         </section>
+        )}
 
+        {prefs.dashAttention && (
         <section aria-labelledby="attention-h" className="glass rounded-2xl p-5 sm:p-6">
           <div className="mb-4 flex items-baseline justify-between gap-4">
             <h2 id="attention-h" className="flex items-center gap-2 text-base font-semibold text-text-primary">
@@ -429,9 +432,11 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
             </div>
           )}
         </section>
+        )}
 
         <StartHere />
 
+        {prefs.dashRecent && (
         <section data-tour="recent" aria-labelledby="recent-h" className="glass rounded-2xl p-5 sm:p-6">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 id="recent-h" className="text-base font-semibold text-text-primary">Recent activity</h2>
@@ -488,6 +493,7 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
             <Link href="/submissions" className={`rounded text-[13px] font-medium text-text-primary underline-offset-4 hover:underline ${focusRing}`}>View all reviews</Link>
           </div>
         </section>
+        )}
       </div>
     </AppLayout>
   );

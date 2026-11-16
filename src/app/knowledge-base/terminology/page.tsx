@@ -5,8 +5,8 @@ import { ArrowRight, Download, FileUp, Plus, Search } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { TERM_STARTER, type Severity, type Term } from "@/components/knowledge/starters";
-import { FileDrop, KbHeader, Modal, Toast, area, csvCell, download, field, focusRing, labelCls, parseCsv, useKb, KbError } from "@/components/knowledge/kb";
+import type { Severity, Term } from "@/components/knowledge/starters";
+import { BuiltInBadge, FileDrop, KbHeader, Modal, Toast, area, csvCell, download, field, focusRing, labelCls, parseCsv, useKb, KbError } from "@/components/knowledge/kb";
 
 
 const SEV: Record<Severity, { label: string; variant: "violation" | "warning" | "draft" }> = {
@@ -20,7 +20,10 @@ const TEMPLATE = "term,kind,replacement,reason,severity\n" +
   ["clinically proven", "blocked", "clinically studied", "Needs a published trial", "high"].map(csvCell).join(",") + "\n";
 
 export default function TerminologyPage() {
-  const [terms, setTerms, kb] = useKb<Term>("/api/terms", TERM_STARTER);
+  const [terms, setTerms, kb] = useKb<Term>("/api/terms");
+  const [view, setView] = useState<Term | null>(null);
+  const viewRef = useRef<HTMLDialogElement>(null);
+  const openTerm = (t: Term) => { setView(t); viewRef.current?.showModal(); };
   const [q, setQ] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ ok: Term[]; bad: number } | null>(null);
@@ -86,10 +89,12 @@ export default function TerminologyPage() {
               {blocked.map((t) => (
                 <li key={t.term} className="grid gap-2 py-4 sm:grid-cols-[1fr_auto] sm:items-start">
                   <div>
-                    <p className="flex flex-wrap items-center gap-2 text-[15px] font-medium text-text-primary">
+                    <button type="button" onClick={() => openTerm(t)}
+                      className={`flex flex-wrap items-center gap-2 rounded text-left text-[15px] font-medium text-text-primary hover:underline hover:underline-offset-4 ${focusRing}`}>
                       <span className="line-through decoration-status-critical/60">{t.term}</span>
                       {t.replacement && <><ArrowRight className="h-4 w-4 text-text-muted" aria-label="use instead" />{t.replacement}</>}
-                    </p>
+                      {t.builtIn && <BuiltInBadge />}
+                    </button>
                     {t.note && <p className="mt-1 text-[13px] text-text-muted">{t.note}</p>}
                   </div>
                   <Badge variant={SEV[t.severity].variant} size="xs">{SEV[t.severity].label}</Badge>
@@ -106,7 +111,10 @@ export default function TerminologyPage() {
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
               {preferred.map((t) => (
                 <li key={t.term} className="rounded-xl border border-border-default bg-panel p-4">
-                  <p className="text-sm font-medium text-text-primary">{t.term}</p>
+                  <button type="button" onClick={() => openTerm(t)}
+                    className={`flex flex-wrap items-center gap-2 rounded text-left text-sm font-medium text-text-primary hover:underline hover:underline-offset-4 ${focusRing}`}>
+                    {t.term}{t.builtIn && <BuiltInBadge />}
+                  </button>
                   {t.note && <p className="mt-1 text-[13px] text-text-muted">{t.note}</p>}
                 </li>
               ))}
@@ -151,6 +159,21 @@ export default function TerminologyPage() {
               }}>Import {preview.ok.length} terms</Button>
             </div>
           </div>
+        )}
+      </Modal>
+      <Modal ref={viewRef} title={view?.term ?? "Term"} onClose={() => setView(null)}>
+        {view && (
+          <dl className="space-y-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={view.kind === "blocked" ? SEV[view.severity].variant : "neutral"} size="xs">
+                {view.kind === "blocked" ? `Blocked, ${SEV[view.severity].label.toLowerCase()}` : "Preferred"}
+              </Badge>
+              {view.builtIn && <BuiltInBadge />}
+            </div>
+            {view.replacement && <div><dt className="text-[13px] text-text-muted">Use instead</dt><dd className="text-text-primary">{view.replacement}</dd></div>}
+            {view.note && <div><dt className="text-[13px] text-text-muted">Why</dt><dd className="text-text-secondary">{view.note}</dd></div>}
+            {view.builtIn && <p className="text-[13px] text-text-muted">Built-in term. It ships with this workspace and can&apos;t be edited or removed.</p>}
+          </dl>
         )}
       </Modal>
       <Toast msg={toast} />

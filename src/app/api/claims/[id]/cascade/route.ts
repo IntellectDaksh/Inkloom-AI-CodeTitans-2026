@@ -1,6 +1,7 @@
 import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { isBuiltInId } from "@/lib/db/seed";
 
 async function GET_handler(
   req: NextRequest,
@@ -29,6 +30,9 @@ async function POST_handler(
 ) {
   try {
     const { id: claimId } = await params;
+    if (isBuiltInId(claimId)) {
+      return NextResponse.json({ success: false, error: "Built-in claims are read-only and can't be changed." }, { status: 403 });
+    }
     const body = await req.json().catch(() => ({}));
     const {
       reason = "Claim validity period expired / evidence scope amended",

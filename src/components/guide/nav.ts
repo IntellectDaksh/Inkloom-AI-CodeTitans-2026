@@ -1,6 +1,7 @@
 import {
+  Inbox,
   LayoutDashboard, FilePlus2, FileText, CheckCircle2, ShieldCheck, BookOpen, Tag, FolderOpen,
-  BarChart3, FlaskConical, Building2, Users, Settings, ScrollText, type LucideIcon,
+  BarChart3, FlaskConical, Building2, Users, Settings, ScrollText, Lock, Code2, Webhook, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -9,6 +10,7 @@ export interface NavItem {
   icon: LucideIcon;
   badge?: "approvals" | "reviews";
   help: [string, string, string];
+  ownerOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -100,6 +102,26 @@ export const NAV: NavGroup[] = [
         "Who can check ads and who can approve them.",
         "Invite reviewers so approvals are not stuck on one person.",
         "Roles control what each person can change.",
+      ] },
+      { name: "Inbox", href: "/inbox", icon: Inbox, ownerOnly: true, help: [
+        "Messages from the Help & feedback button.",
+        "Reply by email, then mark them done.",
+        "Only the site owner sees this page.",
+      ] },
+      { name: "Security", href: "/security", icon: Lock, help: [
+        "Two-factor sign-in, your password and signed-in devices.",
+        "Turn on an authenticator app so a leaked password is not enough.",
+        "Sign out other devices if you think someone else is signed in.",
+      ] },
+      { name: "Developers", href: "/developers", icon: Code2, help: [
+        "Check ad copy from your own tools with an API key.",
+        "Admins create and revoke keys; each key is shown once.",
+        "Each key allows 60 checks an hour.",
+      ] },
+      { name: "Integrations", href: "/integrations", icon: Webhook, help: [
+        "Send events to Slack or your own endpoint.",
+        "Pick which events to send: ad blocked, approval requested, approved, rejected.",
+        "Each request is signed with HMAC-SHA256 in X-AdSnitch-Signature.",
       ] },
       { name: "Settings", href: "/settings", icon: Settings, help: [
         "Workspace preferences and connections.",

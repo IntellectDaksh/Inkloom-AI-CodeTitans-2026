@@ -1,5 +1,6 @@
 "use client";
 
+import { fmtDateTime } from "@/components/settings/format";
 import React, { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, CheckCircle2, Copy, Download, Edit3, Eye, FileText, GitCompare, RefreshCw, Send, Sparkles, X } from "lucide-react";
@@ -25,7 +26,10 @@ import {
   localFlags,
   VERDICT,
 } from "@/components/submission/shared";
-import { personaOf, usePrefs, Role } from "@/components/guide/workspace";
+import { VersionHistory, RunRow } from "@/components/submission/VersionHistory";
+import { SharePanel } from "@/components/submission/SharePanel";
+import { isRulesOnly, checkedByLabel } from "@/components/submission/report";
+import { personaOf, usePrefs, readPrefs, Role } from "@/components/guide/workspace";
 
 type Decision = "approved" | "changes_requested" | "rejected";
 type Actor = { id: string; name: string; role: Role };
@@ -41,10 +45,7 @@ const STATUS_TEXT: Record<string, string> = {
   needs_re_review: "Needs re-review",
 };
 
-const fmtTime = (iso: string) => {
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-};
+const fmtTime = fmtDateTime;
 
 async function call(url: string, method: string, body: unknown) {
   const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -69,6 +70,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [view, setView] = useState<"annotated" | "diff">("annotated");
+  useEffect(() => setView(readPrefs().resultsView), []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [reasonModal, setReasonModal] = useState<{ kind: ReasonKind; finding: FindingItem } | null>(null);
@@ -76,6 +78,8 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   const [approveOpen, setApproveOpen] = useState<null | Decision>(null);
   const [toast, setToast] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [audit, setAudit] = useState<AuditItem[]>([]);
+  const [runs, setRuns] = useState<RunRow[]>([]);
+  const [modelUsed, setModelUsed] = useState<string | null>(null);
   const prefs = usePrefs();
   const persona = personaOf(prefs);
 
@@ -103,6 +107,8 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
       if (!res.ok || !data.success) throw new Error(data.error || "Could not load this review.");
       const s = data.submission;
       setSubmission(s);
+      setRuns(data.runs || []);
+      setModelUsed(data.runs?.at(-1)?.model_used ?? s.latest_analysis?.model_used ?? null);
       setRawFindings(data.findings || []);
       setRevisions(data.revisions || []);
       setContent(s.currentContent || "");
@@ -134,10 +140,26 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   // ---- derived ----
   const liveText = editing ? draft : content;
   const findings = useMemo(() => {
-    const rank = (f: FindingItem) => (effectiveStatus(f, liveText) === "open" ? 0 : 1) * 10 + Object.keys(SEVERITY).indexOf(sevOf(f.severity));
+    // Open issues first; within that, by severity or by where the phrase sits in the copy (Settings > Review).
+    const pos = (f: FindingItem) => {
+      const i = f.flaggedText ? liveText.indexOf(f.flaggedText) : -1;
+      return i < 0 ? 1e8 : i;
+    };
+    const rank = (f: FindingItem) =>
+      (effectiveStatus(f, liveText) === "open" ? 0 : 1) * 1e9 + (prefs.issueOrder === "text" ? pos(f) : Object.keys(SEVERITY).indexOf(sevOf(f.severity)));
     return dedupeFindings(rawFindings).sort((a, b) => rank(a) - rank(b));
-  }, [rawFindings, liveText]);
+  }, [rawFindings, liveText, prefs.issueOrder]);
+  // Display-only filter: hidden low issues still count toward the score and verdict.
+  const listed = prefs.hideLowSeverity ? findings.filter((f) => !["low", "info"].includes(sevOf(f.severity))) : findings;
+  const hiddenLow = findings.length - listed.length;
   const openFindings = findings.filter((f) => effectiveStatus(f, liveText) === "open");
+  // Settings > Review: open the first open issue once the review loads.
+  useEffect(() => {
+    if (loading || !readPrefs().expandFirstIssue) return;
+    const first = openFindings.find((f) => listed.includes(f));
+    if (first) setExpandedId(first.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
   const estimate = estimateScore(findings, liveText);
   const useServer = serverScore !== null && !editing && content === submission?.currentContent;
   const score = useServer ? serverScore! : estimate;
@@ -163,10 +185,17 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   const reRun = async (text: string) => {
     setChecking(true);
     try {
-      const data = await call(`/api/submissions/${id}/analyze`, "POST", { content: text, userId: actor.id, role: actor.role });
+      const data = await call(`/api/submissions/${id}/analyze`, "POST", { content: text, userId: actor.id, role: actor.role, style: { language: readPrefs().aiLanguage, tone: readPrefs().aiTone } });
       setRawFindings(data.findings || []);
       setRevisions(data.revisions || []);
       if (typeof data.report?.complianceScore === "number") setServerScore(data.report.complianceScore);
+      setModelUsed(data.report?.modelUsed ?? null);
+      // Pull the new version + run for the history timeline.
+      const fresh = await fetch(`/api/submissions/${id}`).then((r) => r.json()).catch(() => null);
+      if (fresh?.success) {
+        setSubmission(fresh.submission);
+        setRuns(fresh.runs || []);
+      }
       log("Re-checked", `Score ${data.report?.complianceScore ?? "updated"}`, { id: "system", name: "AdSnitch", role: "admin" });
     } catch (e) {
       flash(`Re-check failed: ${(e as Error).message}`, "err");
@@ -401,6 +430,15 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
           {verdict === "safe" ? "send it for sign-off." : "apply or dismiss each fix, then send it for sign-off."}
         </p>
 
+        {isRulesOnly(modelUsed) && (
+          <div role="alert" className="flex flex-col gap-3 rounded-xl border border-status-warning/40 bg-status-warning/10 p-4 text-sm text-text-primary sm:flex-row sm:items-center sm:justify-between">
+            <span>AI review unavailable for this check — rules-only result. Re-check when AI is back.</span>
+            <Button size="sm" variant="secondary" loading={checking} onClick={() => reRun(content)} icon={<RefreshCw className="h-4 w-4" />}>
+              Re-check
+            </Button>
+          </div>
+        )}
+
         <VerdictBanner notes={localFlags(liveText, prefs)} verdict={verdict} score={score} openCount={openFindings.length} estimated={!useServer} checking={checking} />
 
         {/* Primary action bar */}
@@ -548,6 +586,9 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
                   <Button size="sm" variant="ghost" icon={<Download className="h-4 w-4" />} onClick={download}>
                     Download .md
                   </Button>
+                  <Button size="sm" variant="ghost" icon={<FileText className="h-4 w-4" />} onClick={() => window.open(`/submissions/${id}/report`, "_blank", "noopener")}>
+                    Download report
+                  </Button>
                 </div>
               </div>
             </div>
@@ -592,7 +633,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
                 <p className="mt-1 text-[13px] text-text-muted">Every claim matched the approved library for this brand.</p>
               </div>
             ) : (
-              findings.map((f) => (
+              listed.map((f) => (
                 <FindingCard
                   key={f.id}
                   finding={f}
@@ -611,8 +652,15 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
                     actor.role === "creator" || actor.role === "reviewer" ? flash("Only a brand manager or admin can override an issue.", "err") : setReasonModal({ kind: "override", finding: f })
                   }
                   onEvidence={() => setEvidenceFinding(f)}
+                  showConfidence={prefs.showConfidence}
                 />
               ))
+            )}
+            {hiddenLow > 0 && (
+              <p className="text-[13px] text-text-muted">
+                {hiddenLow} low-severity issue{hiddenLow === 1 ? "" : "s"} hidden. They still count toward the score.{" "}
+                <Link href="/settings?tab=review" className="underline underline-offset-4">Change in settings</Link>
+              </p>
             )}
 
             <dl className="glass grid grid-cols-2 gap-3 rounded-2xl p-5 text-[13px]">
@@ -621,6 +669,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
                 ["Campaign", submission.metadata?.campaign || "None"],
                 ["Submitted", fmtTime(submission.created_at)],
                 ["Reference", submission.id.slice(0, 8)],
+                ["Checked by", checkedByLabel(modelUsed)],
               ].map(([k, v]) => (
                 <div key={k}>
                   <dt className="text-xs text-text-muted">{k}</dt>
@@ -630,6 +679,10 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
             </dl>
           </section>
         </div>
+
+        <VersionHistory key={(submission.versions || []).length} versions={submission.versions || []} runs={runs} authorName={creator.name} />
+
+        <SharePanel submissionId={id} onMessage={flash} />
 
         {/* Audit timeline */}
         <section className="glass rounded-2xl p-6" aria-labelledby="audit-h">

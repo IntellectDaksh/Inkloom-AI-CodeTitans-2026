@@ -1,8 +1,11 @@
 import { withStore } from "@/lib/db/withStore";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { denyFor, getActor, type AppRole } from "./rbac";
-import { supabaseAdmin } from "@/lib/auth/server";
+import { getMe, supabaseAdmin } from "@/lib/auth/server";
+import { emailUsers } from "@/lib/notify/email";
+import { fireWebhooks } from "@/lib/notify/webhooks";
+import { orgMembers, REVIEW_ROLES } from "./members";
 
 async function GET_handler(req: NextRequest) {
   try {
@@ -131,6 +134,24 @@ async function POST_handler(req: NextRequest) {
       isRead: false,
     });
 
+    const verb = effective === "approved" ? "approved" : effective === "rejected" ? "rejected" : "sent back for changes";
+    // Tenancy key for emails/webhooks is the caller's profiles.organization_id, not the document's legacy org id.
+    const tenant = (await getMe())?.organizationId ?? "";
+    after(async () => {
+      await Promise.all([
+        emailUsers(tenant, [submission.authorId], {
+          subject: `${submission.title} was ${verb}`,
+          heading: `Your ad was ${verb}`,
+          body: `${reviewerName} ${verb} "${submission.title}".${notes ? `\n\n"${notes}"` : ""}`,
+          link: `/submissions/${submissionId}`,
+          cta: effective === "approved" ? "View the ad" : "See what to change",
+        }),
+        effective === "approved" || effective === "rejected"
+          ? fireWebhooks(tenant, effective, { title: submission.title, submissionId, actor: reviewerName, note: notes })
+          : Promise.resolve(),
+      ]);
+    });
+
     return NextResponse.json({
       success: true,
       decision: recordedDecision,
@@ -141,5 +162,55 @@ async function POST_handler(req: NextRequest) {
   }
 }
 
+/** Assign a reviewer and/or due date. Assignee must be in the caller's org with a reviewing role. */
+async function PATCH_handler(req: NextRequest) {
+  try {
+    const me = await getMe();
+    if (!me) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
+    if (!REVIEW_ROLES.includes(me.role)) return NextResponse.json({ success: false, error: "Only reviewers, brand managers and admins can assign reviews." }, { status: 403 });
+    const body = (await req.json().catch(() => ({}))) as { submissionId?: unknown; assigneeId?: unknown; dueDate?: unknown };
+    if (typeof body.submissionId !== "string") return NextResponse.json({ success: false, error: "submissionId is required" }, { status: 400 });
+    const assigneeId = typeof body.assigneeId === "string" && body.assigneeId ? body.assigneeId : null;
+    let dueDate: string | null = null;
+    if (typeof body.dueDate === "string" && body.dueDate) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(body.dueDate) || isNaN(Date.parse(body.dueDate))) return NextResponse.json({ success: false, error: "Use a date like 2026-12-01." }, { status: 400 });
+      dueDate = body.dueDate;
+    }
+    const submission = db.getSubmission(body.submissionId);
+    if (!submission) return NextResponse.json({ success: false, error: "Submission not found" }, { status: 404 });
+
+    let assigneeName = "";
+    if (assigneeId) {
+      const m = (await orgMembers(me.organizationId)).find((x) => x.id === assigneeId);
+      if (!m) return NextResponse.json({ success: false, error: "That person is not in your workspace." }, { status: 400 });
+      if (!REVIEW_ROLES.includes(m.role)) return NextResponse.json({ success: false, error: "Only reviewers, brand managers and admins can be assigned." }, { status: 400 });
+      if (m.id === submission.authorId) return NextResponse.json({ success: false, error: "The author can't review their own ad." }, { status: 400 });
+      assigneeName = m.name;
+    }
+    const prev = (submission.approval_requests ?? []).find((r: { status: string }) => r.status === "pending")?.target_reviewer_id ?? null;
+    const request = db.assignApproval(body.submissionId, { assigneeId, dueDate, by: me.id });
+    db.recordAuditEvent({
+      organizationId: me.organizationId, brandId: submission.brandId, userId: me.id, action: "review_assigned",
+      entityType: "submission", entityId: submission.id, metadata: { assigneeId, assigneeName, dueDate },
+    });
+    if (assigneeId && assigneeId !== prev && assigneeId !== me.id) {
+      const due = dueDate ? ` Due ${dueDate}.` : "";
+      db.createNotification({
+        organizationId: me.organizationId, userId: assigneeId, type: "review_assigned",
+        title: `Review assigned: ${submission.title}`, message: `${me.name} asked you to review this ad.${due}`,
+        linkUrl: `/approvals?mine=1`,
+      });
+      after(() => emailUsers(me.organizationId, [assigneeId], {
+        subject: `Review assigned: ${submission.title}`, heading: "You have an ad to review",
+        body: `${me.name} asked you to review "${submission.title}".${due}`, link: "/approvals?mine=1", cta: "Open the queue",
+      }));
+    }
+    return NextResponse.json({ success: true, request });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: err instanceof Error ? err.message : "Server error" }, { status: 500 });
+  }
+}
+
 export const GET = withStore(GET_handler);
+export const PATCH = withStore(PATCH_handler);
 export const POST = withStore(POST_handler);

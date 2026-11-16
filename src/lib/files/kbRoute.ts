@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { SEED_IDS } from "@/lib/db/seed";
+import { SEED_IDS, builtInKb } from "@/lib/db/seed";
 import type { KbKind } from "@/lib/db/store";
 import { withStore } from "@/lib/db/withStore";
 import { getMe } from "@/lib/auth/server";
@@ -32,7 +32,11 @@ export function kbRoute(kind: KbKind, keyOf: (d: Record<string, unknown>) => str
   const GET = withStore(async (req: NextRequest) => {
     const brand = brandFrom(req.nextUrl.searchParams.get("brand"));
     if (!brand) return bad("Unknown workspace.", 404);
-    return NextResponse.json({ success: true, brandId: brand.id, ...db.listKbItems(ORG, brand.id, kind) });
+    // Built-in records come from the seed (read-only); saved items that collide with one are hidden.
+    const builtIns = builtInKb(brand.id, kind);
+    const keys = new Set(builtIns.map(keyOf));
+    const { items, saved } = db.listKbItems(ORG, brand.id, kind);
+    return NextResponse.json({ success: true, brandId: brand.id, saved, items: [...builtIns, ...items.filter((i) => !keys.has(keyOf(i)))] });
   });
   const PUT = withStore(async (req: NextRequest) => {
     const raw = await req.text();
@@ -48,6 +52,9 @@ export function kbRoute(kind: KbKind, keyOf: (d: Record<string, unknown>) => str
     const items = body.items;
     if (!Array.isArray(items) || items.length > MAX_ITEMS || items.some((i) => !i || typeof i !== "object" || Array.isArray(i)))
       return bad("items must be a list of records.");
+    const builtIn = new Set(builtInKb(brand.id, kind).map(keyOf));
+    if ((items as Record<string, unknown>[]).some((i) => i.builtIn || builtIn.has(keyOf(i))))
+      return bad("Built-in items are read-only. They can't be edited, replaced or deleted.", 403);
     const res = db.replaceKbItems(ORG, brand.id, kind, items as Record<string, unknown>[], keyOf, await userId());
     return NextResponse.json({ success: true, ...res });
   });

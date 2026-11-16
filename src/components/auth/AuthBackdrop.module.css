@@ -1,0 +1,59 @@
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #8bbadb;
+}
+.sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* SkyClouds expects these global class names (defined in landing.css on the home page). */
+.clouds :global(.sky-clouds) { position: absolute; inset: 0; pointer-events: none; }
+.clouds :global(.sky-cloud) { position: absolute; will-change: transform; transform-origin: 50% 60%; }
+.clouds :global(.sky-ground) { position: absolute; inset: 0; width: 100%; height: 100%; }
+.clouds { position: absolute; inset: 0; }
+
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.glowA { width: 46vmax; height: 46vmax; left: -12vmax; top: -10vmax; background: #7cddff; }
+.glowB { width: 40vmax; height: 40vmax; right: -10vmax; bottom: -14vmax; background: #ffe2b3; animation-duration: 23s; }
+
+/* Film grain: an SVG turbulence tile that jumps position in steps, so it shimmers like real noise. */
+.grain {
+  position: absolute;
+  inset: -50%;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: grain 0.9s steps(6) infinite;
+}
+
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-3%, 2%); }
+  40% { transform: translate(2%, -3%); }
+  60% { transform: translate(-2%, -1%); }
+  80% { transform: translate(3%, 3%); }
+  100% { transform: translate(-1%, 2%); }
+}
+@keyframes drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(4vmax, 3vmax, 0) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain, .glow { animation: none; }
+}
+:global(html[data-motion="off"]) .grain,
+:global(html[data-motion="off"]) .glow { animation: none; }

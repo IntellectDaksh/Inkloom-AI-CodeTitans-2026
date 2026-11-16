@@ -1,8 +1,11 @@
 import { withStore } from "@/lib/db/withStore";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { fireWebhooks } from "@/lib/notify/webhooks";
 import { db } from "@/lib/db";
+import { getMe } from "@/lib/auth/server";
 import { SEED_IDS } from "@/lib/db/seed";
 import { runGovernancePipeline } from "@/lib/ai";
+import { styleFrom } from "@/lib/ai/pipeline";
 
 async function GET_handler(req: NextRequest) {
   try {
@@ -86,7 +89,8 @@ async function POST_handler(req: NextRequest) {
         content,
         brandId,
         organizationId,
-        channel as any
+        channel as any,
+        { style: styleFrom(body) }
       );
 
       // Record findings in DB
@@ -127,6 +131,19 @@ async function POST_handler(req: NextRequest) {
         });
       }
 
+      // Version history: first check of v1 (see /submissions/[id] version timeline).
+      db.recordAnalysisRun(newSubmission.id, {
+        content,
+        score: reviewReport.complianceScore,
+        status: reviewReport.status,
+        summary: reviewReport.executiveSummary,
+        modelUsed: reviewReport.modelUsed,
+        durationMs: reviewReport.stageExecutionTimes?.totalMs ?? 0,
+        findings: reviewReport.findings.map((f) => ({ category: f.category, severity: f.severity, flaggedText: f.flaggedText, explanation: f.explanation, suggestedCorrection: f.suggestedCorrection })),
+        scoreBreakdown: reviewReport.scoreBreakdown ?? null,
+        userId: authorId ?? null,
+      });
+
       // Record audit event
       db.recordAuditEvent({
         organizationId,
@@ -141,6 +158,11 @@ async function POST_handler(req: NextRequest) {
           status: reviewReport.status,
         },
       });
+    }
+
+    if (reviewReport?.status === "rejected") {
+      const me = await getMe();
+      if (me) after(() => fireWebhooks(me.organizationId, "ad_blocked", { title: title, submissionId: newSubmission.id, actor: me.name, note: reviewReport!.executiveSummary }));
     }
 
     return NextResponse.json({

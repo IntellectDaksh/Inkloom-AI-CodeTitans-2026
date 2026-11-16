@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { RouteProgress } from "@/components/layout/Motion";
 import { PrefsApplier } from "@/components/settings/PrefsApplier";
+import { ApiCache } from "@/components/ops/ApiCache";
 
 export const metadata: Metadata = {
   title: "AdSnitch — Pre-Publication Marketing Claim & Brand Governance Firewall",
@@ -22,6 +23,7 @@ export default function RootLayout({
           <RouteProgress />
         </Suspense>
         <PrefsApplier />
+        <ApiCache />
         {children}
       </body>
     </html>

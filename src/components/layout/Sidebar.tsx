@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogoMark } from "@/components/landing/LogoMark";
 import { PanelLeftClose, PanelLeft, X } from "lucide-react";
 import { NAV, isActive } from "../guide/nav";
-import { usePrefs, useWorkspaceCounts, focusRing, personaOf } from "../guide/workspace";
+import { usePrefs, useWorkspaceCounts, focusRing, personaOf, useMe } from "../guide/workspace";
 
 export interface SidebarProps {
   pendingApprovalsCount?: number;
@@ -29,6 +29,7 @@ function NavList({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
   const badgeFor = (b?: "approvals" | "reviews") =>
     b === "approvals" ? counts.pendingApprovals : b === "reviews" ? counts.inReview : 0;
 
+  const me = useMe();
   return (
     <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-3">
       {NAV.map((group) => (
@@ -39,7 +40,7 @@ function NavList({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
             <p className="mb-1 px-3 text-xs font-medium text-text-muted">{group.label}</p>
           )}
           <ul className="space-y-0.5">
-            {group.items.map((item) => {
+            {group.items.filter((item) => !item.ownerOnly || me?.isOwner).map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href, pathname);
               const count = badgeFor(item.badge);

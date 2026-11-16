@@ -37,6 +37,8 @@ export interface Me {
   profileComplete: boolean;
   jobTitle: string;
   prefs: Record<string, unknown>;
+  /** Site owner (OWNER_EMAILS env): sees the feedback inbox. */
+  isOwner: boolean;
 }
 
 /** The signed-in user with their stored profile, or null. Role always comes from public.profiles. */
@@ -56,5 +58,24 @@ export async function getMe(): Promise<Me | null> {
     profileComplete: !!p?.profile_completed_at,
     jobTitle: (p?.job_title as string) ?? "",
     prefs: (p?.prefs as Record<string, unknown>) ?? {},
+    isOwner: (process.env.OWNER_EMAILS ?? "").toLowerCase().split(",").map((x) => x.trim()).includes((user.email ?? "").toLowerCase()),
   };
+}
+
+export const API_KEY_RE = /^ask_live_[A-Za-z0-9_-]{32}$/;
+
+export async function hashApiKey(key: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Resolves an `Authorization: Bearer ask_live_...` header to its key row, or null if missing/invalid/revoked. */
+export async function apiKeyFromRequest(req: Request): Promise<{ id: string; organizationId: string } | null> {
+  const key = req.headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1];
+  if (!key || !API_KEY_RE.test(key)) return null;
+  const admin = supabaseAdmin();
+  const { data } = await admin.from("api_keys").select("id, organization_id").eq("key_hash", await hashApiKey(key)).is("revoked_at", null).maybeSingle();
+  if (!data) return null;
+  await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
+  return { id: data.id as string, organizationId: data.organization_id as string };
 }

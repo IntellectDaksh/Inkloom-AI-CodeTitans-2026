@@ -31,15 +31,20 @@ export const GEMINI_FALLBACK_LIVE_URL =
 export const SYSTEM_INSTRUCTION = `You are the AdSnitch Brand Governance Auditor.
 Your mission is to perform strict, rigorous, and impartial enterprise brand compliance reviews.
 CRITICAL RULES:
-1. NEVER hallucinate citations or claim evidence. Only ids from the approved claims list may be cited.
-2. Unsupported claims must be flagged as unverified (category: "unsupported_claim", isVerified: false, citedEvidenceIds: []).
-3. Evaluate content strictly against the provided brand guidelines, approved claims repository and the target channel.
-4. Extract EVERY checkable claim, not just ones with % signs: counts ("50+ brands", "1M views"), results and outcomes, client or partner names, testimonials, awards, rankings, "best/leading/top", guarantees, timelines, prices and comparisons. Each one NOT present in the approved claims list is an unsupported_claim (high if numeric/result/guarantee, medium otherwise).
-5. CHANNEL FIT comes first. Decide whether the content is actually publishable copy for the target channel. A pitch deck, brochure, proposal, report, CV or website dump submitted as a social post / reel / ad is NOT that channel's content: raise one "out_of_scope" finding with severity "critical", flaggedText = a short quote that shows it, and explain what the channel needs instead.
-6. Identify tone inconsistencies (hyperbole, buzzwords, sensationalism) and readability issues.
-7. Score calibration (complianceScore): 95-100 only when the copy fits the channel AND every claim is in the approved list AND no tone issues. Any unsupported claim: at most 80. Three or more unsupported claims: at most 60. Wrong content type for the channel: at most 30. Never give a high score just because few rules matched; absence of evidence is not compliance.
-8. Ignore watermarks, page numbers, repeated headers/footers and template boilerplate if they slipped into the text.
-9. Provide actionable, compliant suggested revisions.
+0. You are a strict reviewer, not a cheerleader. Never soften a verdict. If the content does not belong, say so plainly.
+1. GATE FIRST (fill "gate" before anything else):
+   a. contentKind: classify what the document really is from its content. A deck with slides like "About us / Services / Clients / Pricing / Contact" is a pitch_deck or company_profile, whatever channel the user picked.
+   b. isAboutBrand: the copy must market the brand in BRAND PROFILE (its products, services or industry). Copy about another company, another industry, or an agency pitching itself is NOT about the brand: isAboutBrand=false.
+   c. fitsChannel: is this publishable as-is on the TARGET CHANNEL? A pitch deck, proposal, report, CV or company profile is never ad copy, a social post, an email or a landing page.
+   If isAboutBrand=false or fitsChannel=false, add an "out_of_scope" finding with severity "critical" that states the problem in one blunt sentence. Do not try to rescue the content.
+2. NEVER hallucinate citations or claim evidence. Only ids from the approved claims list may be cited.
+3. Unsupported claims are unverified (category "unsupported_claim", isVerified false, citedEvidenceIds []).
+4. Extract EVERY checkable claim: counts ("50+ brands", "1M views"), results, client or partner names, testimonials, awards, rankings, "best/leading/top", guarantees, timelines, prices, comparisons. Each one not in the approved claims list is an unsupported_claim (high if numeric/result/guarantee, medium otherwise).
+5. Flag tone problems (hype, buzzwords, sensationalism, insensitivity) and readability issues.
+6. complianceScore is advisory only; the server computes the real score. Use: 95-100 only if gate passes, every claim is approved and nothing else is wrong; any unsupported claim <= 80; three or more <= 60; gate fails <= 15.
+7. Ignore watermarks, page numbers, repeated headers/footers and template boilerplate.
+8. Suggested corrections must be compliant, specific and short. The rewrite must not add new claims.
+9. Be consistent: the same content with the same brand and channel must get the same verdict.
 10. Output valid JSON matching the exact schema requested.`;
 
 // ============================================================================
@@ -49,6 +54,22 @@ CRITICAL RULES:
 export const GEMINI_RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
+    gate: {
+      type: 'OBJECT',
+      description: 'Decide these BEFORE any findings.',
+      properties: {
+        contentKind: {
+          type: 'STRING',
+          enum: ['ad_copy', 'social_caption', 'video_script', 'email', 'landing_page', 'press_release', 'blog_post', 'product_docs', 'pitch_deck', 'proposal', 'company_profile', 'report', 'resume', 'other'],
+          description: 'What this document actually is, judged from its content, not from the channel the user picked.',
+        },
+        isAboutBrand: { type: 'BOOLEAN', description: 'True only if the content markets THIS brand or its products/services (see BRAND PROFILE). Content about a different company or industry is false.' },
+        brandReason: { type: 'STRING', description: 'One sentence: whose product/service the content is actually about.' },
+        fitsChannel: { type: 'BOOLEAN', description: 'True only if this is publishable copy for the TARGET CHANNEL as-is.' },
+        channelReason: { type: 'STRING', description: 'One sentence explaining fitsChannel.' },
+      },
+      required: ['contentKind', 'isAboutBrand', 'brandReason', 'fitsChannel', 'channelReason'],
+    },
     complianceScore: {
       type: 'NUMBER',
       description: 'Overall compliance score from 0 to 100.',
@@ -122,7 +143,7 @@ export const GEMINI_RESPONSE_SCHEMA = {
       description: 'Full text rewrite with all violations remediated and claims properly qualified.',
     },
   },
-  required: ['complianceScore', 'summaryAssessment', 'findings', 'suggestedRevisedText'],
+  required: ['gate', 'complianceScore', 'summaryAssessment', 'findings', 'suggestedRevisedText'],
 };
 
 // ============================================================================
@@ -399,6 +420,11 @@ export async function analyzeWithGemini(
   }
 
   const promptUserMessage = `
+=== BRAND PROFILE (the copy must be about this brand) ===
+${input.brand ? `Name: ${input.brand.name}
+Industry: ${input.brand.industry || 'not set'}
+About: ${input.brand.description || 'not set'}` : 'Not provided'}
+
 Perform an enterprise brand compliance audit. TARGET CHANNEL: ${input.channel}${CHANNEL_HINT[input.channel] ? ` (${CHANNEL_HINT[input.channel]})` : ''}.
 
 === SUBMISSION CONTENT ===
@@ -413,8 +439,10 @@ ${JSON.stringify(input.approvedClaims, null, 2)}
 === STAGE 2 DETERMINISTIC RULE VIOLATIONS ALREADY DETECTED ===
 ${JSON.stringify(input.deterministicViolations, null, 2)}
 
+WRITING STYLE for "explanation", "suggestedCorrection" and "summaryAssessment": ${input.style?.language === 'hi' ? 'write in Hindi (Devanagari)' : 'write in English'}, ${input.style?.tone === 'formal' ? 'formal compliance-memo tone' : 'plain, short, direct sentences'}. Keep "flaggedText" verbatim from the content. Style never changes what you flag or how severe it is.
+
 Audit the content thoroughly:
-0. First decide if this is real ${input.channel} copy (see rule 5).
+0. Fill the gate first (rule 1): what is this document, is it about the brand, does it fit the channel.
 1. Verify every factual, numeric, or comparative claim against the approved claims list.
 2. Flag any unverified claim (isVerified: false, citedEvidenceIds: [], category: "unsupported_claim").
 3. Flag tone inconsistencies, hyperbole, or out-of-scope messaging.
@@ -432,7 +460,9 @@ Audit the content thoroughly:
       },
     ],
     generationConfig: {
-      temperature: 0.1,
+      temperature: 0,
+      topP: 0.1,
+      seed: 7,
       responseMimeType: 'application/json',
       responseSchema: GEMINI_RESPONSE_SCHEMA,
     },

@@ -1,5 +1,6 @@
 "use client";
 
+import { fmtDateTime } from "@/components/settings/format";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, CornerUpLeft, ChevronRight, Lock, RotateCcw } from "lucide-react";
@@ -8,6 +9,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { InfoTip } from "@/components/guide/HelpPanel";
 import { ROLE_HELP, personaOf, usePrefs, focusRing } from "@/components/guide/workspace";
+import { AssignControls, Thread, REVIEW_ROLES, todayIso, type Member, type ThreadComment } from "@/components/approvals/Collab";
+import { useLivePoll } from "@/components/ops/useLivePoll";
 
 type Tab = "pending" | "changes_requested" | "rejected" | "approved";
 type Action = "approve" | "changes" | "reject" | "override";
@@ -32,6 +35,9 @@ interface Item {
   copy: string;
   topIssue?: { text: string; why: string };
   decision?: Decision | null;
+  assigneeId: string | null;
+  dueDate: string | null;
+  thread: ThreadComment[];
 }
 
 const TABS: { id: Tab; label: string }[] = [
@@ -43,8 +49,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 // Decisions carry the signer's name; fall back only when an old record lacks it.
 const nameOf = (name?: string | null) => name || "A reviewer";
-const fmt = (iso: string) =>
-  new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+const fmt = fmtDateTime;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fromApi(s: any): Item {
@@ -54,7 +59,13 @@ function fromApi(s: any): Item {
   const open = findings.filter((f) => !["resolved", "dismissed", "ignored"].includes(f.status));
   const worst = open.find((f) => f.severity === "critical") ?? open.find((f) => f.severity === "high") ?? open[0];
   const d = s.latest_decision;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reqs: any[] = s.approval_requests ?? [];
+  const req = reqs.find((r) => r.status === "pending") ?? reqs[reqs.length - 1];
   return {
+    assigneeId: req?.target_reviewer_id ?? null,
+    dueDate: req?.due_date ?? null,
+    thread: req?.thread ?? [],
     id: s.id,
     title: s.title,
     author: s.creator?.full_name ?? s.authorName ?? "Unknown author",
@@ -92,19 +103,42 @@ export default function ApprovalsPage() {
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
   const noteRef = useRef<HTMLTextAreaElement>(null);
 
-  const load = useCallback(() => {
-    setLoadError(false);
-    fetch("/api/submissions")
+  const [members, setMembers] = useState<Member[]>([]);
+  const [mine, setMine] = useState(false);
+
+  /** fresh=true is a live poll: bypasses the device cache and keeps the current list if it fails. */
+  const load = useCallback((fresh = false) => {
+    if (!fresh) setLoadError(false);
+    fetch(fresh ? "/api/submissions?fresh=1" : "/api/submissions")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setItems((d.submissions ?? []).filter((s: { status: string }) => s.status !== "draft" && s.status !== "archived").map(fromApi)))
-      .catch(() => setLoadError(true));
+      .catch(() => { if (!fresh) setLoadError(true); });
   }, []);
+  const refresh = useCallback(() => load(true), [load]);
+  useLivePoll(refresh);
 
   useEffect(() => {
     load();
-    const t = new URLSearchParams(window.location.search).get("tab");
+    const q = new URLSearchParams(window.location.search);
+    const t = q.get("tab");
     if (t && TABS.some((x) => x.id === t)) setTab(t as Tab);
+    if (q.get("mine") === "1") setMine(true);
+    fetch("/api/profile")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => setMembers((d.profiles ?? []).map((p: { id: string; full_name: string | null; email: string | null; role: string }) => ({
+        id: p.id, name: p.full_name || (p.email ?? "").split("@")[0] || "Member", role: p.role,
+      }))))
+      .catch(() => {});
   }, [load]);
+
+  const toggleMine = () => {
+    const next = !mine;
+    setMine(next);
+    setCursor(0);
+    const u = new URL(window.location.href);
+    if (next) u.searchParams.set("mine", "1"); else u.searchParams.delete("mine");
+    window.history.replaceState(null, "", u);
+  };
 
   const switchTab = (t: Tab) => {
     setTab(t);
@@ -115,8 +149,12 @@ export default function ApprovalsPage() {
     window.history.replaceState(null, "", u);
   };
 
-  const list = (items ?? []).filter((i) => i.status === tab);
-  const counts = Object.fromEntries(TABS.map((t) => [t.id, (items ?? []).filter((i) => i.status === t.id).length])) as Record<Tab, number>;
+  const scoped = (items ?? []).filter((i) => !mine || i.assigneeId === me.userId);
+  const list = scoped.filter((i) => i.status === tab);
+  const counts = Object.fromEntries(TABS.map((t) => [t.id, scoped.filter((i) => i.status === t.id).length])) as Record<Tab, number>;
+  const today = todayIso();
+  const canAssign = REVIEW_ROLES.includes(me.role);
+  const nameOfMember = (id: string | null) => (id ? members.find((m) => m.id === id)?.name ?? "A teammate" : null);
 
   /** Why an action is blocked for the current persona, or null if allowed. */
   const blocked = (i: Item, a: Action): string | null => {
@@ -228,12 +266,17 @@ export default function ApprovalsPage() {
           ))}
         </div>
 
+        <label className="inline-flex items-center gap-2 text-[13px] text-text-secondary">
+          <input type="checkbox" checked={mine} onChange={toggleMine} className={`h-4 w-4 rounded ${focusRing}`} />
+          Assigned to me
+        </label>
+
         <p className="sr-only" aria-live="polite">{announce}</p>
 
         {loadError ? (
           <div className="glass rounded-xl p-8 text-center">
             <p className="text-sm font-medium text-text-primary">Could not load the approval queue.</p>
-            <Button size="sm" variant="secondary" className="mt-3" icon={<RotateCcw className="h-4 w-4" />} onClick={load}>Try again</Button>
+            <Button size="sm" variant="secondary" className="mt-3" icon={<RotateCcw className="h-4 w-4" />} onClick={() => load()}>Try again</Button>
           </div>
         ) : items === null ? (
           <ul className="space-y-4" aria-busy="true">
@@ -281,6 +324,7 @@ export default function ApprovalsPage() {
                             <InfoTip label="score">How closely the ad matches approved claims and rules. Under 60 usually needs edits.</InfoTip>
                           </span>
                         )}
+                        {i.status === "pending" && i.dueDate && i.dueDate < today && <Badge variant="critical" size="xs">Overdue</Badge>}
                         <Badge variant={v.variant} size="xs">{v.label}</Badge>
                       </div>
                     </div>
@@ -304,6 +348,22 @@ export default function ApprovalsPage() {
                         {i.decision.note ? <>: &ldquo;{i.decision.note}&rdquo;</> : "."}
                       </p>
                     )}
+
+                    {i.status === "pending" ? (
+                      <AssignControls
+                        submissionId={i.id}
+                        authorId={i.authorId}
+                        assigneeId={i.assigneeId}
+                        dueDate={i.dueDate}
+                        members={members}
+                        canAssign={canAssign}
+                        onSaved={refresh}
+                      />
+                    ) : i.assigneeId ? (
+                      <p className="mt-4 text-[13px] text-text-muted">Reviewer: {nameOfMember(i.assigneeId)}</p>
+                    ) : null}
+
+                    <Thread submissionId={i.id} comments={i.thread} members={members} onSaved={refresh} />
 
                     {isOpen && open ? (
                       <form

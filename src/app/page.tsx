@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode 
 import "./landing.css";
 import { FloatingLayer } from "@/components/layout/FloatingLayer";
 import { SkyClouds } from "@/components/landing/SkyClouds";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { HeroCharacter } from "@/components/landing/HeroCharacter";
 import { LogoMark } from "@/components/landing/LogoMark";
 import { supabaseBrowser } from "@/lib/auth/client";
@@ -609,6 +610,7 @@ export default function Home() {
   return (
     <div className="site" id="top">
       <FloatingLayer density="page" />
+      <FeedbackButton />
       <div className="global-atmosphere" aria-hidden="true">
         <i className="atmosphere-one" />
         <i className="atmosphere-two" />

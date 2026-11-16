@@ -1,5 +1,6 @@
 "use client";
 
+import { fmtDate } from "@/components/settings/format";
 import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -10,7 +11,8 @@ import { useWorkspaces } from "@/lib/workspaces/client";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { AddClaimsDialog, type NewClaimInput } from "@/components/knowledge/AddClaimsDialog";
-import { FileDrop, Toast, UNVERIFIED, area, field, focusRing, labelCls } from "@/components/knowledge/kb";
+import { readPrefs } from "@/components/guide/workspace";
+import { BuiltInBadge, FileDrop, Toast, UNVERIFIED, area, field, focusRing, labelCls } from "@/components/knowledge/kb";
 
 type Brand = string;
 
@@ -60,6 +62,10 @@ interface Claim {
   flaggedAt?: string;
   /** Seeded claim that no reviewer has verified yet. */
   unverified?: boolean;
+  /** Built-in library claim: read-only. */
+  builtIn?: boolean;
+  restriction?: string;
+  disclosure?: string;
 }
 
 
@@ -89,7 +95,6 @@ function withRecords(list: Claim[], recs: ClaimRecord[]): Claim[] {
 }
 
 const DAY = 86_400_000;
-const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 const BRAND_IDS: Record<string, string> = {
   "00000000-0000-4000-b000-000000000001": "Apex Nutrition",
@@ -124,6 +129,7 @@ function fromApi(c: any): Claim {
       version: "v1", checkedAt: day(e.updated_at),
     })),
     usage: usageFromApi(c.dependent_submissions),
+    builtIn: !!c.built_in, restriction: c.restricted_context || undefined, disclosure: c.required_disclosures || undefined,
   };
 }
 function usageFromApi(subs: any[] = []): Usage[] {
@@ -132,20 +138,20 @@ function usageFromApi(subs: any[] = []): Usage[] {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 const daysLeft = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / DAY);
-const fmt = (iso: string) => dateFmt.format(new Date(iso));
+const fmt = (iso: string) => fmtDate(iso);
 
 function statusOf(c: Claim): Status {
   if (c.draft) return "draft";
   if (c.unverified && !c.evidence.some((e) => e.verifiedBy)) return "unverified";
   const d = daysLeft(c.expiresAt);
-  return d < 0 ? "expired" : d <= 30 ? "expiring" : "approved";
+  return d < 0 ? "expired" : d <= readPrefs().expiryDays ? "expiring" : "approved";
 }
 
 function expiryWords(c: Claim) {
   const d = daysLeft(c.expiresAt);
   if (d < 0) return `Expired ${fmt(c.expiresAt)}`;
   if (d === 0) return "Expires today";
-  if (d <= 30) return `Expires in ${d} day${d === 1 ? "" : "s"}`;
+  if (d <= readPrefs().expiryDays) return `Expires in ${d} day${d === 1 ? "" : "s"}`;
   return `Valid until ${fmt(c.expiresAt)}`;
 }
 
@@ -183,6 +189,7 @@ function ClaimsLibrary() {
   const [type, setType] = useState("all");
   const [channel, setChannel] = useState("all");
   const [sort, setSort] = useState<"expiry" | "updated">("expiry");
+  useEffect(() => setSort(readPrefs().claimsSort), []);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<Claim | null>(null);
   const drawerRef = useRef<HTMLDialogElement>(null);
@@ -353,7 +360,7 @@ function ClaimsLibrary() {
 
   const stats = [
     { label: "Approved", value: brandClaims.filter((c) => statusOf(c) === "approved").length },
-    { label: "Expiring in 30 days", value: brandClaims.filter((c) => statusOf(c) === "expiring").length },
+    { label: `Expiring in ${readPrefs().expiryDays} days`, value: brandClaims.filter((c) => statusOf(c) === "expiring").length },
     { label: "Expired, needs re-review", value: brandClaims.filter((c) => statusOf(c) === "expired").length },
     { label: "Evidence records", value: brandClaims.reduce((n, c) => n + c.evidence.length, 0) },
   ];
@@ -507,6 +514,7 @@ function ClaimsLibrary() {
                           {c.flaggedAt && ", drafts flagged for re-review"}
                         </p>
                       </div>
+                      {c.builtIn && <BuiltInBadge />}
                       <Badge variant={s.variant} size="xs" className="shrink-0">{s.label}</Badge>
                       <ChevronRight aria-hidden="true" className="mt-0.5 hidden h-4 w-4 shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5 sm:block" />
                     </button>
@@ -556,10 +564,11 @@ function ClaimsLibrary() {
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px] text-text-secondary">
                       <Badge variant={STATUS[statusOf(current)].variant} size="xs">{STATUS[statusOf(current)].label}</Badge>
                       <span>{expiryWords(current)}</span>
-                      <button onClick={() => setEditing(true)}
+                      {current.builtIn && <BuiltInBadge />}
+                      {!current.builtIn && <button onClick={() => setEditing(true)}
                         className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-text-primary hover:bg-panel-hover ${focusRing}`}>
                         <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Edit
-                      </button>
+                      </button>}
                     </div>
                   </>
                 )}
@@ -589,7 +598,7 @@ function ClaimsLibrary() {
                   </ul>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  {current.flaggedAt
+                  {current.builtIn ? <span className="text-[13px] text-text-secondary">Built-in claim: re-check the drafts listed above by hand.</span> : current.flaggedAt
                     ? <span className="text-[13px] text-text-secondary">Flagged for re-review on {fmt(current.flaggedAt)}.</span>
                     : <Button size="sm" className="h-10" loading={review.busy} disabled={!current.usage.length} onClick={() => flagForReview(current)}>
                         Flag {current.usage.length} for re-review
@@ -597,6 +606,13 @@ function ClaimsLibrary() {
                   <p aria-live="polite" className="text-[13px] text-text-secondary">{review.msg}</p>
                 </div>
               </section>
+            )}
+
+            {(current.restriction || current.disclosure) && (
+              <Section title="Conditions">
+                {current.disclosure && <p className="text-sm text-text-secondary"><span className="font-medium text-text-primary">Required disclosure: </span>{current.disclosure}</p>}
+                {current.restriction && <p className="text-sm text-text-secondary"><span className="font-medium text-text-primary">Restrictions: </span>{current.restriction}</p>}
+              </Section>
             )}
 
             <Section title="Allowed channels">
@@ -639,7 +655,11 @@ function ClaimsLibrary() {
                           )}
                         </div>
                       )}
-                      {!ev.userAdded ? (
+                      {current.builtIn ? (
+                        <p className="mt-3 text-[13px] text-text-muted">
+                          Built-in library record. Last checked {fmt(ev.checkedAt)}.
+                        </p>
+                      ) : !ev.userAdded ? (
                         <p className="mt-3 text-[13px] text-text-muted">
                           Version {ev.version}. Last checked by owner {fmt(ev.checkedAt)}. Unverified.
                         </p>
@@ -661,8 +681,10 @@ function ClaimsLibrary() {
                   ))}
                 </ul>
               ) : <p className="text-sm text-text-muted">No evidence attached. Add proof before this claim can be approved.</p>}
-              <FileDrop label="Attach a file as evidence" hint="PDF, Word, image or text. We keep the file name and a text excerpt."
-                onText={(r, file) => attachEvidence(current, r.text, file)} />
+              {current.builtIn
+                ? <p className="text-[13px] text-text-muted">Built-in claim. It ships with this workspace and can&apos;t be edited or removed.</p>
+                : <FileDrop label="Attach a file as evidence" hint="PDF, Word, image or text. We keep the file name and a text excerpt."
+                    onText={(r, file) => attachEvidence(current, r.text, file)} />}
             </Section>
 
             <Section title="Wording that is not allowed">

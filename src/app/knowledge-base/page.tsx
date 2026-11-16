@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { InfoTip } from "@/components/guide/HelpPanel";
 import { usePrefs, focusRing } from "@/components/guide/workspace";
 import { useKb } from "@/components/knowledge/kb";
-import { GUIDELINE_STARTER, TERM_STARTER, type GuidelineRule, type Term } from "@/components/knowledge/starters";
+import type { GuidelineRule, Term } from "@/components/knowledge/starters";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -25,8 +25,8 @@ export default function KnowledgeBasePage() {
   const prefs = usePrefs();
   const [claims, setClaims] = useState<any[] | null>(null);
   const [error, setError] = useState(false);
-  const [rules, , rulesKb] = useKb<GuidelineRule>("/api/guidelines", GUIDELINE_STARTER);
-  const [terms, , termsKb] = useKb<Term>("/api/terms", TERM_STARTER);
+  const [rules, , rulesKb] = useKb<GuidelineRule>("/api/guidelines");
+  const [terms, , termsKb] = useKb<Term>("/api/terms");
   const kbCount = (n: number, st: { loading: boolean; error: string | null }) => (st.error ? "-" : st.loading ? null : String(n));
 
   useEffect(() => {

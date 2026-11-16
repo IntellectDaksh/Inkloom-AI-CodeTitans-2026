@@ -51,12 +51,11 @@ export interface KbStatus { loading: boolean; error: string | null; brand: strin
  * `starter[brandName]` is shown only until that workspace saves this list for the first time.
  * The setter saves the whole list and resolves false (state rolled back) when the server refuses.
  */
-export function useKb<T>(path: string, starter: Record<string, T[]> = {}): [T[], (fn: (prev: T[]) => T[]) => Promise<boolean>, KbStatus] {
+export function useKb<T extends { builtIn?: boolean }>(path: string): [T[], (fn: (prev: T[]) => T[]) => Promise<boolean>, KbStatus] {
   const { brand } = usePrefs();
   const [items, setItems] = useState<T[]>([]);
   const [status, setStatus] = useState<KbStatus>({ loading: true, error: null, brand });
   const ref = useRef<T[]>([]);
-  const starterRef = useRef(starter);
   useEffect(() => {
     let alive = true;
     setStatus({ loading: true, error: null, brand });
@@ -64,7 +63,7 @@ export function useKb<T>(path: string, starter: Record<string, T[]> = {}): [T[],
       .then((r) => r.json().then((d) => (r.ok && d.success ? d : Promise.reject(new Error(d.error || `Error ${r.status}`)))))
       .then((d: { items: T[]; saved: boolean }) => {
         if (!alive) return;
-        ref.current = d.saved ? d.items : starterRef.current[brand] ?? [];
+        ref.current = d.items;
         setItems(ref.current);
         setStatus({ loading: false, error: null, brand });
       })
@@ -78,7 +77,7 @@ export function useKb<T>(path: string, starter: Record<string, T[]> = {}): [T[],
     ref.current = next;
     setItems(next);
     try {
-      const r = await fetch(path, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand, items: next }) });
+      const r = await fetch(path, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand, items: next.filter((i) => !i.builtIn) }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.success) throw new Error(d.error || `Could not save (error ${r.status}).`);
       setStatus((s) => ({ ...s, error: null }));
@@ -235,6 +234,15 @@ export function FileDrop({ label, hint, accept = EXTRACT_ACCEPT, raw, onText }: 
         {state.msg}
       </p>
     </div>
+  );
+}
+
+/** Marks read-only library records that ship with the workspace. */
+export function BuiltInBadge() {
+  return (
+    <span title="Built-in library item. Read-only." className="inline-flex items-center rounded-full border border-border-default px-2 py-0.5 text-[11px] font-medium text-text-muted">
+      Built-in
+    </span>
   );
 }
 

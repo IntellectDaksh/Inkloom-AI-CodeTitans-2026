@@ -397,6 +397,10 @@ export interface AnalysisRun {
   model_used: string;
   created_at: string;
   completed_at?: string | null;
+  /** Frozen issue list at check time (open findings are replaced on re-check), for version compare. */
+  findings_snapshot?: Array<{ category: string; severity: string; flaggedText: string; explanation: string; suggestedCorrection?: string }>;
+  score_breakdown?: { final: number; factors: Array<{ key: string; label: string; score: number; weight: number; detail: string }> } | null;
+  triggered_by_name?: string | null;
 }
 
 export interface Finding {
@@ -474,8 +478,20 @@ export interface ApprovalRequest {
   status: ApprovalStatus;
   notes?: string | null;
   due_date?: string | null;
+  assigned_by?: string | null;
+  /** Discussion thread on this request; mentions are user ids. */
+  thread?: ApprovalComment[];
   created_at: string;
   updated_at: string;
+}
+
+export interface ApprovalComment {
+  id: string;
+  author_id: string;
+  author_name: string;
+  text: string;
+  mentions: string[];
+  created_at: string;
 }
 
 export interface ApprovalDecision {

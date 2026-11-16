@@ -1,7 +1,7 @@
 import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { SEED_IDS } from "@/lib/db/seed";
+import { SEED_IDS, isBuiltInId } from "@/lib/db/seed";
 
 // Fields a user may change on a claim. Anything else in the body is ignored.
 const EDITABLE = ["claim_text", "category", "expires_at", "allowed_channels", "status"] as const;
@@ -12,6 +12,9 @@ async function PATCH_handler(
 ) {
   try {
     const { id } = await params;
+    if (isBuiltInId(id)) {
+      return NextResponse.json({ success: false, error: "Built-in claims are read-only and can't be edited." }, { status: 403 });
+    }
     const body = await req.json();
     const orgId: string = body.organizationId || SEED_IDS.ORGANISATION_UIDEAS;
 

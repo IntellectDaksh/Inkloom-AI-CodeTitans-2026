@@ -1,12 +1,13 @@
 "use client";
 
+import { fmtDate } from "@/components/settings/format";
 import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { FileText, FileUp } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { FileDrop, KbError, KbHeader, Modal, Toast, UNVERIFIED, focusRing, useKb } from "@/components/knowledge/kb";
+import { BuiltInBadge, FileDrop, KbError, KbHeader, Modal, Toast, UNVERIFIED, focusRing, useKb } from "@/components/knowledge/kb";
 import { openFile, uploadFile } from "@/lib/files/store";
 
 interface Asset {
@@ -21,10 +22,12 @@ interface Asset {
   uploaded?: boolean;
   /** Stored original in /api/files, when the upload succeeded. */
   fileId?: string;
+  /** Built-in library record: read-only, metadata only. */
+  builtIn?: boolean;
+  meta?: [string, string][];
 }
 
 const sizeOf = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
-const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 export default function DocumentAssetsPage() {
   const [docs, setDocs, kb] = useKb<Asset>("/api/documents");
@@ -36,7 +39,7 @@ export default function DocumentAssetsPage() {
   return (
     <AppLayout>
       <div className="mx-auto max-w-6xl space-y-8">
-        <KbHeader title="Evidence documents" intro="Studies, lab reports and legal memos that back your claims. Upload a file and we read its text so reviewers can quote it.">
+        <KbHeader title="Assets and documents" intro="Brand books, logo rules, approved product imagery and the evidence documents that back your claims. Upload a file and we read its text so reviewers can quote it.">
           <Button size="sm" className="h-10" icon={<FileUp className="h-4 w-4" />} onClick={() => uploadRef.current?.showModal()}>Upload document</Button>
         </KbHeader>
 
@@ -57,9 +60,9 @@ export default function DocumentAssetsPage() {
                   <FileText className="h-5 w-5 shrink-0 text-text-muted" aria-hidden="true" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-text-primary">{d.name}</p>
-                    <p className="mt-1 text-[13px] text-text-muted">{d.type}, {d.size}, added {dateFmt.format(new Date(d.date))}{d.reference ? `, ${d.reference}` : ""}</p>
+                    <p className="mt-1 text-[13px] text-text-muted">{d.type}, {d.size}, added {fmtDate(d.date)}{d.reference ? `, ${d.reference}` : ""}</p>
                   </div>
-                  <Badge variant="warning" size="xs">Unverified</Badge>
+                  {d.builtIn ? <BuiltInBadge /> : <Badge variant="warning" size="xs">Unverified</Badge>}
                 </button>
               </li>
             ))}
@@ -85,7 +88,18 @@ export default function DocumentAssetsPage() {
       </Modal>
 
       <Modal ref={viewRef} title={open?.name ?? "Document"} wide onClose={() => setOpen(null)}>
-        {open && (open.excerpt ? (
+        {open && (open.builtIn ? (
+          <div className="space-y-4 text-sm">
+            <div className="flex flex-wrap items-center gap-2"><BuiltInBadge /><span className="text-[13px] text-text-muted">{open.reference}, {open.type}, {open.size}, added {fmtDate(open.date)}</span></div>
+            {open.excerpt && <p className="leading-relaxed text-text-secondary">{open.excerpt}</p>}
+            {!!open.meta?.length && (
+              <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[auto_1fr]">
+                {open.meta.map(([k, v]) => <React.Fragment key={k}><dt className="text-[13px] text-text-muted">{k}</dt><dd className="text-text-primary">{v}</dd></React.Fragment>)}
+              </dl>
+            )}
+            <p className="text-[13px] text-text-muted">Built-in library record. The file itself is not stored here, and this record can&apos;t be edited or removed.</p>
+          </div>
+        ) : open.excerpt ? (
           <>
             <p className="text-[13px] text-text-muted">{open.chars?.toLocaleString()} characters read. Showing the start. {UNVERIFIED}.</p>
             {open.fileId && (

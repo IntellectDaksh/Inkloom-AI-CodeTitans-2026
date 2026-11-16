@@ -4,17 +4,21 @@ import React, { useEffect, useRef, useState } from "react";
 import { Bell, Bot, Check, Database, Gauge, Palette, Pencil, Upload, Users, Briefcase, Download, RotateCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Slider, Toggle, Segmented } from "@/components/settings/controls";
+import { Slider, Toggle, Segmented, Select, Group } from "@/components/settings/controls";
+import { ACCENTS } from "@/components/settings/PrefsApplier";
+import { LANDING, NOTIF_TYPES } from "@/components/settings/options";
+import { fmtDateTime } from "@/components/settings/format";
 import {
   DEFAULTS,
   KEY,
-  PERSONAS,
   PICKED_KEY,
   ROLE_HELP,
   STRICTNESS_PRESETS,
   focusRing,
   openWorkspacePicker,
-  personaOf,
+  useMe,
+  ROLE_LABEL,
+  type Accent,
   readPrefs,
   setPrefs,
   usePrefs,
@@ -22,7 +26,7 @@ import {
   type Strictness,
 } from "@/components/guide/workspace";
 import { updateWorkspace, useWorkspaces } from "@/lib/workspaces/client";
-import { VERDICT, localFlags, verdictFor, type FindingItem } from "@/components/submission/shared";
+import { VERDICT, localFlags, verdictFor, BRANDS as CHECK_BRANDS, CHANNELS as CHECK_CHANNELS, type FindingItem } from "@/components/submission/shared";
 
 const SECTIONS = [
   { id: "workspace", label: "Workspace", icon: Briefcase },
@@ -34,6 +38,16 @@ const SECTIONS = [
   { id: "data", label: "Data", icon: Database },
 ];
 
+// Prefs each "Reset this section" button restores. Identity/onboarding keys are never reset here.
+const SECTION_KEYS: Record<string, (keyof Prefs)[]> = {
+  workspace: ["landing", "dashCheck", "dashExpiry", "dashStats", "dashAttention", "dashRecent", "attentionCount", "claimsSort"],
+  review: ["strictness", "passScore", "blockBelow", "requireDisclosure", "flagSuperlatives", "flagTimeBound", "defaultBrandId", "defaultChannel", "defaultInput", "resultsView", "issueOrder", "hideLowSeverity", "expandFirstIssue"],
+  ai: ["ocr", "showConfidence", "aiLanguage", "aiTone"],
+  appearance: ["motion", "density", "textSize", "breathing", "accent", "corners", "backgroundFx", "sidebarCollapsed", "dateFormat", "clock"],
+  notifications: ["notifyInApp", "mutedTypes", "expiryDays", "notifySound", "notifyDesktop"],
+};
+const pick = (keys: (keyof Prefs)[]) => Object.fromEntries(keys.map((k) => [k, DEFAULTS[k]])) as Partial<Prefs>;
+
 const INDUSTRIES = ["Health & nutrition", "Beauty & skincare", "Software", "Finance", "Food & drink", "Other"];
 const CHANNELS = ["Instagram", "TikTok", "LinkedIn", "Landing page", "Product page", "Email", "Ads"];
 const EXAMPLE_TEXT = "The best protein you'll ever try. Limited time offer!";
@@ -43,13 +57,22 @@ const EXAMPLE_FINDINGS: FindingItem[] = [
 const btn = `inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border-default bg-panel px-4 text-sm font-medium text-text-primary hover:bg-panel-hover ${focusRing}`;
 const btnPrimary = `inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-ink bg-ink px-4 text-sm font-medium text-canvas hover:opacity-90 ${focusRing}`;
 
-function Panel({ id, title, desc, children }: { id: string; title: string; desc: string; children: React.ReactNode }) {
+function Panel({ id, title, desc, onReset, children }: { id: string; title: string; desc: string; onReset?: () => void; children: React.ReactNode }) {
   return (
-    <section id={`panel-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} tabIndex={0} className={`glass rounded-2xl p-6 ${focusRing}`}>
-      <h2 id={`${id}-t`} className="font-display text-xl font-semibold tracking-tight text-text-primary">
-        {title}
-      </h2>
-      <p className="mt-1 text-sm text-text-secondary">{desc}</p>
+    <section id={`panel-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} tabIndex={0} className={`glass rounded-2xl p-4 sm:p-6 ${focusRing}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 id={`${id}-t`} className="font-display text-xl font-semibold tracking-tight text-text-primary">
+            {title}
+          </h2>
+          <p className="mt-1 text-sm text-text-secondary">{desc}</p>
+        </div>
+        {onReset && (
+          <button type="button" onClick={onReset} className={`inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium text-text-secondary hover:bg-panel-hover hover:text-text-primary ${focusRing}`}>
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset this section
+          </button>
+        )}
+      </div>
       <div className="mt-6 space-y-6">{children}</div>
     </section>
   );
@@ -137,7 +160,19 @@ export default function SettingsPage() {
   const setStrictness = (s: Strictness) => save({ strictness: s, ...STRICTNESS_PRESETS[s] });
   const exampleVerdict = verdictFor(exampleScore, EXAMPLE_FINDINGS, EXAMPLE_TEXT, prefs);
   const exampleFlags = localFlags(EXAMPLE_TEXT, prefs);
-  const persona = personaOf(prefs);
+  const me = useMe();
+  const resetSection = (id: string) => save(pick(SECTION_KEYS[id]));
+  const [deskMsg, setDeskMsg] = useState<string | null>(null);
+  const setDesktop = async (on: boolean) => {
+    if (!on) return save({ notifyDesktop: false });
+    if (typeof Notification === "undefined") return setDeskMsg("This browser doesn't support desktop notifications.");
+    const perm = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+    if (perm !== "granted") return setDeskMsg("Notifications are blocked for this site. Allow them in your browser's site settings, then try again.");
+    setDeskMsg(null);
+    save({ notifyDesktop: true });
+  };
+  const toggleMuted = (t: string, show: boolean) =>
+    save({ mutedTypes: show ? prefs.mutedTypes.filter((x) => x !== t) : [...new Set([...prefs.mutedTypes, t])] });
 
   const exportAll = () => {
     const blob = new Blob([JSON.stringify({ app: "adsnitch", version: 1, prefs: readPrefs() }, null, 2)], { type: "application/json" });
@@ -155,7 +190,11 @@ export default function SettingsPage() {
       if (!data || typeof data !== "object" || typeof data.prefs !== "object") throw new Error();
       // Only accept known keys with the right type, so a bad file can't break the app.
       const patch: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(data.prefs)) if (k in DEFAULTS && typeof v === typeof DEFAULTS[k as keyof Prefs]) patch[k] = v;
+      for (const [k, v] of Object.entries(data.prefs)) {
+        if (!(k in DEFAULTS)) continue;
+        const d = DEFAULTS[k as keyof Prefs];
+        if (Array.isArray(d) ? Array.isArray(v) && v.every((x) => typeof x === "string") : typeof v === typeof d && !Array.isArray(v)) patch[k] = v;
+      }
       save(patch as Partial<Prefs>);
       setIoMsg(`Imported ${Object.keys(patch).length} settings.`);
     } catch {
@@ -221,7 +260,7 @@ export default function SettingsPage() {
 
           <div className="min-w-0 space-y-6">
             {active === "workspace" && (
-            <Panel id="workspace" title="Workspace" desc="The brand you're reviewing ads for. Each workspace has its own claims and guidelines.">
+            <Panel id="workspace" title="Workspace" desc="The brand you're reviewing ads for, and how your start page is laid out." onReset={() => resetSection("workspace")}>
               {!current ? (
                 <p className="text-sm text-text-muted">Loading workspace…</p>
               ) : !edit ? (
@@ -288,11 +327,31 @@ export default function SettingsPage() {
                 </form>
               )}
               {current && !current.custom && <p className="text-[13px] text-text-muted">Built-in workspaces can't be edited. Create your own from Switch workspace.</p>}
+              <Group title="Start page">
+                <Divided>
+                  <Select label="After signing in, open" hint="Used when you sign in with email and password." value={prefs.landing} options={LANDING} onChange={(v) => save({ landing: v })} />
+                </Divided>
+              </Group>
+              <Group title="Dashboard sections">
+                <Divided>
+                  <Toggle label="Check an ad" hint="The quick paste-or-drop box at the top." checked={prefs.dashCheck} onChange={(v) => save({ dashCheck: v })} />
+                  <Toggle label="Claim expiry banner" hint="Warns when approved claims are about to expire." checked={prefs.dashExpiry} onChange={(v) => save({ dashExpiry: v })} />
+                  <Toggle label="Summary numbers" checked={prefs.dashStats} onChange={(v) => save({ dashStats: v })} />
+                  <Toggle label="Needs attention" checked={prefs.dashAttention} onChange={(v) => save({ dashAttention: v })} />
+                  <Toggle label="Recent activity" checked={prefs.dashRecent} onChange={(v) => save({ dashRecent: v })} />
+                </Divided>
+                <Segmented label="Items in Needs attention" value={String(prefs.attentionCount)} onChange={(v) => save({ attentionCount: Number(v) })} options={[{ value: "3", label: "3" }, { value: "5", label: "5" }, { value: "10", label: "10" }]} />
+              </Group>
+              <Group title="Lists">
+                <Divided>
+                  <Select label="Sort claims by" value={prefs.claimsSort} options={[{ value: "expiry", label: "Expiry date" }, { value: "updated", label: "Last updated" }]} onChange={(v) => save({ claimsSort: v })} />
+                </Divided>
+              </Group>
             </Panel>
             )}
 
             {active === "review" && (
-            <Panel id="review" title="Review strictness" desc="Decides when an ad counts as safe, needs changes, or is blocked. Applied on every result page.">
+            <Panel id="review" title="Review strictness" desc="Decides when an ad counts as safe, needs changes, or is blocked, plus defaults for new checks and result pages." onReset={() => resetSection("review")}>
               <div className="grid gap-8 xl:grid-cols-[1fr_280px]">
                 <div className="space-y-6">
                   <Segmented<Strictness>
@@ -328,60 +387,110 @@ export default function SettingsPage() {
                   </div>
                 </aside>
               </div>
+              <Group title="New checks start with">
+                <Divided>
+                  <Select label="Brand" value={prefs.defaultBrandId} options={CHECK_BRANDS.map((b) => ({ value: b.id as string, label: b.name as string }))} onChange={(v) => save({ defaultBrandId: v })} />
+                  <Select label="Channel" value={prefs.defaultChannel} options={CHECK_CHANNELS.map((c) => ({ value: c.id as string, label: c.id as string }))} onChange={(v) => save({ defaultChannel: v })} />
+                </Divided>
+                <Segmented label="Add the ad by" value={prefs.defaultInput} onChange={(v) => save({ defaultInput: v })} options={[{ value: "paste", label: "Pasting text" }, { value: "upload", label: "Uploading files" }]} />
+              </Group>
+              <Group title="Result page">
+                <div className="space-y-6 pt-1">
+                  <Segmented label="Open the copy as" value={prefs.resultsView} onChange={(v) => save({ resultsView: v })} options={[{ value: "annotated", label: "Highlighted issues" }, { value: "diff", label: "Before / after" }]} />
+                  <Segmented label="Order issues by" value={prefs.issueOrder} onChange={(v) => save({ issueOrder: v })} options={[{ value: "severity", label: "Severity" }, { value: "text", label: "Position in text" }]} />
+                </div>
+                <Divided>
+                  <Toggle label="Hide low-severity issues" hint="Hides low and info issues from the list. They still count toward the score and verdict." checked={prefs.hideLowSeverity} onChange={(v) => save({ hideLowSeverity: v })} />
+                  <Toggle label="Open the first issue automatically" checked={prefs.expandFirstIssue} onChange={(v) => save({ expandFirstIssue: v })} />
+                </Divided>
+              </Group>
             </Panel>
             )}
 
             {active === "ai" && (
-            <Panel id="ai" title="AI" desc="How the assistant reads your ads and files.">
+            <Panel id="ai" title="AI" desc="How the assistant reads your ads and files." onReset={() => resetSection("ai")}>
               <Divided>
+                <Toggle label="Show AI confidence on issues" hint="Shows how sure the model was in each issue's details. Doesn't change what gets flagged." checked={prefs.showConfidence} onChange={(v) => save({ showConfidence: v })} />
+                <Select label="Explanation language" hint="Language for issue explanations and suggested fixes. Your ad is always checked in its own language, and the rules are the same." value={prefs.aiLanguage} options={[{ value: "en", label: "English" }, { value: "hi", label: "Hindi" }]} onChange={(v) => save({ aiLanguage: v })} />
+                <Select label="Explanation style" hint="Plain is short and direct. Formal reads like a compliance memo. Strictness doesn't change." value={prefs.aiTone} options={[{ value: "plain", label: "Plain" }, { value: "formal", label: "Formal" }]} onChange={(v) => save({ aiTone: v })} />
                 <Toggle label="Read PDFs and images (OCR)" hint="When off, PDF and image uploads are skipped with a message. Text and Word files still work." checked={prefs.ocr} onChange={(v) => save({ ocr: v })} />
               </Divided>
             </Panel>
             )}
 
             {active === "appearance" && (
-            <Panel id="appearance" title="Appearance" desc="Applies across the whole app on this device.">
+            <Panel id="appearance" title="Appearance" desc="Applies across the whole app, on every device you sign in on." onReset={() => resetSection("appearance")}>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-text-primary" id="accent-l">Accent colour</p>
+                <div role="radiogroup" aria-labelledby="accent-l" className="flex flex-wrap gap-2">
+                  {(Object.keys(ACCENTS) as Accent[]).map((a) => {
+                    const on = prefs.accent === a;
+                    return (
+                      <button key={a} type="button" role="radio" aria-checked={on} onClick={() => save({ accent: a })} className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border px-3 text-sm transition-colors ${on ? "border-ink bg-panel-elevated font-medium text-text-primary" : "border-border-default bg-panel text-text-secondary hover:text-text-primary"} ${focusRing}`}>
+                        <span className="h-4 w-4 rounded-full" style={{ background: ACCENTS[a].color }} aria-hidden /> {ACCENTS[a].label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <Segmented label="Corners" value={prefs.corners} onChange={(v) => save({ corners: v })} options={[{ value: "rounded", label: "Rounded" }, { value: "sharp", label: "Sharp" }]} />
               <Segmented label="Motion" value={prefs.motion} onChange={(v) => save({ motion: v })} options={[{ value: "full", label: "Full" }, { value: "reduced", label: "Reduced" }, { value: "off", label: "Off" }]} />
               <Segmented label="Density" value={prefs.density} onChange={(v) => save({ density: v })} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />
               <Slider label="Text size" min={14} max={17} unit="px" value={prefs.textSize} onChange={(v) => save({ textSize: v })} />
               <Divided>
-                <Toggle label="Breathing background" hint={prefs.motion === "full" ? "The soft moving glow behind every page." : "Turn Motion back to Full to use this."} checked={prefs.breathing} disabled={prefs.motion !== "full"} onChange={(v) => save({ breathing: v })} />
+                <Toggle label="Background effects" hint="The glow and floating shapes behind every page. Off is calmer and lighter on battery." checked={prefs.backgroundFx} onChange={(v) => save({ backgroundFx: v })} />
+                <Toggle label="Breathing background" hint={!prefs.backgroundFx ? "Turn Background effects on to use this." : prefs.motion === "full" ? "Lets the background glow slowly move." : "Turn Motion back to Full to use this."} checked={prefs.breathing} disabled={prefs.motion !== "full" || !prefs.backgroundFx} onChange={(v) => save({ breathing: v })} />
+                <Toggle label="Collapse the sidebar" hint="Icons only, on wider screens. The sidebar's own toggle changes this too." checked={prefs.sidebarCollapsed} onChange={(v) => save({ sidebarCollapsed: v })} />
               </Divided>
+              <Group title="Dates and times">
+                <Divided>
+                  <Select label="Date format" value={prefs.dateFormat} options={[{ value: "auto", label: "Browser default" }, { value: "dmy", label: "31/12/2026" }, { value: "mdy", label: "12/31/2026" }, { value: "iso", label: "2026-12-31" }]} onChange={(v) => save({ dateFormat: v })} />
+                </Divided>
+                <Segmented label="Clock" value={prefs.clock} onChange={(v) => save({ clock: v })} options={[{ value: "12", label: "12-hour" }, { value: "24", label: "24-hour" }]} />
+                <p className="text-[13px] text-text-muted">Example: {fmtDateTime(new Date())}</p>
+              </Group>
             </Panel>
             )}
 
             {active === "notifications" && (
-            <Panel id="notifications" title="Notifications" desc="How you hear about approvals and requested changes.">
+            <Panel id="notifications" title="Notifications" desc="How you hear about approvals and requested changes." onReset={() => resetSection("notifications")}>
               <Divided>
-                <Toggle label="In-app" hint="Shows the unread dot on the bell in the header." checked={prefs.notifyInApp} onChange={(v) => save({ notifyInApp: v })} />
+                <Toggle label="Unread dot" hint="Shows the unread dot on the bell in the header." checked={prefs.notifyInApp} onChange={(v) => save({ notifyInApp: v })} />
+                <Toggle label="Sound" hint="A short chime when new notifications arrive while you use the app." checked={prefs.notifySound} onChange={(v) => save({ notifySound: v })} />
+                <Toggle label="Desktop notifications" hint="Shows new notifications from this browser while AdSnitch is open. Your browser asks for permission first." checked={prefs.notifyDesktop} onChange={setDesktop} />
               </Divided>
+              {deskMsg && <p role="alert" className="text-[13px] text-status-critical">{deskMsg}</p>}
+              <Group title="Show these types">
+                <Divided>
+                  {NOTIF_TYPES.map((t) => (
+                    <Toggle key={t.value} label={t.label} checked={!prefs.mutedTypes.includes(t.value)} onChange={(v) => toggleMuted(t.value, v)} />
+                  ))}
+                </Divided>
+              </Group>
+              <Segmented label="Warn about claims expiring within" value={String(prefs.expiryDays)} onChange={(v) => save({ expiryDays: Number(v) })} options={[{ value: "7", label: "7 days" }, { value: "14", label: "14 days" }, { value: "30", label: "30 days" }, { value: "60", label: "60 days" }]} />
             </Panel>
             )}
 
             {active === "team" && (
-            <Panel id="team" title="Team & roles" desc="Pick who you're acting as. This changes what you can approve.">
-              <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Current person">
-                {PERSONAS.map((p) => {
-                  const on = p.id === persona.id;
-                  return (
-                    <button key={p.id} type="button" role="radio" aria-checked={on} onClick={() => save({ persona: p.id })} className={`cursor-pointer rounded-xl border p-4 text-left transition-colors ${on ? "border-ink bg-ink text-white" : "border-border-default bg-panel hover:bg-panel-hover"} ${focusRing}`}>
-                      <span className="flex items-center justify-between text-sm font-semibold">
-                        {p.name} {on && <Check className="h-4 w-4" aria-hidden />}
-                      </span>
-                      <span className={`mt-0.5 block text-xs ${on ? "text-white/80" : "text-text-muted"}`}>{p.label}</span>
-                      <span className={`mt-2 block text-[13px] ${on ? "text-white/90" : "text-text-secondary"}`}>{ROLE_HELP[p.role]}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            <Panel id="team" title="Team & roles" desc="Your role decides what you can approve.">
+              {me ? (
+                <div className="rounded-xl border border-border-default bg-panel p-4">
+                  <span className="flex items-center justify-between gap-3 text-sm font-semibold text-text-primary">
+                    {me.name} <span className="text-xs font-medium text-text-muted">{ROLE_LABEL[me.role]}</span>
+                  </span>
+                  <span className="mt-2 block text-[13px] text-text-secondary">{ROLE_HELP[me.role]}</span>
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted">Loading your account…</p>
+              )}
               <p className="text-[13px] text-text-muted">
-                This previews the app as each role. Real roles for your account are set by an admin on <Link href="/team" className={`rounded underline underline-offset-4 ${focusRing}`}>Team</Link>.
+                Roles are set by an admin on <Link href="/team" className={`rounded underline underline-offset-4 ${focusRing}`}>Team</Link>.
               </p>
             </Panel>
             )}
 
             {active === "data" && (
-            <Panel id="data" title="Data" desc="Everything here lives in this browser. Move it, back it up, or start over.">
+            <Panel id="data" title="Data" desc="Settings are saved to your account. Back them up, move them, or start over.">
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={btn} onClick={exportAll}>
                   <Download className="h-4 w-4" aria-hidden /> Export settings
@@ -410,7 +519,7 @@ export default function SettingsPage() {
         </h2>
         <p className="mt-2 text-sm text-text-secondary">
           {confirm === "reset"
-            ? "Strictness, AI, appearance and notification settings go back to defaults. Your workspace and person stay."
+            ? "Every section goes back to defaults. Your workspace and onboarding progress stay."
             : "Removes your custom workspaces, settings and saved session from this browser, then reloads. Ads on the server are not touched."}
         </p>
         <div className="mt-6 flex justify-end gap-2">
