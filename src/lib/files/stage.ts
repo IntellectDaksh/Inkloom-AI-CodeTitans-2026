@@ -23,9 +23,10 @@ export async function stageUpload(file: File): Promise<string> {
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.success) throw new Error(d.error || `Could not prepare the upload (error ${r.status}).`);
   const ext = (file.name.split(".").pop() || "").toLowerCase();
-  const { error } = await supabaseBrowser().storage.from("evidence").uploadToSignedUrl(d.path, d.token, file, {
-    contentType: MIME[ext] || file.type || "application/octet-stream",
-  });
+  const opts = { contentType: MIME[ext] || file.type || "application/octet-stream" };
+  // One retry: mobile networks drop large uploads now and then.
+  let { error } = await supabaseBrowser().storage.from("evidence").uploadToSignedUrl(d.path, d.token, file, opts);
+  if (error) ({ error } = await supabaseBrowser().storage.from("evidence").uploadToSignedUrl(d.path, d.token, file, { ...opts, upsert: true }));
   if (error) throw new Error("The upload failed. Check your connection and try again.");
   return d.path as string;
 }

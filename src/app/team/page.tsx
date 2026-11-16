@@ -263,16 +263,16 @@ export default function TeamPage() {
                 <button type="submit" className={btn} disabled={busy === "rename" || orgName.trim() === data.organization.name}>Save name</button>
               </form>
             ) : <p className="mt-2 text-[13px] text-text-secondary">{data.organization.name}</p>}
-            <div className="mt-5 border-t border-border-subtle pt-4">
-              <button className={`${btn} text-status-red`} disabled={busy === "leave"}
+            {members.length > 1 && <div className="mt-5 border-t border-border-subtle pt-4">
+              <button className={`${btn} text-status-red`} disabled={busy === "leave" || (isAdmin && admins <= 1)}
                 onClick={async () => {
                   if (await call("leave", "/api/team", { action: "leave" }, "You left the organisation.", `Leave ${data.organization.name}? You'll move to your own empty workspace and lose access to this team's ads.`)) {
                     await refreshMe();
                     window.location.href = "/dashboard";
                   }
                 }}>Leave organisation</button>
-              {isAdmin && admins <= 1 && members.length > 1 && <p className="mt-2 text-[12px] text-text-muted">You&rsquo;re the only admin. Make someone else an admin before leaving.</p>}
-            </div>
+              {isAdmin && admins <= 1 && <p className="mt-2 text-[12px] text-text-muted">You&rsquo;re the only admin. Make someone else an admin before leaving.</p>}
+            </div>}
           </section>
         )}
       </div>

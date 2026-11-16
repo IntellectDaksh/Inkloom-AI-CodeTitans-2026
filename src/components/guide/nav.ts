@@ -108,21 +108,6 @@ export const NAV: NavGroup[] = [
         "Reply by email, then mark them done.",
         "Only the site owner sees this page.",
       ] },
-      { name: "Security", href: "/security", icon: Lock, help: [
-        "Two-factor sign-in, your password and signed-in devices.",
-        "Turn on an authenticator app so a leaked password is not enough.",
-        "Sign out other devices if you think someone else is signed in.",
-      ] },
-      { name: "Developers", href: "/developers", icon: Code2, help: [
-        "Check ad copy from your own tools with an API key.",
-        "Admins create and revoke keys; each key is shown once.",
-        "Each key allows 60 checks an hour.",
-      ] },
-      { name: "Integrations", href: "/integrations", icon: Webhook, help: [
-        "Send events to Slack or your own endpoint.",
-        "Pick which events to send: ad blocked, approval requested, approved, rejected.",
-        "Each request is signed with HMAC-SHA256 in X-AdSnitch-Signature.",
-      ] },
       { name: "Settings", href: "/settings", icon: Settings, help: [
         "Workspace preferences and connections.",
         "Most teams never need to change these.",

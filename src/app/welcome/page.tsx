@@ -57,7 +57,7 @@ function Welcome() {
       <div className="relative z-10 mx-auto max-w-md space-y-6 rounded-3xl border border-white/60 bg-white/75 p-6 shadow-[0_30px_80px_-20px_rgba(16,45,64,0.45)] backdrop-blur-2xl sm:p-8">
         <LogoMark size={32} className="text-text-primary" />
         <header>
-          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">Step 1 of 2 · Your profile</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">Your profile</p>
           <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-tight text-text-primary">Set up your profile</h1>
           <p className="mt-2 text-sm leading-relaxed text-text-secondary">
             Reviewers see this next to every ad you send for approval. Takes 20 seconds.

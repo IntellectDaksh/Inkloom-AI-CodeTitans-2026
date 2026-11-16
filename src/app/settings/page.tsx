@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Bell, Bot, Check, Database, Gauge, Palette, Pencil, Upload, Users, Briefcase, Download, RotateCcw, Trash2 } from "lucide-react";
+import { Bell, Bot, Check, Database, Gauge, Palette, Pencil, Upload, Users, Briefcase, Download, RotateCcw, Trash2, Lock, KeyRound, Webhook, Search, X } from "lucide-react";
+import { SecurityPanel } from "@/components/settings/SecurityPanel";
+import { ApiPanel } from "@/components/settings/ApiPanel";
+import { IntegrationsPanel } from "@/components/settings/IntegrationsPanel";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Slider, Toggle, Segmented, Select, Group } from "@/components/settings/controls";
@@ -28,22 +31,27 @@ import {
 import { updateWorkspace, useWorkspaces } from "@/lib/workspaces/client";
 import { VERDICT, localFlags, verdictFor, BRANDS as CHECK_BRANDS, CHANNELS as CHECK_CHANNELS, type FindingItem } from "@/components/submission/shared";
 
-const SECTIONS = [
-  { id: "workspace", label: "Workspace", icon: Briefcase },
-  { id: "review", label: "Review strictness", icon: Gauge },
-  { id: "ai", label: "AI", icon: Bot },
-  { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "team", label: "Team & roles", icon: Users },
-  { id: "data", label: "Data", icon: Database },
+// keywords feed the settings search, so people find a setting without knowing which tab it's in.
+const ALL_SECTIONS = [
+  { id: "workspace", label: "Workspace", icon: Briefcase, keywords: "brand start page dashboard sections landing claims sort needs attention", admin: false },
+  { id: "review", label: "Review strictness", icon: Gauge, keywords: "score pass block strict disclosure superlative default channel results view issues order low severity", admin: false },
+  { id: "ai", label: "AI", icon: Bot, keywords: "language hindi english tone formal confidence ocr pdf image reading", admin: false },
+  { id: "appearance", label: "Appearance", icon: Palette, keywords: "accent colour color corners motion density text size font width sidebar background date time clock theme", admin: false },
+  { id: "notifications", label: "Notifications", icon: Bell, keywords: "alerts mute sound desktop expiry email", admin: false },
+  { id: "security", label: "Security", icon: Lock, keywords: "two-factor 2fa authenticator devices sign out account email", admin: false },
+  { id: "team", label: "Team & roles", icon: Users, keywords: "role members permissions", admin: false },
+  { id: "integrations", label: "Integrations", icon: Webhook, keywords: "slack webhook events", admin: true },
+  { id: "api", label: "API keys", icon: KeyRound, keywords: "developer api key token endpoint", admin: true },
+  { id: "data", label: "Data", icon: Database, keywords: "export import backup reset", admin: false },
 ];
+
 
 // Prefs each "Reset this section" button restores. Identity/onboarding keys are never reset here.
 const SECTION_KEYS: Record<string, (keyof Prefs)[]> = {
   workspace: ["landing", "dashCheck", "dashExpiry", "dashStats", "dashAttention", "dashRecent", "attentionCount", "claimsSort"],
   review: ["strictness", "passScore", "blockBelow", "requireDisclosure", "flagSuperlatives", "flagTimeBound", "defaultBrandId", "defaultChannel", "defaultInput", "resultsView", "issueOrder", "hideLowSeverity", "expandFirstIssue"],
   ai: ["ocr", "showConfidence", "aiLanguage", "aiTone"],
-  appearance: ["motion", "density", "textSize", "breathing", "accent", "corners", "backgroundFx", "sidebarCollapsed", "dateFormat", "clock"],
+  appearance: ["motion", "density", "textSize", "breathing", "accent", "corners", "backgroundFx", "sidebarCollapsed", "dateFormat", "clock", "font", "pageWidth"],
   notifications: ["notifyInApp", "mutedTypes", "expiryDays", "notifySound", "notifyDesktop"],
 };
 const pick = (keys: (keyof Prefs)[]) => Object.fromEntries(keys.map((k) => [k, DEFAULTS[k]])) as Partial<Prefs>;
@@ -85,6 +93,7 @@ export default function SettingsPage() {
   const workspaces = useWorkspaces();
   const [toast, setToast] = useState(0);
   const [active, setActive] = useState("workspace");
+  const [query, setQuery] = useState("");
   const [exampleScore, setExampleScore] = useState(76);
   const [ioMsg, setIoMsg] = useState<string | null>(null);
   const confirmRef = useRef<HTMLDialogElement>(null);
@@ -105,7 +114,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const sync = () => {
       const t = new URLSearchParams(window.location.search).get("tab");
-      setActive(SECTIONS.some((s) => s.id === t) ? t! : "workspace");
+      setActive(ALL_SECTIONS.some((s) => s.id === t) ? t! : "workspace");
     };
     sync();
     window.addEventListener("popstate", sync);
@@ -121,12 +130,12 @@ export default function SettingsPage() {
     window.history.pushState(null, "", url);
   };
   const onTabKey = (e: React.KeyboardEvent) => {
-    const i = SECTIONS.findIndex((s) => s.id === active);
-    const n = SECTIONS.length;
+    const i = shown.findIndex((s) => s.id === active);
+    const n = shown.length;
     const to = { ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: n - 1 }[e.key];
     if (to === undefined) return;
     e.preventDefault();
-    selectTab(SECTIONS[(to + n) % n].id, true);
+    selectTab(shown[(to + n) % n].id, true);
   };
 
   const current = workspaces.find((w) => w.name === prefs.brand) ?? workspaces[0];
@@ -161,6 +170,9 @@ export default function SettingsPage() {
   const exampleVerdict = verdictFor(exampleScore, EXAMPLE_FINDINGS, EXAMPLE_TEXT, prefs);
   const exampleFlags = localFlags(EXAMPLE_TEXT, prefs);
   const me = useMe();
+  const SECTIONS = ALL_SECTIONS.filter((x) => !x.admin || me?.role === "admin");
+  const q = query.trim().toLowerCase();
+  const shown = q ? SECTIONS.filter((x) => `${x.label} ${x.keywords}`.toLowerCase().includes(q)) : SECTIONS;
   const resetSection = (id: string) => save(pick(SECTION_KEYS[id]));
   const [deskMsg, setDeskMsg] = useState<string | null>(null);
   const setDesktop = async (on: boolean) => {
@@ -233,8 +245,26 @@ export default function SettingsPage() {
 
         <div className="grid gap-6 lg:grid-cols-[200px_1fr] lg:gap-8">
           <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
+            <div className="relative mb-3">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" aria-hidden />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && shown[0]) { selectTab(shown[0].id); setQuery(""); } }}
+                placeholder="Search settings…"
+                aria-label="Search settings"
+                className={`h-10 w-full rounded-lg border border-border-default bg-panel pl-9 pr-8 text-sm text-text-primary placeholder:text-text-muted ${focusRing}`}
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className={`absolute right-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-text-muted hover:bg-panel-hover ${focusRing}`}>
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              )}
+            </div>
+            {q && shown.length === 0 && <p className="px-1 pb-2 text-[13px] text-text-muted">No setting matches that.</p>}
             <div role="tablist" aria-label="Settings sections" aria-orientation="vertical" onKeyDown={onTabKey} className="flex gap-1 lg:sticky lg:top-24 lg:flex-col">
-              {SECTIONS.map(({ id, label, icon: Icon }) => {
+              {shown.map(({ id, label, icon: Icon }) => {
                 const on = active === id;
                 return (
                   <button
@@ -258,7 +288,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="min-w-0 space-y-6">
+          <div key={active} className="settings-anim min-w-0 space-y-6">
             {active === "workspace" && (
             <Panel id="workspace" title="Workspace" desc="The brand you're reviewing ads for, and how your start page is laid out." onReset={() => resetSection("workspace")}>
               {!current ? (
@@ -326,7 +356,7 @@ export default function SettingsPage() {
                   </div>
                 </form>
               )}
-              {current && !current.custom && <p className="text-[13px] text-text-muted">Built-in workspaces can't be edited. Create your own from Switch workspace.</p>}
+              {current && !current.custom && <p className="text-[13px] text-text-muted">Built-in workspaces can&apos;t be edited. Create your own from Switch workspace.</p>}
               <Group title="Start page">
                 <Divided>
                   <Select label="After signing in, open" hint="Used when you sign in with email and password." value={prefs.landing} options={LANDING} onChange={(v) => save({ landing: v })} />
@@ -420,6 +450,22 @@ export default function SettingsPage() {
 
             {active === "appearance" && (
             <Panel id="appearance" title="Appearance" desc="Applies across the whole app, on every device you sign in on." onReset={() => resetSection("appearance")}>
+              <div aria-label="Live preview" className="rounded-2xl border border-border-subtle bg-canvas p-4">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Live preview</p>
+                <div className="mt-3 rounded-xl border border-border-subtle bg-panel p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-display text-[15px] font-semibold text-text-primary">Q4 protein reel</p>
+                    <span className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white" style={{ background: "var(--color-blue)" }}>Needs review</span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+                    Our formula gives you <mark className="rounded px-1" style={{ background: "color-mix(in srgb, var(--color-blue) 18%, transparent)", color: "inherit" }}>2x faster results</mark> after every workout.
+                  </p>
+                  <div className="mt-3 flex items-center justify-between text-[12px] text-text-muted">
+                    <span>Checked {fmtDateTime(new Date())}</span>
+                    <span className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--color-blue)" }}>Apply fix</span>
+                  </div>
+                </div>
+              </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-text-primary" id="accent-l">Accent colour</p>
                 <div role="radiogroup" aria-labelledby="accent-l" className="flex flex-wrap gap-2">
@@ -437,6 +483,8 @@ export default function SettingsPage() {
               <Segmented label="Motion" value={prefs.motion} onChange={(v) => save({ motion: v })} options={[{ value: "full", label: "Full" }, { value: "reduced", label: "Reduced" }, { value: "off", label: "Off" }]} />
               <Segmented label="Density" value={prefs.density} onChange={(v) => save({ density: v })} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />
               <Slider label="Text size" min={14} max={17} unit="px" value={prefs.textSize} onChange={(v) => save({ textSize: v })} />
+              <Segmented label="Font" value={prefs.font} onChange={(v) => save({ font: v })} options={[{ value: "inter", label: "Inter" }, { value: "grotesk", label: "Grotesk" }, { value: "system", label: "System" }]} />
+              <Segmented label="Page width" value={prefs.pageWidth} onChange={(v) => save({ pageWidth: v })} options={[{ value: "standard", label: "Standard" }, { value: "wide", label: "Wide" }]} />
               <Divided>
                 <Toggle label="Background effects" hint="The glow and floating shapes behind every page. Off is calmer and lighter on battery." checked={prefs.backgroundFx} onChange={(v) => save({ backgroundFx: v })} />
                 <Toggle label="Breathing background" hint={!prefs.backgroundFx ? "Turn Background effects on to use this." : prefs.motion === "full" ? "Lets the background glow slowly move." : "Turn Motion back to Full to use this."} checked={prefs.breathing} disabled={prefs.motion !== "full" || !prefs.backgroundFx} onChange={(v) => save({ breathing: v })} />
@@ -486,6 +534,24 @@ export default function SettingsPage() {
               <p className="text-[13px] text-text-muted">
                 Roles are set by an admin on <Link href="/team" className={`rounded underline underline-offset-4 ${focusRing}`}>Team</Link>.
               </p>
+            </Panel>
+            )}
+
+            {active === "security" && (
+            <Panel id="security" title="Security" desc="Two-factor sign-in and the devices you're signed in on. Forgot your password? Use Forgot password on the sign-in page.">
+              <SecurityPanel />
+            </Panel>
+            )}
+
+            {active === "integrations" && (
+            <Panel id="integrations" title="Integrations" desc="Send blocked ads and approval decisions to Slack or any HTTPS endpoint.">
+              <IntegrationsPanel />
+            </Panel>
+            )}
+
+            {active === "api" && (
+            <Panel id="api" title="API keys" desc="Run checks from your own tools. Keys are shown once and can be revoked at any time.">
+              <ApiPanel />
             </Panel>
             )}
 

@@ -122,6 +122,8 @@ export interface Prefs {
   sidebarCollapsed: boolean;
   dateFormat: "auto" | "dmy" | "mdy" | "iso";
   clock: "12" | "24";
+  font: "inter" | "system" | "grotesk";
+  pageWidth: "standard" | "wide";
   // Checking defaults + result page
   defaultBrandId: string;
   defaultChannel: string;
@@ -166,7 +168,7 @@ export const DEFAULTS: Prefs = {
   motion: "full", density: "comfortable", breathing: true, textSize: 16,
   notifyInApp: true, notifyEmail: false,
   mutedTypes: [], expiryDays: 30, notifySound: false, notifyDesktop: false,
-  accent: "sky", corners: "rounded", backgroundFx: true, sidebarCollapsed: false, dateFormat: "auto", clock: "12",
+  accent: "sky", corners: "rounded", backgroundFx: true, sidebarCollapsed: false, dateFormat: "auto", clock: "12", font: "inter", pageWidth: "standard",
   defaultBrandId: "brand_apex", defaultChannel: "Instagram Reel", defaultInput: "paste",
   resultsView: "annotated", issueOrder: "severity", hideLowSeverity: false, expandFirstIssue: false,
   showConfidence: true,

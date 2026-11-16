@@ -319,7 +319,7 @@ function AccountMenu() {
           )}
           <Link role="menuitem" href="/profile" onClick={() => setOpen(false)} className={item}><User className="h-4 w-4" aria-hidden="true" />Profile</Link>
           <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className={item}><Settings className="h-4 w-4" aria-hidden="true" />Settings</Link>
-          <Link role="menuitem" href="/security" onClick={() => setOpen(false)} className={item}><Lock className="h-4 w-4" aria-hidden="true" />Security</Link>
+          <Link role="menuitem" href="/settings?tab=security" onClick={() => setOpen(false)} className={item}><Lock className="h-4 w-4" aria-hidden="true" />Security</Link>
           <button role="menuitem" type="button" onClick={signOut} className={item}><LogOut className="h-4 w-4" aria-hidden="true" />Sign out</button>
         </div>
       )}

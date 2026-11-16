@@ -30,6 +30,8 @@ export function PrefsApplier() {
     h.dataset.inapp = p.notifyInApp ? "on" : "off";
     h.dataset.corners = p.corners;
     h.dataset.fx = p.backgroundFx ? "on" : "off";
+    h.dataset.font = p.font;
+    h.dataset.width = p.pageWidth;
     h.style.setProperty("--root-font", `${p.textSize}px`);
     const accent = (ACCENTS[p.accent] ?? ACCENTS.sky).color;
     for (const v of ["--color-blue", "--color-border-focus", "--color-status-cyan", "--color-turquoise-500"]) h.style.setProperty(v, accent);
