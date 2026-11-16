@@ -48,7 +48,7 @@ export function AppLayout({
   const handleToggleSidebar = () => setPrefs({ sidebarCollapsed: !readPrefs().sidebarCollapsed });
 
   return (
-    <div className="relative isolate flex min-h-screen bg-canvas text-text-primary overflow-x-hidden">
+    <div className="relative isolate flex min-h-screen bg-canvas text-text-primary overflow-x-clip">
       <div className="atmosphere" aria-hidden="true">
         <i />
         <i />
