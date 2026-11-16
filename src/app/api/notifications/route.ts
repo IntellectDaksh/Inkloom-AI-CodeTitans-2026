@@ -2,7 +2,7 @@ import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse, after } from "next/server";
 import { emailAdmins } from "@/lib/notify/email";
 import { db } from "@/lib/db";
-import { SEED_IDS } from "@/lib/db/seed";
+import { SEED_IDS, isBuiltInId } from "@/lib/db/seed";
 import { getMe, supabaseServer } from "@/lib/auth/server";
 
 /** Always the signed-in user; the client never chooses whose alerts it reads. */
@@ -16,6 +16,9 @@ function syncExpiryAlerts(userId: string, tenant: string | null) {
   const existing = db.listNotifications(userId);
   const everyone = db.listNotifications();
   for (const c of db.getApprovedClaims(SEED_IDS.ORGANISATION_UIDEAS, undefined, { expiringOnly: true })) {
+    // Sample-brand claims never alert new accounts; only claims the organisation added itself do.
+    // (The original workspace "main" predates samples and keeps its alerts.)
+    if (tenant !== "main" && isBuiltInId(c.id)) continue;
     const link = `/knowledge-base/claims?claim=${c.claim_code}`;
     if (existing.some((n) => n.notification_type === "claim_expiring" && (n.link_url === link || n.message.includes(c.claim_code)))) continue;
     const days = c.days_until_expiry ?? 0;

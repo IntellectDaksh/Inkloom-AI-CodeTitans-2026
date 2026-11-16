@@ -11,6 +11,7 @@ import {
   useWorkspaceCounts,
   visibleWorkspaces,
   isSample,
+  KEY,
 } from "./workspace";
 import { createWorkspace, useWorkspaces } from "@/lib/workspaces/client";
 
@@ -39,6 +40,7 @@ function initials(name: string) {
 export function WorkspacePicker() {
   const ref = useRef<HTMLDialogElement>(null);
   const prefs = usePrefs();
+  const chosenBefore = (() => { try { return !!JSON.parse(localStorage.getItem(KEY) || "{}").brand; } catch { return false; } })();
   const all = useWorkspaces();
   const workspaces = visibleWorkspaces(prefs, all);
   const hiddenSamples = all.length - workspaces.length;
@@ -152,7 +154,8 @@ export function WorkspacePicker() {
 
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="list">
               {workspaces.map((w, i) => {
-                const active = w.name === prefs.brand;
+                // Only a brand the user actually chose counts as "last used"; the default doesn't.
+                const active = w.name === prefs.brand && chosenBefore;
                 return (
                   <li key={w.id} className="ws-item" style={{ animationDelay: `${80 + i * 60}ms` }}>
                     <button

@@ -27,7 +27,7 @@ const input = `h-11 w-full rounded-lg border border-border-default bg-panel px-3
 
 export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: Mode; next?: string; error?: string }) {
   const router = useRouter();
-  const next = safeNext(rawNext, mode === "register" ? "/welcome?next=/onboarding" : "/dashboard");
+  const next = safeNext(rawNext, mode === "register" ? "/welcome?next=/dashboard" : "/dashboard");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(initialError === "link" ? "That link has expired or was already used. Try again." : null);
   const [info, setInfo] = useState<string | null>(null);

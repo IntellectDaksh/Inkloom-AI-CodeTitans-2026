@@ -13,7 +13,7 @@ interface Prefill { name: string; email: string; jobTitle: string; company: stri
 
 function Welcome() {
   const params = useSearchParams();
-  const next = safeNext(params.get("next"), "/onboarding");
+  const next = safeNext(params.get("next"), "/dashboard");
   const [pre, setPre] = useState<Prefill | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
