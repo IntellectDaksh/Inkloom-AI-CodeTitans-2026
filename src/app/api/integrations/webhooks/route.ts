@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { getMe, supabaseAdmin } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
-import { WEBHOOK_EVENTS, validateWebhookUrl, fireWebhooks, type WebhookEvent } from "@/lib/notify/webhooks";
+import { WEBHOOK_EVENTS, validateWebhookUrl, resolvesToPublic, fireWebhooks, type WebhookEvent } from "@/lib/notify/webhooks";
 
 const COLS = "id, url, events, created_at";
 const MAX_PER_ORG = 10;
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
   const url = typeof body.url === "string" ? body.url.trim() : "";
   const bad = validateWebhookUrl(url);
   if (bad) return NextResponse.json({ success: false, error: bad }, { status: 400 });
+  if (!(await resolvesToPublic(url))) return NextResponse.json({ success: false, error: "That address doesn't resolve to a public server." }, { status: 400 });
   const events = Array.isArray(body.events) ? [...new Set(body.events.filter((e): e is WebhookEvent => WEBHOOK_EVENTS.includes(e as WebhookEvent)))] : [];
   if (!events.length) return NextResponse.json({ success: false, error: "Pick at least one event." }, { status: 400 });
 

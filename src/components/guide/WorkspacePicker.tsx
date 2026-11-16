@@ -150,7 +150,7 @@ export function WorkspacePicker() {
               </p>
             </header>
 
-            <ul className="grid gap-3 sm:grid-cols-2" role="list">
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="list">
               {workspaces.map((w, i) => {
                 const active = w.name === prefs.brand;
                 return (
@@ -165,14 +165,14 @@ export function WorkspacePicker() {
                       </span>
                       <span className="min-w-0 flex-1 text-left">
                         <span className="flex items-center gap-2">
-                          <span className="truncate text-[15px] font-semibold text-text-primary">{w.name}</span>
+                          <span className="min-w-0 truncate text-[15px] font-semibold text-text-primary">{w.name}</span>
                           {active && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-status-success/15 px-2 py-0.5 text-[11px] font-medium text-status-success">
-                              <Check className="h-3 w-3" aria-hidden="true" /> Last used
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-success/15 px-2 py-0.5 text-[11px] font-medium text-status-success">
+                              <Check className="h-3 w-3" aria-hidden="true" /> <span className="max-sm:sr-only">Last used</span>
                             </span>
                           )}
                           {isSample(w) && (
-                            <span className="rounded-full border border-border-default px-2 py-0.5 text-[11px] text-text-muted">Sample</span>
+                            <span className="shrink-0 rounded-full border border-border-default px-2 py-0.5 text-[11px] text-text-muted">Sample</span>
                           )}
                         </span>
                         <span className="mt-0.5 block truncate text-[13px] text-text-muted">

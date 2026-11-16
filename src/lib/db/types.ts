@@ -437,6 +437,9 @@ export interface Finding {
   claimId?: string;
   confidence?: string;
   isVerified?: boolean;
+  claim_id?: string | null;
+  /** Creator's counter-evidence, attached when the finding is disputed. */
+  counter_evidence?: { text: string | null; file: { name: string; text: string } | null; sha256: string; disputeId?: string; at: string } | null;
 }
 
 export interface FindingEvidence {

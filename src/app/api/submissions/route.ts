@@ -6,6 +6,10 @@ import { getMe } from "@/lib/auth/server";
 import { SEED_IDS } from "@/lib/db/seed";
 import { runGovernancePipeline } from "@/lib/ai";
 import { styleFrom } from "@/lib/ai/pipeline";
+import type { ContentChannel } from "@/lib/ai/types";
+import type { SubmissionStatus } from "@/lib/db/types";
+
+type FindingInput = Parameters<typeof db.createFinding>[0];
 
 async function GET_handler(req: NextRequest) {
   try {
@@ -14,10 +18,10 @@ async function GET_handler(req: NextRequest) {
     const orgId = searchParams.get("orgId") || SEED_IDS.ORGANISATION_UIDEAS;
     const status = searchParams.get("status") || undefined;
 
-    const submissions = db.listSubmissions(brandId, orgId, status as any);
+    const submissions = db.listSubmissions(brandId, orgId, status as SubmissionStatus | undefined);
     return NextResponse.json({ success: true, submissions });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 
@@ -89,15 +93,15 @@ async function POST_handler(req: NextRequest) {
         content,
         brandId,
         organizationId,
-        channel as any,
+        channel as ContentChannel,
         { style: styleFrom(body) }
       );
 
       // Record findings in DB
       for (const finding of reviewReport.findings) {
-        const citedClaimId = (finding as any).citedEvidenceIds?.[0] || finding.evidenceRecords?.[0]?.claimId || undefined;
-        const citedExcerpt = (finding as any).citedExcerpt || finding.evidenceRecords?.[0]?.excerpt || undefined;
-        const isVerified = (finding as any).isVerified !== undefined ? (finding as any).isVerified : !finding.unverified;
+        const citedClaimId = finding.citedEvidenceIds?.[0] || finding.evidenceRecords?.[0]?.claimId || undefined;
+        const citedExcerpt = finding.citedExcerpt || finding.evidenceRecords?.[0]?.excerpt || undefined;
+        const isVerified = finding.isVerified !== undefined ? finding.isVerified : !finding.unverified;
 
         db.createFinding({
           submissionId: newSubmission.id,
@@ -105,9 +109,9 @@ async function POST_handler(req: NextRequest) {
           brandId,
           ruleId: finding.ruleId || undefined,
           claimId: citedClaimId,
-          category: finding.category as any,
-          severity: finding.severity as any,
-          confidence: finding.confidence as any,
+          category: finding.category as FindingInput["category"],
+          severity: finding.severity as FindingInput["severity"],
+          confidence: finding.confidence,
           flaggedText: finding.flaggedText,
           message: finding.explanation,
           explanation: finding.explanation,
@@ -119,7 +123,7 @@ async function POST_handler(req: NextRequest) {
       }
 
       // Record suggested revision if available
-      const revisedText = reviewReport.suggestedRevisedContent || (reviewReport as any).suggestedRevision;
+      const revisedText = reviewReport.suggestedRevisedContent || reviewReport.suggestedRevision;
       if (revisedText) {
         db.createSuggestedRevision({
           submissionId: newSubmission.id,
@@ -170,8 +174,8 @@ async function POST_handler(req: NextRequest) {
       submission: newSubmission,
       report: reviewReport,
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 

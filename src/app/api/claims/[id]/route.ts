@@ -36,7 +36,7 @@ async function PATCH_handler(
       return NextResponse.json({ success: false, error: "Claim text can't be empty" }, { status: 400 });
     }
 
-    const claim = db.updateApprovedClaim(orgId, id, updates as any);
+    const claim = db.updateApprovedClaim(orgId, id, updates as Parameters<typeof db.updateApprovedClaim>[2]);
     if (!claim) {
       return NextResponse.json({ success: false, error: "Claim not found" }, { status: 404 });
     }
@@ -45,7 +45,7 @@ async function PATCH_handler(
     const dependentSubmissions = db.getDependentSubmissionsForClaim(id);
     db.recordAuditEvent({
       organizationId: orgId,
-      brandId: (claim as any).brand_id,
+      brandId: claim.brand_id,
       userId: body.userId,
       action: "claim_updated",
       entityType: "claim",
@@ -54,8 +54,8 @@ async function PATCH_handler(
     });
 
     return NextResponse.json({ success: true, claim, dependentSubmissions });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 

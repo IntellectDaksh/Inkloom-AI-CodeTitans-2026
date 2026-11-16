@@ -16,9 +16,9 @@ async function GET_handler(
       dependentSubmissions,
       count: dependentSubmissions.length,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to inspect claim dependencies" },
+      { success: false, error: (err as Error).message || "Failed to inspect claim dependencies" },
       { status: 500 }
     );
   }
@@ -49,9 +49,9 @@ async function POST_handler(
       count: result.count,
       message: `Cascade re-review initiated: ${result.count} past publication(s) quarantined with status 'needs_re_review'.`,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to trigger cascade re-review" },
+      { success: false, error: (err as Error).message || "Failed to trigger cascade re-review" },
       { status: 500 }
     );
   }

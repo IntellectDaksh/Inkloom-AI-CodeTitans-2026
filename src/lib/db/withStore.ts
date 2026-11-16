@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { flushToRemote, runWithStore, StoreConflictError, syncFromRemote } from "./store";
-import { apiKeyFromRequest, supabaseAdmin, supabaseServer } from "@/lib/auth/server";
+import { apiKeyFromRequest, needsMfa, supabaseAdmin, supabaseServer } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { reportError } from "@/lib/ops/errors";
 
@@ -32,7 +32,12 @@ async function orgOf(userId: string): Promise<string | null> {
 export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts = {}): Handler<A> {
   return async (...args: A) => {
     if (opts.apiKey) return withApiKey(handler, args);
-    const { data: { user } } = await (await supabaseServer()).auth.getUser().catch(() => ({ data: { user: null } }));
+    const sb = await supabaseServer();
+    const { data: { user: sessionUser } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
+    // A session that still owes its two-factor code gets no data access.
+    const mfaPending = !!sessionUser && (await needsMfa(sb));
+    if (mfaPending && !opts.public) return NextResponse.json({ success: false, error: "Enter your two-factor code to continue.", mfa: true }, { status: 401 });
+    const user = mfaPending ? null : sessionUser;
     if (!user && !opts.public) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
 
     if (opts.limit) {

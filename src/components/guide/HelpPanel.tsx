@@ -132,7 +132,7 @@ export function InfoTip({ label, children }: { label: string; children: React.Re
       <button
         type="button"
         aria-label={`What is ${label}?`}
-        className={`flex h-6 w-6 items-center justify-center rounded-full text-text-muted hover:text-text-primary ${focusRing}`}
+        className={`relative flex h-6 w-6 items-center justify-center rounded-full text-text-muted max-md:before:absolute max-md:before:-inset-2.5 max-md:before:content-[''] hover:text-text-primary ${focusRing}`}
         onClick={(e) => e.preventDefault()}
       >
         <CircleHelp className="h-3.5 w-3.5" aria-hidden="true" />

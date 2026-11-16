@@ -17,7 +17,14 @@ async function POST_handler(
       evidence = "",
       memo = "",
       evidenceFile = null,
-    } = body as Record<string, any>;
+    } = body as {
+      findingId?: string;
+      action?: string;
+      reason?: string;
+      evidence?: string;
+      memo?: string;
+      evidenceFile?: { name?: unknown; text?: unknown } | null;
+    };
 
     if (!findingId || !action) {
       return NextResponse.json(
@@ -123,9 +130,9 @@ async function POST_handler(
       { success: false, error: `Invalid action: ${action}` },
       { status: 400 }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to process finding action" },
+      { success: false, error: (err as Error).message || "Failed to process finding action" },
       { status: 500 }
     );
   }

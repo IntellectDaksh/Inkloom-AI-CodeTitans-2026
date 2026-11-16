@@ -6,6 +6,11 @@ import { getMe, supabaseAdmin } from "@/lib/auth/server";
 import { emailUsers } from "@/lib/notify/email";
 import { fireWebhooks } from "@/lib/notify/webhooks";
 import { orgMembers, REVIEW_ROLES } from "./members";
+import type { ApprovalDecision, ApprovalStatus } from "@/lib/db/types";
+
+type ApprovalRow = ReturnType<typeof db.listApprovals>[number] & {
+  latest_decision?: (ApprovalDecision & { decided_by_name?: string | null }) | null;
+};
 
 async function GET_handler(req: NextRequest) {
   try {
@@ -13,14 +18,14 @@ async function GET_handler(req: NextRequest) {
     const orgId = searchParams.get("orgId") || "org_uideas_digital";
     const status = searchParams.get("status") || undefined;
 
-    const approvals = db.listApprovals(orgId, status as any);
+    const approvals: ApprovalRow[] = db.listApprovals(orgId, status as ApprovalStatus | undefined);
     // Attach the signer's display name from their profile.
-    const ids = [...new Set(approvals.map((a: any) => a.latest_decision?.decided_by).filter(Boolean))] as string[];
+    const ids = [...new Set(approvals.map((a) => a.latest_decision?.decided_by).filter(Boolean))] as string[];
     if (ids.length) {
       try {
         const { data } = await supabaseAdmin().from("profiles").select("id, full_name").in("id", ids);
         const names = new Map((data ?? []).map((p: { id: string; full_name: string | null }) => [p.id, p.full_name]));
-        for (const a of approvals as any[]) {
+        for (const a of approvals) {
           const d = a.latest_decision;
           if (d) d.decided_by_name = names.get(d.decided_by) ?? null;
         }
@@ -29,8 +34,8 @@ async function GET_handler(req: NextRequest) {
       }
     }
     return NextResponse.json({ success: true, approvals });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 
@@ -157,8 +162,8 @@ async function POST_handler(req: NextRequest) {
       decision: recordedDecision,
       submission: db.getSubmission(submissionId),
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 

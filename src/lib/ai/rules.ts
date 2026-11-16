@@ -262,7 +262,7 @@ export function checkExpiredOrDeprecatedClaims(
     const lowerContent = content.toLowerCase();
     const lowerClaim = claim.claimText.toLowerCase();
 
-    let directPos = lowerContent.indexOf(lowerClaim);
+    const directPos = lowerContent.indexOf(lowerClaim);
     if (directPos !== -1) {
       violations.push({
         id: `claim_${claim.id}_${directPos}`,

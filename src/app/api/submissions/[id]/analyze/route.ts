@@ -4,6 +4,9 @@ import { fireWebhooks } from "@/lib/notify/webhooks";
 import { db } from "@/lib/db";
 import { runGovernancePipeline } from "@/lib/ai";
 import { styleFrom } from "@/lib/ai/pipeline";
+import type { ContentChannel } from "@/lib/ai/types";
+
+type FindingInput = Parameters<typeof db.createFinding>[0];
 import { withSources } from "../../sources";
 import { getMe } from "@/lib/auth/server";
 
@@ -30,7 +33,7 @@ async function POST_handler(
       contentToAnalyze,
       submission.brandId,
       submission.organizationId,
-      (submission.channel as any) || "social_media",
+      (submission.channel as ContentChannel) || "social_media",
       { style: styleFrom(body) }
     );
 
@@ -39,9 +42,9 @@ async function POST_handler(
 
     // Save findings
     for (const finding of report.findings) {
-      const citedClaimId = (finding as any).citedEvidenceIds?.[0] || finding.evidenceRecords?.[0]?.claimId || undefined;
-      const citedExcerpt = (finding as any).citedExcerpt || finding.evidenceRecords?.[0]?.excerpt || undefined;
-      const isVerified = (finding as any).isVerified !== undefined ? (finding as any).isVerified : !finding.unverified;
+      const citedClaimId = finding.citedEvidenceIds?.[0] || finding.evidenceRecords?.[0]?.claimId || undefined;
+      const citedExcerpt = finding.citedExcerpt || finding.evidenceRecords?.[0]?.excerpt || undefined;
+      const isVerified = finding.isVerified !== undefined ? finding.isVerified : !finding.unverified;
 
       db.createFinding({
         submissionId: id,
@@ -49,9 +52,9 @@ async function POST_handler(
         brandId: submission.brandId,
         ruleId: finding.ruleId || undefined,
         claimId: citedClaimId,
-        category: finding.category as any,
-        severity: finding.severity as any,
-        confidence: finding.confidence as any,
+        category: finding.category as FindingInput["category"],
+        severity: finding.severity as FindingInput["severity"],
+        confidence: finding.confidence,
         flaggedText: finding.flaggedText,
         message: finding.explanation,
         explanation: finding.explanation,
@@ -63,7 +66,7 @@ async function POST_handler(
     }
 
     // Save suggested revision if returned
-    const revisedText = report.suggestedRevisedContent || (report as any).suggestedRevision;
+    const revisedText = report.suggestedRevisedContent || report.suggestedRevision;
     if (revisedText) {
       db.createSuggestedRevision({
         submissionId: id,
@@ -133,8 +136,8 @@ async function POST_handler(
       findings: withSources(db.listFindings(id)),
       revisions: db.listSuggestedRevisions(id),
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 

@@ -1,5 +1,4 @@
 import { SkyClouds } from "@/components/landing/SkyClouds";
-import styles from "./AuthBackdrop.module.css";
 
 /**
  * The home page sky behind sign-in, sign-up, reset and profile setup: same gradient and drifting
@@ -7,8 +6,8 @@ import styles from "./AuthBackdrop.module.css";
  */
 export function AuthBackdrop() {
   return (
-    <div className={styles.root} aria-hidden="true">
-      <svg className={styles.sky} viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+    <div className="authbd-root" aria-hidden="true">
+      <svg className="authbd-sky" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="authSky" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#5b8fbd" />
@@ -24,12 +23,12 @@ export function AuthBackdrop() {
         <rect width="1600" height="900" fill="url(#authSky)" />
         <rect width="1600" height="900" fill="url(#authSun)" />
       </svg>
-      <div className={styles.clouds}>
+      <div className="authbd-clouds">
         <SkyClouds />
       </div>
-      <i className={`${styles.glow} ${styles.glowA}`} />
-      <i className={`${styles.glow} ${styles.glowB}`} />
-      <div className={styles.grain} />
+      <i className="authbd-glow authbd-glowA" />
+      <i className="authbd-glow authbd-glowB" />
+      <div className="authbd-grain" />
     </div>
   );
 }

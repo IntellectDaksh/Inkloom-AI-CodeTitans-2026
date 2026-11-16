@@ -19,7 +19,6 @@ const CSP = [
   "base-uri 'self'",
   "form-action 'self' https://accounts.google.com " + SUPABASE,
   "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
 ].join("; ");
 
 const SECURITY_HEADERS = [

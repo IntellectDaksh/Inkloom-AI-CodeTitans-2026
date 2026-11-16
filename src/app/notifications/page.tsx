@@ -166,7 +166,7 @@ export default function NotificationsPage() {
                       <button
                         type="button"
                         onClick={() => markRead([n.id])}
-                        className={`my-2 mr-2 shrink-0 rounded-lg px-2.5 py-1.5 text-xs text-text-muted hover:bg-panel hover:text-text-primary ${focusRing}`}
+                        className={`my-2 mr-2 min-h-11 shrink-0 rounded-lg px-2.5 py-1.5 text-xs md:min-h-0 text-text-muted hover:bg-panel hover:text-text-primary ${focusRing}`}
                       >
                         Mark read
                       </button>

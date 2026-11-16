@@ -35,8 +35,8 @@ async function GET_handler(
       auditEvents,
       runs: db.listAnalysisRuns(id),
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 
@@ -57,7 +57,7 @@ async function PATCH_handler(
       );
     }
 
-    const updates: any = {};
+    const updates: Parameters<typeof db.updateSubmission>[1] = {};
     if (currentContent !== undefined) {
       updates.currentContent = currentContent;
     }
@@ -97,8 +97,8 @@ async function PATCH_handler(
       success: true,
       submission: updated,
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 

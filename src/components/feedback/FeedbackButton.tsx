@@ -66,21 +66,21 @@ export function FeedbackButton({ signedInEmail }: { signedInEmail?: string | nul
   const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`AdSnitch: ${KINDS.find((k) => k.id === kind)?.label}`)}&body=${encodeURIComponent(message)}`;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-3 print:hidden">
+    <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] flex flex-col items-end gap-3 print:hidden">
       {open && (
         <div
           ref={panelRef}
           role="dialog"
           aria-modal="false"
           aria-labelledby={titleId}
-          className="w-[min(92vw,360px)] rounded-2xl border border-black/10 bg-white p-4 text-[#0b1620] shadow-[0_24px_60px_-12px_rgba(16,45,64,0.35)]"
+          className="max-h-[calc(100dvh-6rem)] w-[min(calc(100vw-2rem),360px)] overflow-y-auto overscroll-contain rounded-2xl border border-black/10 bg-white p-4 text-[#0b1620] shadow-[0_24px_60px_-12px_rgba(16,45,64,0.35)]"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 id={titleId} className="text-[15px] font-semibold">Talk to the founder</h2>
               <p className="mt-0.5 text-[13px] text-[#536474]">Help, ideas, bugs, anything. It goes straight to me.</p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#536474] hover:bg-black/5">
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid h-11 w-11 sm:h-8 sm:w-8 shrink-0 place-items-center rounded-lg text-[#536474] hover:bg-black/5">
               <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
             </button>
           </div>
@@ -113,14 +113,14 @@ export function FeedbackButton({ signedInEmail }: { signedInEmail?: string | nul
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={kind === "bug" ? "What happened, and what did you expect?" : "Tell me what you need…"}
-                  className="mt-1 w-full resize-y rounded-lg border border-black/15 px-3 py-2 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-[#2697bd]"
+                  className="mt-1 w-full resize-y rounded-lg border border-black/15 px-3 py-2 text-base sm:text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-[#2697bd]"
                 />
               </label>
               {!signedInEmail && (
                 <label className="block text-[13px] font-medium">
                   Your email <span className="font-normal text-[#536474]">(so I can reply)</span>
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" spellCheck={false} placeholder="you@company.com"
-                    className="mt-1 h-10 w-full rounded-lg border border-black/15 px-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-[#2697bd]" />
+                    className="mt-1 h-10 w-full rounded-lg border border-black/15 px-3 text-base sm:text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-[#2697bd]" />
                 </label>
               )}
               {state.error && <p role="alert" className="text-[13px] text-[#c0392b]">{state.error}</p>}
@@ -139,12 +139,13 @@ export function FeedbackButton({ signedInEmail }: { signedInEmail?: string | nul
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="inline-flex h-11 items-center gap-2 rounded-full border border-white/40 bg-[#0b1620] px-4 text-[13px] font-semibold text-white shadow-[0_10px_30px_-8px_rgba(11,22,32,0.55)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2697bd]"
+        aria-label="Help and feedback"
+        className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-white/40 bg-[#0b1620] text-[13px] opacity-90 sm:w-auto sm:px-4 sm:opacity-100 font-semibold text-white shadow-[0_10px_30px_-8px_rgba(11,22,32,0.55)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2697bd]"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-5 4v-4h-.5A1.5 1.5 0 0 1 4 14.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
         </svg>
-        Help &amp; feedback
+        <span className="hidden sm:inline">Help &amp; feedback</span>
       </button>
     </div>
   );

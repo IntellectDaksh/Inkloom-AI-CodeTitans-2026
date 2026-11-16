@@ -89,7 +89,7 @@ export function AppLayout({
         />
 
         <main
-          className={`flex-1 p-4 sm:p-6 lg:p-10 w-full min-w-0 ${
+          className={`flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-10 w-full min-w-0 ${
             fullWidth ? "max-w-none" : "max-w-7xl mx-auto"
           } ${className}`}
         >

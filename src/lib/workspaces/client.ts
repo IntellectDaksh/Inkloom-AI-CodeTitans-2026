@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 // Workspaces are brands on the server (/api/workspaces). One shared cache + event
 // keeps the picker, header, brands page and settings in sync after a create/update.
@@ -21,6 +21,12 @@ type Result = { ok: true; workspace: Workspace } | { ok: false; error: string };
 const EVT = "adsnitch:workspaces";
 let cache: Workspace[] | null = null;
 let inflight: Promise<Workspace[]> | null = null;
+const EMPTY: Workspace[] = [];
+
+function subscribe(cb: () => void) {
+  window.addEventListener(EVT, cb);
+  return () => window.removeEventListener(EVT, cb);
+}
 
 async function fetchAll(): Promise<Workspace[]> {
   const r = await fetch("/api/workspaces", { cache: "no-store" });
@@ -38,13 +44,9 @@ export function refreshWorkspaces(): Promise<Workspace[]> {
 
 /** All workspaces; empty until the first load finishes. */
 export function useWorkspaces(): Workspace[] {
-  const [list, set] = useState<Workspace[]>(cache ?? []);
+  const list = useSyncExternalStore(subscribe, () => cache ?? EMPTY, () => EMPTY);
   useEffect(() => {
-    const on = () => set(cache ?? []);
-    window.addEventListener(EVT, on);
-    if (cache) set(cache);
-    else refreshWorkspaces().catch(() => {});
-    return () => window.removeEventListener(EVT, on);
+    if (!cache) refreshWorkspaces().catch(() => {});
   }, []);
   return list;
 }

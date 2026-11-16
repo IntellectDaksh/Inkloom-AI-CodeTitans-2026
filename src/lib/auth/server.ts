@@ -42,10 +42,22 @@ export interface Me {
 }
 
 /** The signed-in user with their stored profile, or null. Role always comes from public.profiles. */
+/** True when the user has two-factor set up but this session hasn't passed it yet (aal1 of aal2). */
+export async function needsMfa(sb: Awaited<ReturnType<typeof supabaseServer>>): Promise<boolean> {
+  try {
+    const { data } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    return data?.nextLevel === "aal2" && data.currentLevel !== "aal2";
+  } catch {
+    return false;
+  }
+}
+
 export async function getMe(): Promise<Me | null> {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
+  // Two-factor users count as signed out for every API until the code step is done.
+  if (await needsMfa(sb)) return null;
   const { data: p } = await sb.from("profiles").select("full_name, bio, avatar_url, role, organization_id, job_title, profile_completed_at, prefs").eq("id", user.id).maybeSingle();
   return {
     id: user.id,

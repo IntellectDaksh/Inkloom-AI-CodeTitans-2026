@@ -18,6 +18,12 @@ export async function proxy(req: NextRequest) {
     url.port = "";
     return NextResponse.redirect(url, 308);
   }
+  // Share links: answer a real 404 for malformed, unknown, expired or revoked tokens. The page can't,
+  // because once its streamed shell starts the status is already 200.
+  const share = req.nextUrl.pathname.match(/^\/share\/([^/]+)\/?$/);
+  if (share && !(await shareLinkLive(share[1]))) {
+    return new NextResponse("This link has expired or doesn't exist.", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex" } });
+  }
   let res = NextResponse.next({ request: req });
   const sb = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
@@ -58,3 +64,23 @@ export async function proxy(req: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?)$).*)"],
 };
+
+async function shareLinkLive(token: string): Promise<boolean> {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return false;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!key || !base) return true; // can't check here; the page itself still refuses bad tokens
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  try {
+    const r = await fetch(`${base}/rest/v1/share_links?token_hash=eq.${hash}&select=expires_at,revoked_at&limit=1`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      cache: "no-store",
+    });
+    if (!r.ok) return true;
+    const [row] = (await r.json()) as { expires_at: string; revoked_at: string | null }[];
+    return !!row && !row.revoked_at && new Date(row.expires_at).getTime() > Date.now();
+  } catch {
+    return true;
+  }
+}

@@ -48,8 +48,8 @@ async function GET_handler(req: NextRequest) {
     syncExpiryAlerts(userId, me?.organizationId ?? null);
     const notifications = db.listNotifications(userId);
     return NextResponse.json({ success: true, notifications });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 
@@ -71,8 +71,8 @@ async function PATCH_handler(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Notification not found" }, { status: 404 });
     }
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 

@@ -1,3 +1,4 @@
+import { lookup } from "node:dns/promises";
 import { createHmac } from "crypto";
 import { isIP } from "net";
 import { supabaseAdmin } from "@/lib/auth/server";
@@ -42,7 +43,18 @@ export function validateWebhookUrl(raw: string): string | null {
   if (raw.length > 500) return "That URL is too long.";
   return null;
 }
-// ponytail: hostname check only; a public DNS name resolving to a private IP still passes. Resolve + pin the IP if that matters.
+/** Resolves the host right before sending and refuses if any address is private (SSRF via DNS). */
+export async function resolvesToPublic(rawUrl: string): Promise<boolean> {
+  try {
+    const host = new URL(rawUrl).hostname.replace(/^\[|\]$/g, "");
+    if (isIP(host)) return !privateIp(host);
+    const addrs = await lookup(host, { all: true, verbatim: true });
+    return addrs.length > 0 && addrs.every((a) => !privateIp(a.address));
+  } catch {
+    return false;
+  }
+}
+// ponytail: resolve-then-fetch leaves a tiny DNS-rebinding window; pin the IP with a custom agent if that matters.
 
 export interface WebhookPayload {
   title: string;
@@ -80,6 +92,10 @@ export async function fireWebhooks(orgId: string, event: WebhookEvent, p: Webhoo
   await Promise.all(
     hooks.map(async (h) => {
       if (validateWebhookUrl(h.url)) return;
+      if (!(await resolvesToPublic(h.url))) {
+        await reportError({ source: "server", message: `webhook ${h.id} skipped: resolves to a private address`, route: "webhooks", organizationId: orgId });
+        return;
+      }
       try {
         const sig = createHmac("sha256", h.secret).update(body).digest("hex");
         const res = await fetch(h.url, {

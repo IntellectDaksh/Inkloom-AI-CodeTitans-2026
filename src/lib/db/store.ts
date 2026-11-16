@@ -44,7 +44,182 @@ import {
   FindingStatus,
   RevisionStatus,
   ApprovalDecisionType,
+  SubmissionType,
+  AuditEntityType,
+  AuditEventAction,
+  NotificationType,
+  FindingCategory,
+  FindingSeverity,
+  ApprovalStatus,
 } from './types';
+
+// Loose payloads the API routes pass in: snake_case (DB) or camelCase (client) keys.
+interface SubmissionInput {
+  title?: string;
+  submission_type?: SubmissionType;
+  submissionType?: SubmissionType;
+  raw_content?: string;
+  currentContent?: string;
+  content?: string;
+  creator_id?: string;
+  authorId?: string;
+  authorName?: string;
+  assigned_reviewer_id?: string | null;
+  assignedReviewerId?: string | null;
+  organizationId?: string;
+  organisation_id?: string;
+  brandId?: string;
+  brand_id?: string;
+  status?: SubmissionStatus;
+  channel?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface SubmissionUpdates {
+  currentContent?: string;
+  raw_content?: string;
+  status?: SubmissionStatus;
+  title?: string;
+}
+
+interface FindingInput {
+  id?: string;
+  analysis_run_id?: string;
+  analysisRunId?: string;
+  submission_id?: string;
+  submissionId?: string;
+  organisation_id?: string;
+  organizationId?: string;
+  brand_id?: string;
+  brandId?: string;
+  category?: FindingCategory;
+  severity?: FindingSeverity;
+  title?: string;
+  description?: string;
+  explanation?: string;
+  message?: string;
+  highlighted_snippet?: string;
+  flaggedText?: string;
+  line_number_start?: number | null;
+  lineStart?: number | null;
+  line_number_end?: number | null;
+  lineEnd?: number | null;
+  character_start?: number | null;
+  startIndex?: number | null;
+  character_end?: number | null;
+  endIndex?: number | null;
+  rule_ref?: string | null;
+  ruleId?: string;
+  status?: FindingStatus;
+  suggestedCorrection?: string;
+  claimId?: string;
+  confidence?: string;
+  citedExcerpt?: string;
+  isVerified?: boolean;
+}
+
+interface RevisionInput {
+  id?: string;
+  finding_id?: string;
+  findingId?: string;
+  original_text?: string;
+  originalText?: string;
+  suggested_text?: string;
+  revisedText?: string;
+  explanation?: string;
+  reasoning?: string;
+  status?: RevisionStatus;
+  isApplied?: boolean;
+  applied_by?: string | null;
+  appliedBy?: string | null;
+  applied_at?: string | null;
+  appliedAt?: string | null;
+  submissionId?: string;
+  organizationId?: string;
+}
+
+interface RevisionUpdates {
+  isApplied?: boolean;
+  appliedBy?: string | null;
+  appliedAt?: string | null;
+  revisedText?: string;
+}
+
+// Routes pass free-form entity types/actions (e.g. "create_claim"); they are stored as given.
+interface AuditEventInput {
+  organisation_id?: string;
+  organizationId?: string;
+  brand_id?: string | null;
+  brandId?: string | null;
+  user_id?: string | null;
+  userId?: string | null;
+  entity_type?: string;
+  entityType?: string;
+  entity_id?: string;
+  entityId?: string;
+  action?: string;
+  ip_address?: string | null;
+  ipAddress?: string | null;
+  metadata?: Record<string, unknown>;
+  previousValue?: unknown;
+  updatedValue?: unknown;
+}
+
+interface ApprovalDecisionInput {
+  organizationId?: string;
+  organisation_id?: string;
+  submission_id?: string;
+  submissionId?: string;
+  decided_by?: string;
+  reviewerId?: string;
+  decision: ApprovalDecisionType;
+  comments?: string;
+  notes?: string;
+  conditions?: string;
+  // Accepted but not stored; the decision gets its own timestamp.
+  reviewerName?: string;
+  decidedAt?: string;
+}
+
+interface ClaimInput {
+  organizationId?: string;
+  organisation_id?: string;
+  brandId?: string;
+  brand_id?: string;
+  claimText?: string;
+  claim_text?: string;
+  category?: unknown;
+  status?: ClaimStatus;
+  permittedContext?: string;
+  permitted_context?: string;
+  restrictedContext?: string;
+  restricted_context?: string;
+  requiredDisclosures?: ApprovedClaim['required_disclosures'];
+  expiresAt?: string | null;
+  expires_at?: string | null;
+  userId?: string;
+  evidenceSource?: string;
+  evidenceExcerpt?: string;
+  // Accepted from the claims route but not stored.
+  owner?: unknown;
+  version?: unknown;
+  effectiveAt?: unknown;
+}
+
+interface NotificationInput {
+  organizationId?: string;
+  organisation_id?: string;
+  userId?: string;
+  user_id?: string;
+  title?: string;
+  message?: string;
+  type?: string;
+  notification_type?: string;
+  linkUrl?: string | null;
+  link_url?: string | null;
+  isRead?: boolean;
+  is_read?: boolean;
+}
 import { createInitialSeedState, SEED_IDS } from './seed';
 
 // ============================================================================
@@ -748,7 +923,7 @@ export class InkloomStore {
   public static listSubmissions(
     brandId?: string,
     orgId?: string,
-    status?: any
+    status?: SubmissionStatus
   ): SubmissionWithDetails[] {
     return this.getSubmissions(
       orgId || SEED_IDS.ORGANISATION_UIDEAS,
@@ -814,7 +989,7 @@ export class InkloomStore {
       organizationId: sub.organisation_id,
       brandId: sub.brand_id,
       currentContent: sub.raw_content,
-      channel: ((sub.metadata as any)?.channel as string) || 'social_media',
+      channel: (sub.metadata?.channel as string) || 'social_media',
       authorId: sub.creator_id,
       authorName: creator?.full_name || 'Daksh Agrawal',
       brand,
@@ -830,32 +1005,34 @@ export class InkloomStore {
   }
 
   public static createSubmission(
-    arg1: any,
+    arg1: string | SubmissionInput,
     arg2?: string,
-    arg3?: any
+    arg3?: SubmissionInput
   ): SubmissionWithDetails {
     const state = loadState();
     let orgId: string;
     let brandId: string;
     let title: string;
-    let submission_type: any;
+    let submission_type: SubmissionType;
     let raw_content: string;
     let creator_id: string;
     let assigned_reviewer_id: string | null = null;
     let metadata: Record<string, unknown> = {};
-    let status: any = 'submitted';
+    let status: SubmissionStatus = 'submitted';
 
     if (typeof arg1 === 'string' && typeof arg2 === 'string') {
       orgId = arg1;
       brandId = arg2;
-      title = arg3.title;
-      submission_type = arg3.submission_type || 'reel_script';
-      raw_content = arg3.raw_content || arg3.currentContent || '';
-      creator_id = arg3.creator_id || arg3.authorId || SEED_IDS.USER_DAKSH;
-      assigned_reviewer_id = arg3.assigned_reviewer_id || null;
-      metadata = arg3.metadata || {};
+      // Positional form always passes the payload.
+      const p = arg3!;
+      title = p.title as string;
+      submission_type = p.submission_type || 'reel_script';
+      raw_content = p.raw_content || p.currentContent || '';
+      creator_id = p.creator_id || p.authorId || SEED_IDS.USER_DAKSH;
+      assigned_reviewer_id = p.assigned_reviewer_id || null;
+      metadata = p.metadata || {};
     } else {
-      const payload = arg1 || {};
+      const payload: SubmissionInput = (typeof arg1 === 'string' ? undefined : arg1) || {};
       orgId = payload.organizationId || payload.organisation_id || SEED_IDS.ORGANISATION_UIDEAS;
       brandId = payload.brandId || payload.brand_id || SEED_IDS.BRAND_APEX;
       title = payload.title || 'Untitled Submission';
@@ -885,7 +1062,7 @@ export class InkloomStore {
       assigned_reviewer_id,
       raw_content,
       current_version_number: 1,
-      metadata: metadata as any,
+      metadata,
       created_at: now,
       updated_at: now,
     };
@@ -937,7 +1114,7 @@ export class InkloomStore {
 
   public static updateSubmission(
     id: string,
-    updates: any
+    updates: SubmissionUpdates
   ): SubmissionWithDetails | null {
     const state = loadState();
     const idx = state.submissions.findIndex((s) => s.id === id);
@@ -988,8 +1165,8 @@ export class InkloomStore {
     const before = state.findings.length;
     state.findings = state.findings.filter(
       (f) =>
-        !((f.submission_id === submissionId || (f as any).submissionId === submissionId) &&
-          (!(f as any).status || (f as any).status === 'open'))
+        !((f.submission_id === submissionId || f.submissionId === submissionId) &&
+          (!f.status || f.status === 'open'))
     );
     saveState(state);
     return before - state.findings.length;
@@ -1070,7 +1247,7 @@ export class InkloomStore {
   public static listFindings(submissionId: string): FindingWithDetails[] {
     const state = loadState();
     return state.findings
-      .filter((f) => f.submission_id === submissionId || (f as any).submissionId === submissionId)
+      .filter((f) => f.submission_id === submissionId || f.submissionId === submissionId)
       .map((f) => {
         const evidence = state.finding_evidence.filter((fe) => fe.finding_id === f.id);
         const suggested_revisions = state.suggested_revisions.filter(
@@ -1088,7 +1265,7 @@ export class InkloomStore {
       });
   }
 
-  public static createFinding(finding: any): Finding {
+  public static createFinding(finding: FindingInput): Finding {
     const state = loadState();
     const id = finding.id || crypto.randomUUID();
     const now = new Date().toISOString();
@@ -1096,7 +1273,7 @@ export class InkloomStore {
       id,
       analysis_run_id:
         finding.analysis_run_id || finding.analysisRunId || SEED_IDS.ANALYSIS_RUN_REEL,
-      submission_id: finding.submission_id || finding.submissionId,
+      submission_id: (finding.submission_id || finding.submissionId) as string,
       category: finding.category || 'unsupported_claim',
       severity: finding.severity || 'high',
       title: finding.title || finding.flaggedText || 'Compliance Flag',
@@ -1117,7 +1294,7 @@ export class InkloomStore {
       message: finding.message || finding.description,
       explanation: finding.explanation || finding.description,
       suggestedCorrection: finding.suggestedCorrection,
-      ruleId: finding.ruleId || finding.rule_ref,
+      ruleId: (finding.ruleId || finding.rule_ref) as string | undefined,
       claimId: finding.claimId,
       confidence: finding.confidence,
       isVerified: finding.isVerified,
@@ -1131,11 +1308,11 @@ export class InkloomStore {
     const state = loadState();
     const findingIds = new Set(
       state.findings
-        .filter((f) => f.submission_id === submissionId || (f as any).submissionId === submissionId)
+        .filter((f) => f.submission_id === submissionId || f.submissionId === submissionId)
         .map((f) => f.id)
     );
     return state.suggested_revisions
-      .filter((r) => findingIds.has(r.finding_id) || (r as any).submissionId === submissionId)
+      .filter((r) => findingIds.has(r.finding_id) || r.submissionId === submissionId)
       .map((r) => ({
         ...r,
         submissionId,
@@ -1144,7 +1321,7 @@ export class InkloomStore {
       }));
   }
 
-  public static createSuggestedRevision(revision: any): SuggestedRevision {
+  public static createSuggestedRevision(revision: RevisionInput): SuggestedRevision {
     const state = loadState();
     const id = revision.id || crypto.randomUUID();
     const now = new Date().toISOString();
@@ -1171,7 +1348,7 @@ export class InkloomStore {
 
   public static updateSuggestedRevision(
     revisionId: string,
-    updates: any
+    updates: RevisionUpdates
   ): SuggestedRevision | null {
     const state = loadState();
     const idx = state.suggested_revisions.findIndex((r) => r.id === revisionId);
@@ -1192,7 +1369,7 @@ export class InkloomStore {
     return rev;
   }
 
-  public static recordAuditEvent(event: any): AuditEvent {
+  public static recordAuditEvent(event: AuditEventInput): AuditEvent {
     const state = loadState();
     const audit: AuditEvent = {
       id: crypto.randomUUID(),
@@ -1200,9 +1377,9 @@ export class InkloomStore {
         event.organisation_id || event.organizationId || SEED_IDS.ORGANISATION_UIDEAS,
       brand_id: event.brand_id || event.brandId || null,
       user_id: event.user_id || event.userId || SEED_IDS.USER_DAKSH,
-      entity_type: event.entity_type || event.entityType || 'submission',
+      entity_type: (event.entity_type || event.entityType || 'submission') as AuditEntityType,
       entity_id: event.entity_id || event.entityId || crypto.randomUUID(),
-      action: event.action || 'updated',
+      action: (event.action || 'updated') as AuditEventAction,
       ip_address: event.ip_address || event.ipAddress || '127.0.0.1',
       metadata:
         event.metadata || { previousValue: event.previousValue, updatedValue: event.updatedValue },
@@ -1216,7 +1393,7 @@ export class InkloomStore {
   /** Audit trail for one entity, oldest first, for the submission timeline. */
   public static listAuditForEntity(entityId: string): AuditEvent[] {
     return loadState()
-      .audit_events.filter((e) => e.entity_id === entityId || (e.metadata as any)?.submission_id === entityId)
+      .audit_events.filter((e) => e.entity_id === entityId || e.metadata?.submission_id === entityId)
       .slice()
       .reverse();
   }
@@ -1417,7 +1594,7 @@ export class InkloomStore {
   // Approvals Workflow & API Compatibility Methods
   // --------------------------------------------------------------------------
 
-  public static listApprovals(orgId?: string, status?: any): any[] {
+  public static listApprovals(orgId?: string, status?: ApprovalStatus) {
     const state = loadState();
     return state.approval_requests
       .filter((ar) => (status ? ar.status === status : true))
@@ -1426,10 +1603,16 @@ export class InkloomStore {
         const reviewer = ar.target_reviewer_id
           ? state.user_profiles.find((u) => u.id === ar.target_reviewer_id)
           : null;
+        // Newest decision on this request, so the approvals page can show who signed it.
+        const latest_decision =
+          state.approval_decisions
+            .filter((d) => d.request_id === ar.id)
+            .sort((a, b) => String(b.decided_at).localeCompare(String(a.decided_at)))[0] ?? null;
         return {
           ...ar,
           submission: sub,
           reviewer,
+          latest_decision,
         };
       });
   }
@@ -1472,9 +1655,9 @@ export class InkloomStore {
   }
 
   public static recordApprovalDecision(
-    arg1: any,
-    arg2?: any
-  ): any {
+    arg1: string | ApprovalDecisionInput,
+    arg2?: ApprovalDecisionInput
+  ): { decision: ApprovalDecision; submission: SubmissionWithDetails } | null {
     const state = loadState();
     let orgId: string;
     let submission_id: string;
@@ -1485,15 +1668,15 @@ export class InkloomStore {
 
     if (typeof arg1 === 'string' && arg2) {
       orgId = arg1;
-      submission_id = arg2.submission_id || arg2.submissionId;
+      submission_id = (arg2.submission_id || arg2.submissionId) as string;
       decided_by = arg2.decided_by || arg2.reviewerId || SEED_IDS.USER_DAKSH;
       decision = arg2.decision;
       comments = arg2.comments || arg2.notes;
       conditions = arg2.conditions;
     } else {
-      const payload = arg1 || {};
+      const payload = (typeof arg1 === 'string' ? undefined : arg1) || ({} as ApprovalDecisionInput);
       orgId = payload.organizationId || payload.organisation_id || SEED_IDS.ORGANISATION_UIDEAS;
-      submission_id = payload.submissionId || payload.submission_id;
+      submission_id = (payload.submissionId || payload.submission_id) as string;
       decided_by = payload.reviewerId || payload.decided_by || SEED_IDS.USER_DAKSH;
       decision = payload.decision;
       comments = payload.notes || payload.comments;
@@ -1584,7 +1767,7 @@ export class InkloomStore {
     };
   }
 
-  public static getAnalytics(orgId?: string, brandId?: string): any {
+  public static getAnalytics(orgId?: string, brandId?: string) {
     const summary = this.getDashboardSummary(
       orgId || SEED_IDS.ORGANISATION_UIDEAS,
       brandId || SEED_IDS.BRAND_APEX
@@ -1595,8 +1778,8 @@ export class InkloomStore {
   public static listClaims(
     brandId?: string,
     orgId?: string,
-    status?: any
-  ): any[] {
+    status?: ClaimStatus
+  ) {
     return this.getApprovedClaims(
       orgId || SEED_IDS.ORGANISATION_UIDEAS,
       brandId,
@@ -1612,7 +1795,7 @@ export class InkloomStore {
     }));
   }
 
-  public static createClaim(data: any): any {
+  public static createClaim(data: ClaimInput) {
     const orgId = data.organizationId || data.organisation_id || SEED_IDS.ORGANISATION_UIDEAS;
     const brandId = data.brandId || data.brand_id || SEED_IDS.BRAND_APEX;
     const claimCode = `CLM-GEN-${Math.floor(100 + Math.random() * 900)}`;
@@ -1622,8 +1805,8 @@ export class InkloomStore {
       brandId,
       {
         claim_code: claimCode,
-        claim_text: data.claimText || data.claim_text,
-        category: data.category || 'performance',
+        claim_text: (data.claimText || data.claim_text) as string,
+        category: (data.category || 'performance') as ApprovedClaim['category'],
         status: data.status || 'approved',
         permitted_context: data.permittedContext || data.permitted_context || 'All channels',
         restricted_context: data.restrictedContext || data.restricted_context || 'None',
@@ -1636,7 +1819,7 @@ export class InkloomStore {
             {
               title: data.evidenceSource,
               citation: data.evidenceSource,
-              excerpt: data.evidenceExcerpt || data.claimText,
+              excerpt: (data.evidenceExcerpt || data.claimText) as string,
               evidence_type: 'clinical_trial',
               confidence_score: 0.95,
             },
@@ -1653,7 +1836,7 @@ export class InkloomStore {
     };
   }
 
-  public static createNotification(data: any): Notification {
+  public static createNotification(data: NotificationInput): Notification {
     const state = loadState();
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -1663,7 +1846,7 @@ export class InkloomStore {
       user_id: data.userId || data.user_id || SEED_IDS.USER_DAKSH,
       title: data.title || 'Notification',
       message: data.message || '',
-      notification_type: data.type || data.notification_type || 'approval_granted',
+      notification_type: (data.type || data.notification_type || 'approval_granted') as NotificationType,
       link_url: data.linkUrl || data.link_url || null,
       is_read: Boolean(data.isRead || data.is_read),
       read_at: null,
@@ -1739,7 +1922,7 @@ export class InkloomStore {
       finding.status = 'disputed';
       finding.updated_at = now;
       // Counter-evidence lives on the finding too, so reviewers see it without opening the dispute.
-      (finding as any).counter_evidence = {
+      finding.counter_evidence = {
         text: creatorEvidence || null,
         file: evidenceFile ? { name: evidenceFile.name, text: evidenceFile.text.slice(0, 20000) } : null,
         sha256: createHash('sha256').update(`${creatorEvidence ?? ''}|${evidenceFile?.text ?? ''}`).digest('hex'),
@@ -1824,7 +2007,7 @@ export class InkloomStore {
       // Finding evidence links
       const subFindings = state.findings.filter((f) => f.submission_id === sub.id);
       for (const f of subFindings) {
-        if (f.claimId === targetCode || (f as any).claim_id === targetId) return true;
+        if (f.claimId === targetCode || f.claim_id === targetId) return true;
         const feMatch = state.finding_evidence.some(
           (fe) => fe.finding_id === f.id && fe.claim_id === targetId
         );
@@ -1949,7 +2132,7 @@ export class InkloomStore {
    */
   public static cascadeReplacement(state: InkloomDatabaseState, claim: ApprovedClaim, sub: Submission) {
     const fids = state.findings
-      .filter((f) => f.submission_id === sub.id && (f.claimId === claim.claim_code || (f as any).claim_id === claim.id ||
+      .filter((f) => f.submission_id === sub.id && (f.claimId === claim.claim_code || f.claim_id === claim.id ||
         state.finding_evidence.some((fe) => fe.finding_id === f.id && fe.claim_id === claim.id)))
       .map((f) => f);
     const rev = state.suggested_revisions.find((r) => fids.some((f) => f.id === r.finding_id) && r.suggested_text);

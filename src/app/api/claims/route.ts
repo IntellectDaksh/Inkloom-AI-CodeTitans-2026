@@ -2,6 +2,7 @@ import { withStore } from "@/lib/db/withStore";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { SEED_IDS, isBuiltInId } from "@/lib/db/seed";
+import type { ClaimStatus } from "@/lib/db/types";
 
 async function GET_handler(req: NextRequest) {
   try {
@@ -10,10 +11,10 @@ async function GET_handler(req: NextRequest) {
     const orgId = searchParams.get("orgId") || SEED_IDS.ORGANISATION_UIDEAS;
     const status = searchParams.get("status") || undefined;
 
-    const claims = db.listClaims(brandId, orgId, status as any);
+    const claims = db.listClaims(brandId, orgId, status as ClaimStatus | undefined);
     return NextResponse.json({ success: true, claims: claims.map((c) => ({ ...c, built_in: isBuiltInId(c.id) })) });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 
@@ -68,8 +69,8 @@ async function POST_handler(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, claim: newClaim });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 }
 
