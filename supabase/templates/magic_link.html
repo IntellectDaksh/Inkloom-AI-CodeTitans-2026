@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>Sign in to AdSnitch</title></head>
+<body style="margin:0;padding:0;background:#f3f7fa;">
+<span style="display:none;max-height:0;overflow:hidden;opacity:0;color:#f3f7fa;">Sign in without a password.</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f7fa;padding:32px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+  <tr><td style="padding:0 4px 18px;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="width:26px;vertical-align:middle;">
+        <div style="width:22px;height:16px;border:2px solid #0b1620;border-radius:4px;">
+          <div style="margin:3px 0 0 3px;width:9px;height:2px;background:#0b1620;border-radius:1px;"></div>
+          <div style="margin:2px 0 0 3px;width:21px;height:4px;background:#e5535d;border-radius:1px;"></div>
+        </div>
+      </td>
+      <td style="padding-left:8px;font:700 19px/1 Arial,Helvetica,sans-serif;letter-spacing:-0.4px;color:#0b1620;">AdSnitch</td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="background:#ffffff;border:1px solid #e3eaef;border-radius:14px;padding:32px 28px;font:15px/1.6 Arial,Helvetica,sans-serif;color:#0b1620;">
+    <h1 style="margin:0 0 12px;font:700 22px/1.3 Arial,Helvetica,sans-serif;letter-spacing:-0.3px;color:#0b1620;">Sign in to AdSnitch</h1>
+    <p style="margin:0 0 16px;">Use this button to sign in. It works once and expires in an hour.</p><table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;"><tr><td style="background:#0b1620;border-radius:999px;">
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:13px 24px;font:700 14px/1 Arial,Helvetica,sans-serif;color:#ffffff;text-decoration:none;">Sign in</a></td></tr></table><p style="margin:0 0 16px;">Or enter this code:</p><div style="margin:8px 0 20px;padding:16px;border:1px dashed #e3eaef;border-radius:10px;background:#f3f7fa;text-align:center;font:700 30px/1 'Courier New',monospace;letter-spacing:8px;color:#0b1620;">{{ .Token }}</div><p style="margin:16px 0 0;font-size:13px;color:#536474;">Button not working? Paste this link into your browser:<br><span style="word-break:break-all;">{{ .ConfirmationURL }}</span></p>
+  </td></tr>
+  <tr><td style="padding:18px 4px 0;font:12px/1.6 Arial,Helvetica,sans-serif;color:#536474;">
+    AdSnitch checks ad claims against your proof before they go live.<br>
+    You got this email because of activity on an AdSnitch account for {{ .Email }}. If that wasn&rsquo;t you, ignore it; nothing changes.<br>
+    <a href="https://adsnitch.cv" style="color:#536474;">adsnitch.cv</a> &middot; <a href="https://adsnitch.cv/privacy" style="color:#536474;">Privacy</a>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>

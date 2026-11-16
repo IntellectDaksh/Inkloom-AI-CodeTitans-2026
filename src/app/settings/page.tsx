@@ -188,7 +188,7 @@ export default function SettingsPage() {
         <header className="mb-8">
           <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">Settings</h1>
           <p className="mt-1 max-w-2xl text-sm text-text-secondary">
-            Changes save as soon as you make them. They're saved in this browser.
+            Changes save as soon as you make them. They follow your account to any device.
           </p>
         </header>
 

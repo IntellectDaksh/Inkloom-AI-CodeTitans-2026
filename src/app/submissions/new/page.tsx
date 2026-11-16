@@ -177,6 +177,19 @@ export default function NewSubmissionPage() {
     setError(null);
   };
 
+  const reset = () => {
+    setRunning(false);
+    setStage(0);
+    setRunLabel("");
+    setError(null);
+    setTitle("");
+    setContent("");
+    setUploads([]);
+    setCampaign("");
+    setMode("paste");
+    setStep(0);
+  };
+
   // ---- run ----
   const check = async () => {
     const list = drafts();
@@ -215,6 +228,8 @@ export default function NewSubmissionPage() {
         }
         setStage(PIPELINE_STAGES.length);
       }
+      // Next keeps this page mounted in the background after navigating; start fresh so the next ad isn't blocked.
+      reset();
       router.push(created.length === 1 ? `/submissions/${created[0]}` : `/submissions?created=${created.length}`);
     } catch (e) {
       setRunning(false);

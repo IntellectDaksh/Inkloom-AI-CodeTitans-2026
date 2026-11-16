@@ -370,9 +370,9 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
           <Link href="/submissions" className="inline-flex items-center gap-2 rounded text-sm text-text-muted hover:text-text-primary focus-visible:outline-2 focus-visible:outline-blue">
             <ArrowLeft className="h-4 w-4" aria-hidden /> All reviews
           </Link>
-          <span className="text-[13px] text-text-muted">
-            Signed in as <span className="font-semibold text-text-primary">{persona.name}</span>
-          </span>
+          <Link href="/submissions/new" className="inline-flex h-10 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-medium text-canvas hover:opacity-90 focus-visible:outline-2 focus-visible:outline-blue">
+            <Sparkles className="h-4 w-4" aria-hidden /> Check another ad
+          </Link>
         </div>
 
         <header className="space-y-2">

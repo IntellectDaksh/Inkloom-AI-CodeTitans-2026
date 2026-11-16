@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { flushToRemote, runWithStore, StoreConflictError, syncFromRemote } from "./store";
 import { supabaseAdmin, supabaseServer } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
+import { reportError } from "@/lib/ops/errors";
 
 type Handler<A extends unknown[]> = (...args: A) => Promise<Response> | Response;
 
@@ -67,6 +68,11 @@ export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts =
           return NextResponse.json({ success: false, error: "The database is unreachable right now. Try again in a moment." }, { status: 503 });
         }
         const res = await handler(...callArgs);
+        // Handlers catch their own errors and answer 500; record those so failures aren't silent.
+        if (res.status >= 500) {
+          const msg = await res.clone().json().then((j: { error?: string }) => j?.error).catch(() => null);
+          await reportError({ source: "server", message: msg || `HTTP ${res.status}`, route: original ? `${original.method} ${new URL(original.url).pathname}` : null, userId: user?.id, organizationId: orgId });
+        }
         try {
           await flushToRemote();
         } catch (err) {

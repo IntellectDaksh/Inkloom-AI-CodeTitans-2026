@@ -39,6 +39,12 @@ export function refreshMe(): Promise<void> {
     .then((r) => (r.ok ? r.json() : null))
     .then((d) => {
       const m = d?.me;
+      // Account-saved preferences win over this browser's copy, so a new device picks them up.
+      if (m?.prefs && typeof m.prefs === "object" && Object.keys(m.prefs).length) {
+        try {
+          localStorage.setItem(KEY, JSON.stringify({ ...readPrefs(), ...m.prefs }));
+        } catch {}
+      }
       current = m
         ? { id: m.id, userId: m.id, name: m.name, email: m.email, role: m.role, label: ROLE_LABEL[m.role as Role] ?? m.role, avatarUrl: m.avatarUrl, bio: m.bio, profileComplete: m.profileComplete !== false }
         : SIGNED_OUT;
@@ -138,6 +144,7 @@ export function setPrefs(patch: Partial<Prefs>) {
     // private mode: prefs live for this tab only via the event
   }
   window.dispatchEvent(new CustomEvent(EVT, { detail: next }));
+  syncPrefs(next);
 }
 
 export function usePrefs(): Prefs {
@@ -204,4 +211,14 @@ export const PICKED_KEY = "adsnitch:workspace-picked";
 
 export function openWorkspacePicker() {
   window.dispatchEvent(new Event(PICKER_EVT));
+}
+
+// Debounced save of preferences to the account (profiles.prefs); silent when signed out.
+let prefsTimer: ReturnType<typeof setTimeout> | undefined;
+function syncPrefs(p: Prefs) {
+  clearTimeout(prefsTimer);
+  prefsTimer = setTimeout(() => {
+    if (!current.id) return;
+    fetch("/api/profile/prefs", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) }).catch(() => {});
+  }, 800);
 }

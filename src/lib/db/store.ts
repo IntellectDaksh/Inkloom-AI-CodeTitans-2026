@@ -81,16 +81,18 @@ interface StoreCtx {
   version: number;
   /** Anonymous public checks: seed data, never persisted. */
   ephemeral: boolean;
+  /** Audit events created during this request, mirrored to the append-only audit_log table on save. */
+  newAudit: AuditEvent[];
 }
 const als = new AsyncLocalStorage<StoreCtx>();
-const fallbackCtx: StoreCtx = { state: null, remote: false, dirty: false, docId: null, version: 0, ephemeral: false };
+const fallbackCtx: StoreCtx = { state: null, remote: false, dirty: false, docId: null, version: 0, ephemeral: false, newAudit: [] };
 const cur = (): StoreCtx => als.getStore() ?? fallbackCtx;
 
 export class StoreConflictError extends Error {}
 
 /** Run fn with an isolated store context (one per request). */
 export function runWithStore<T>(fn: () => Promise<T>): Promise<T> {
-  return als.run({ state: null, remote: false, dirty: false, docId: null, version: 0, ephemeral: false }, fn);
+  return als.run({ state: null, remote: false, dirty: false, docId: null, version: 0, ephemeral: false, newAudit: [] }, fn);
 }
 
 /** Load the organisation's document. orgId null = anonymous: seed data in memory only. */
@@ -130,6 +132,22 @@ export async function flushToRemote(): Promise<void> {
   if (data === null || data === undefined) throw new StoreConflictError('Someone else saved at the same time.');
   ctx.version = Number(data);
   ctx.dirty = false;
+  if (ctx.newAudit.length) {
+    const rows = ctx.newAudit.map((e) => ({
+      id: e.id, organization_id: ctx.docId, brand_id: e.brand_id ?? null, user_id: e.user_id ?? null,
+      entity_type: e.entity_type, entity_id: e.entity_id, action: e.action, metadata: e.metadata ?? {},
+      hash: e.hash ?? null, prev_hash: e.prev_hash ?? null, created_at: e.created_at,
+    }));
+    ctx.newAudit = [];
+    // The document is already saved; a failed mirror is logged, not surfaced as a failed request.
+    const { error: auditErr } = await sb.from('audit_log').upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
+    if (auditErr) console.error('audit_log mirror failed', auditErr.message);
+  }
+}
+
+/** Organisation whose document this request loaded (null outside a request or when signed out). */
+export function currentOrgId(): string | null {
+  return cur().docId;
 }
 
 export function isRemoteStoreActive(): boolean {
@@ -200,6 +218,7 @@ function pushAudit(state: InkloomDatabaseState, e: AuditEvent): void {
   e.prev_hash = prev?.hash ?? null;
   e.hash = auditHash(e, e.prev_hash);
   state.audit_events.unshift(e);
+  cur().newAudit.push(e);
 }
 
 /**

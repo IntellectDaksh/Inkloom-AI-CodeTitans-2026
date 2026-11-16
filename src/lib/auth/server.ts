@@ -36,6 +36,7 @@ export interface Me {
   organizationId: string;
   profileComplete: boolean;
   jobTitle: string;
+  prefs: Record<string, unknown>;
 }
 
 /** The signed-in user with their stored profile, or null. Role always comes from public.profiles. */
@@ -43,7 +44,7 @@ export async function getMe(): Promise<Me | null> {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
-  const { data: p } = await sb.from("profiles").select("full_name, bio, avatar_url, role, organization_id, job_title, profile_completed_at").eq("id", user.id).maybeSingle();
+  const { data: p } = await sb.from("profiles").select("full_name, bio, avatar_url, role, organization_id, job_title, profile_completed_at, prefs").eq("id", user.id).maybeSingle();
   return {
     id: user.id,
     email: user.email ?? "",
@@ -54,5 +55,6 @@ export async function getMe(): Promise<Me | null> {
     organizationId: (p?.organization_id as string) ?? "",
     profileComplete: !!p?.profile_completed_at,
     jobTitle: (p?.job_title as string) ?? "",
+    prefs: (p?.prefs as Record<string, unknown>) ?? {},
   };
 }

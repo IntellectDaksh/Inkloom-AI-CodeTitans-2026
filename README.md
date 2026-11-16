@@ -1,4 +1,9 @@
-<p align="center"><img src="public/adsnitch-logo.svg" alt="AdSnitch" height="56"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/readme/logo-white.svg">
+    <img src=".github/readme/logo-dark.svg" alt="AdSnitch" height="56">
+  </picture>
+</p>
 
 # AdSnitch
 
