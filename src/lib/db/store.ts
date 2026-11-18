@@ -562,6 +562,13 @@ export function getSupabaseClient(): SupabaseClient | null {
 // DATA ACCESS LAYER (MULTI-TENANT CRUD)
 // ============================================================================
 
+/** Old short ids still used by samples and early saved data, mapped to the real sample brand ids. */
+export const LEGACY_BRAND_IDS: Record<string, string> = {
+  brand_apex: SEED_IDS.BRAND_APEX,
+  brand_zenith: SEED_IDS.BRAND_ZENITH,
+  brand_lumina: SEED_IDS.BRAND_LUMINA,
+};
+
 export class InkloomStore {
   /**
    * Reset store to initial seed state
@@ -633,7 +640,8 @@ export class InkloomStore {
 
   public static getBrand(brandId?: string): Brand | undefined {
     if (!brandId) return undefined;
-    return loadState().brands.find((b) => b.id === brandId || b.slug === brandId);
+    const id = LEGACY_BRAND_IDS[brandId] ?? brandId;
+    return loadState().brands.find((b) => b.id === id || b.slug === id);
   }
 
   public static getBrandById(orgId: string, brandId?: string): Brand | undefined {
@@ -936,7 +944,8 @@ export class InkloomStore {
     state: InkloomDatabaseState,
     sub: Submission
   ): SubmissionWithDetails {
-    const brand = state.brands.find((b) => b.id === sub.brand_id);
+    const brandId = LEGACY_BRAND_IDS[sub.brand_id] ?? sub.brand_id;
+    const brand = state.brands.find((b) => b.id === brandId);
     const creator = state.user_profiles.find((u) => u.id === sub.creator_id);
     const reviewer = sub.assigned_reviewer_id
       ? state.user_profiles.find((u) => u.id === sub.assigned_reviewer_id)
@@ -991,7 +1000,7 @@ export class InkloomStore {
       currentContent: sub.raw_content,
       channel: (sub.metadata?.channel as string) || 'social_media',
       authorId: sub.creator_id,
-      authorName: creator?.full_name || 'Daksh Agrawal',
+      authorName: (sub.metadata?.authorName as string) || creator?.full_name || 'Author',
       brand,
       creator,
       reviewer,

@@ -383,8 +383,11 @@ export function computeScoreBreakdown(findings: GovernanceFinding[], modelScore:
   // finding (e.g. a pitch deck submitted as a reel) still land at 80+.
   const has = (s: FindingSeverity) => findings.some(f => f.severity === s && !f.isVerified);
   const gateFailed = findings.some(f => f.id === 'gate_off_brand' || f.id === 'gate_wrong_type');
-  const cap = gateFailed ? 15 : has('critical') ? 40 : has('high') ? 75 : unsupported >= 3 ? 65 : unsupported > 0 ? 85 : 100;
-  return { final: Math.min(cap, clamp(factors.reduce((n, f) => n + f.score * f.weight, 0))), factors };
+  const cap = gateFailed ? 2 : has('critical') ? 40 : has('high') ? 75 : unsupported >= 3 ? 65 : unsupported > 0 ? 85 : 100;
+  const weighted = clamp(factors.reduce((n, f) => n + f.score * f.weight, 0));
+  // Off-brand or wrong document type: it isn't this channel's ad at all, so it sits at 1-2, never "partly fine".
+  const final = gateFailed ? (weighted >= 50 ? 2 : 1) : Math.min(cap, weighted);
+  return { final, factors };
 }
 
 export function generateReviewSummary(
@@ -447,12 +450,9 @@ export function generateReviewSummary(
   };
 
   const executiveSummary = [
-    `Status: ${statusLabels[status]}`,
-    `Overall Compliance Score: ${finalComplianceScore}/100.`,
-    `Total Issues Identified: ${findings.length} (${findingsBySeverity.critical} critical, ${findingsBySeverity.high} high, ${findingsBySeverity.medium} medium, ${findingsBySeverity.low} low).`,
-    unverifiedClaimsCount > 0 ? `Alert: ${unverifiedClaimsCount} claim(s) lack verified evidence records in brand repository.` : 'All detected claims have corresponding approved evidence.',
     llmSummaryAssessment,
-  ].filter(Boolean).join(' ');
+    unverifiedClaimsCount > 0 ? `${unverifiedClaimsCount} claim${unverifiedClaimsCount === 1 ? '' : 's'} without approved proof.` : '',
+].filter(Boolean).join(' ');
 
   return {
     submissionId,

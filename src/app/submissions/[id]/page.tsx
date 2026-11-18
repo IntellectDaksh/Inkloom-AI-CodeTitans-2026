@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { VerdictBanner } from "@/components/submission/VerdictBanner";
 import { HighlightedCopy, DiffView } from "@/components/submission/HighlightedCopy";
+import { Expandable } from "@/components/ui/Expandable";
 import { FindingCard } from "@/components/submission/FindingCard";
 import { SourcePanel } from "@/components/submission/SourcePanel";
 import { EvidenceModal, Modal, ReasonKind, ReasonModal } from "@/components/submission/FindingModals";
@@ -70,6 +71,14 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [view, setView] = useState<"annotated" | "diff">("annotated");
+  // "What this page tells you" can be hidden once you know the page; remembered on this device.
+  const [hideGuide, setHideGuide] = useState(() => {
+    try { return localStorage.getItem("adsnitch:hide-result-guide") === "1"; } catch { return false; }
+  });
+  const dismissGuide = () => {
+    setHideGuide(true);
+    try { localStorage.setItem("adsnitch:hide-result-guide", "1"); } catch {}
+  };
   useEffect(() => setView(readPrefs().resultsView), []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -424,11 +433,16 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
           </p>
         </header>
 
-        <p className="rounded-xl border border-border-default bg-panel px-4 py-3 text-sm leading-relaxed text-text-secondary">
+        {!hideGuide && (
+        <p className="relative rounded-xl border border-border-default bg-panel py-3 pl-4 pr-10 text-sm leading-relaxed text-text-secondary">
+          <button type="button" aria-label="Hide this explanation" onClick={dismissGuide} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-md text-text-muted hover:bg-panel-hover hover:text-text-primary">
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
           <span className="font-medium text-text-primary">What this page tells you: </span>
           the verdict says whether this ad can go live ({VERDICT[verdict].title.toLowerCase()}), each issue shows the risky line, why it was flagged and the source it was checked against, and your next step is to{" "}
           {verdict === "safe" ? "send it for sign-off." : "apply or dismiss each fix, then send it for sign-off."}
         </p>
+        )}
 
         {isRulesOnly(modelUsed) && (
           <div role="alert" className="flex flex-col gap-3 rounded-xl border border-status-warning/40 bg-status-warning/10 p-4 text-sm text-text-primary sm:flex-row sm:items-center sm:justify-between">
@@ -571,11 +585,13 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
                 ) : view === "diff" ? (
                   <DiffView before={original} after={content} />
                 ) : (
-                  <HighlightedCopy content={content} findings={openFindings} selectedId={selectedId} onSelect={(fid) => select(fid, "copy")} />
+                  <Expandable collapsedHeight={260} moreLabel="Show the full ad" lessLabel="Collapse">
+                    <HighlightedCopy content={content} findings={openFindings} selectedId={selectedId} onSelect={(fid) => select(fid, "copy")} />
+                  </Expandable>
                 )}
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-default px-5 py-3 text-[13px] text-text-muted">
-                <span className="tabular-nums">{content.length.toLocaleString()} characters</span>
+                <span className="tabular-nums">{(content.trim() ? content.trim().split(/\s+/).length : 0).toLocaleString()} words · {content.length.toLocaleString()} characters</span>
                 <div className="flex flex-wrap gap-1">
                   <Button size="sm" variant="ghost" icon={<Copy className="h-4 w-4" />} onClick={() => copy(content, "Ad copy")}>
                     Copy text
@@ -600,8 +616,17 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
                 <h3 className="flex items-center gap-2 text-base font-semibold text-text-primary">
                   <Sparkles className="h-4 w-4" aria-hidden /> Suggested rewrite
                 </h3>
-                <DiffView before={content} after={pendingRevision.revisedText} />
-                {pendingRevision.reasoning && <p className="text-[13px] leading-relaxed text-text-muted">{pendingRevision.reasoning}</p>}
+                <Expandable collapsedHeight={180} moreLabel="Show the full rewrite" lessLabel="Collapse">
+                  <DiffView before={content} after={pendingRevision.revisedText} />
+                </Expandable>
+                {pendingRevision.reasoning && (
+                  <details className="group rounded-lg bg-panel-hover/60 px-3 py-2 text-[13px] leading-relaxed text-text-muted">
+                    <summary className="cursor-pointer list-none font-medium text-text-secondary marker:hidden">
+                      Why this rewrite <span className="text-text-muted group-open:hidden">· show</span>
+                    </summary>
+                    <p className="mt-1.5">{pendingRevision.reasoning}</p>
+                  </details>
+                )}
                 <Button
                   size="sm"
                   loading={busy === "Used the suggested rewrite"}
@@ -620,6 +645,16 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
               <h2 className="text-base font-semibold text-text-primary">
                 Issues <span className="font-normal text-text-muted">({openFindings.length} open of {findings.length})</span>
               </h2>
+              {openFindings.length > 0 && (
+                <div className="flex w-full flex-wrap gap-1.5" aria-label="Open issues by severity">
+                  {(["critical", "high", "medium", "low"] as const).map((sev) => {
+                    const n = openFindings.filter((f) => f.severity === sev).length;
+                    if (!n) return null;
+                    const tone = sev === "critical" ? "bg-status-red/12 text-status-red" : sev === "high" ? "bg-status-amber/12 text-status-amber" : "bg-panel-hover text-text-secondary";
+                    return <span key={sev} className={`rounded-full px-2 py-0.5 text-[12px] font-medium capitalize ${tone}`}>{n} {sev}</span>;
+                  })}
+                </div>
+              )}
               {safeFixes.length > 0 && (
                 <Button size="sm" variant="secondary" onClick={applyAllSafe} loading={!!busy?.startsWith("Applied ")} icon={<Check className="h-4 w-4" />}>
                   Apply all {safeFixes.length} suggested fixes

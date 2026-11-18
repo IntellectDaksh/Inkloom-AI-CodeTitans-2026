@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Bell, Bot, Check, Database, Gauge, Palette, Pencil, Upload, Users, Briefcase, Download, RotateCcw, Trash2, Lock, KeyRound, Webhook, Search, X } from "lucide-react";
+import { Bell, Bot, Check, Database, Gauge, Palette, Pencil, Upload, Users, Briefcase, Download, RotateCcw, Trash2, Lock, Search, X } from "lucide-react";
 import { SecurityPanel } from "@/components/settings/SecurityPanel";
-import { ApiPanel } from "@/components/settings/ApiPanel";
-import { IntegrationsPanel } from "@/components/settings/IntegrationsPanel";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Slider, Toggle, Segmented, Select, Group } from "@/components/settings/controls";
@@ -40,8 +38,6 @@ const ALL_SECTIONS = [
   { id: "notifications", label: "Notifications", icon: Bell, keywords: "alerts mute sound desktop expiry email", admin: false },
   { id: "security", label: "Security", icon: Lock, keywords: "two-factor 2fa authenticator devices sign out account email", admin: false },
   { id: "team", label: "Team & roles", icon: Users, keywords: "role members permissions", admin: false },
-  { id: "integrations", label: "Integrations", icon: Webhook, keywords: "slack webhook events", admin: true },
-  { id: "api", label: "API keys", icon: KeyRound, keywords: "developer api key token endpoint", admin: true },
   { id: "data", label: "Data", icon: Database, keywords: "export import backup reset", admin: false },
 ];
 
@@ -540,18 +536,6 @@ export default function SettingsPage() {
             {active === "security" && (
             <Panel id="security" title="Security" desc="Two-factor sign-in and the devices you're signed in on. Forgot your password? Use Forgot password on the sign-in page.">
               <SecurityPanel />
-            </Panel>
-            )}
-
-            {active === "integrations" && (
-            <Panel id="integrations" title="Integrations" desc="Send blocked ads and approval decisions to Slack or any HTTPS endpoint.">
-              <IntegrationsPanel />
-            </Panel>
-            )}
-
-            {active === "api" && (
-            <Panel id="api" title="API keys" desc="Run checks from your own tools. Keys are shown once and can be revoked at any time.">
-              <ApiPanel />
             </Panel>
             )}
 

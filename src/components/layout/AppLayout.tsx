@@ -47,6 +47,49 @@ export function AppLayout({
 
   const handleToggleSidebar = () => setPrefs({ sidebarCollapsed: !readPrefs().sidebarCollapsed });
 
+  // Browser tab shows where you are ("Settings · AdSnitch").
+  React.useEffect(() => {
+    if (title) document.title = `${title} · AdSnitch`;
+  }, [title]);
+
+  // "/" opens search from anywhere, unless you're typing in a field.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      setIsCommandKOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Connection and session problems get a clear bar instead of failing silently.
+  const [offline, setOffline] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
+  React.useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    const out = () => setSignedOut(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    window.addEventListener("adsnitch:signed-out", out);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+      window.removeEventListener("adsnitch:signed-out", out);
+    };
+  }, []);
+
+  // Back-to-top appears once you've scrolled a screen down.
+  const [showTop, setShowTop] = useState(false);
+  React.useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > window.innerHeight);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <div className="relative isolate flex min-h-screen bg-canvas text-text-primary overflow-x-clip">
       <div className="atmosphere" aria-hidden="true">
@@ -57,6 +100,29 @@ export function AppLayout({
 
       <FloatingLayer density="app" />
       <FeedbackButton signedInEmail={me?.email} />
+      {(offline || signedOut) && (
+        <div role="alert" className="fixed inset-x-0 top-0 z-[70] flex items-center justify-center gap-3 bg-ink px-4 py-2 text-center text-[13px] text-white print:hidden">
+          {offline ? (
+            <span>You&rsquo;re offline. Changes won&rsquo;t save until you&rsquo;re back online.</span>
+          ) : (
+            <>
+              <span>Your session ended.</span>
+              <a className="font-semibold underline underline-offset-4" href={`/auth/login?next=${encodeURIComponent(typeof location !== "undefined" ? location.pathname : "/dashboard")}`}>Sign in again</a>
+            </>
+          )}
+        </div>
+      )}
+      {showTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0 })}
+          aria-label="Back to top"
+          title="Back to top"
+          className="fixed bottom-20 right-4 z-[55] grid h-11 w-11 place-items-center rounded-full border border-border-default bg-panel text-text-primary shadow-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-blue print:hidden sm:bottom-20"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+      )}
       <WorkspacePicker />
       {me?.profileComplete !== false && <DemoOverlay />}
 

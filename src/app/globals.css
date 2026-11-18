@@ -1046,3 +1046,45 @@ html[data-width="wide"] .app-width { max-width: 96rem; }
 .settings-anim { animation: settings-in .22s ease-out; }
 html[data-motion="off"] .settings-anim, html[data-motion="reduced"] .settings-anim { animation: none; }
 @media (prefers-reduced-motion: reduce) { .settings-anim { animation: none; } }
+
+/* ===== Quality-of-life polish (applies app-wide) ===== */
+html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+html[data-motion="off"] { scroll-behavior: auto; }
+::selection { background: color-mix(in srgb, var(--color-blue, #2697bd) 28%, transparent); color: inherit; }
+* { scrollbar-width: thin; scrollbar-color: rgba(16, 45, 64, 0.22) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: rgba(16, 45, 64, 0.2); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background-color: rgba(16, 45, 64, 0.35); }
+h1, h2, h3 { text-wrap: balance; }
+p, li { text-wrap: pretty; }
+td, .tabular-nums, [data-num] { font-variant-numeric: tabular-nums; }
+button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+button, a, [role="button"], label { touch-action: manipulation; }
+a { text-underline-offset: 3px; text-decoration-thickness: from-font; }
+input, textarea { caret-color: var(--color-blue, #2697bd); }
+input::placeholder, textarea::placeholder { color: color-mix(in srgb, currentColor 45%, transparent); }
+:target, [id] { scroll-margin-top: 84px; }
+img, video, svg { max-width: 100%; }
+table tbody tr { transition: background-color 0.15s ease; }
+table tbody tr:hover { background: color-mix(in srgb, var(--color-blue, #2697bd) 5%, transparent); }
+details > summary { cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+.skel { background: linear-gradient(90deg, rgba(16,45,64,.06) 0%, rgba(16,45,64,.12) 40%, rgba(16,45,64,.06) 80%); background-size: 200% 100%; animation: skel-shimmer 1.3s ease-in-out infinite; }
+@keyframes skel-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+html[data-motion="off"] .skel, html[data-motion="reduced"] .skel { animation: none; }
+@media print {
+  aside, header, nav, .atmosphere, [aria-label="Help and feedback"], button[aria-expanded] { display: none !important; }
+  main { padding: 0 !important; }
+}
+
+/* ===== More polish ===== */
+:focus-visible { outline-offset: 2px; }
+main p, main li, main td, main dd { overflow-wrap: anywhere; }
+kbd { font: 600 11px ui-monospace, Consolas, monospace; padding: 1px 6px; border: 1px solid rgba(16,45,64,.18); border-bottom-width: 2px; border-radius: 6px; background: rgba(255,255,255,.7); }
+pre, code { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; }
+hr { border: 0; height: 1px; background: rgba(16,45,64,.1); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .glass, .glass-strong { background: rgba(255,255,255,.96) !important; } }
+@media (forced-colors: active) { :focus-visible { outline: 2px solid CanvasText; } }
+html { scrollbar-gutter: stable; }
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }

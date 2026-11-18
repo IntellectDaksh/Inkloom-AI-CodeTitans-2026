@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 
 export function Stepper({
@@ -67,34 +67,39 @@ export const PIPELINE_STAGES = [
   "Scoring and writing fixes",
 ];
 
-/** Stage list with live status; `stage` = index currently running, `stages.length` = finished. */
-export function PipelineProgress({ stage, label }: { stage: number; label?: string }) {
+/**
+ * Honest progress for a check. The server runs every stage in one request, so the browser can't see
+ * individual stages: it shows what is really known (sent, waiting, elapsed time) instead of a fake
+ * timer that walks through steps. `stage === PIPELINE_STAGES.length` means finished.
+ */
+export function PipelineProgress({ stage, label, startedAt }: { stage: number; label?: string; startedAt?: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  const done = stage >= PIPELINE_STAGES.length;
+  useEffect(() => {
+    if (done) return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [done]);
+  const secs = startedAt ? Math.max(0, Math.round((now - startedAt) / 1000)) : 0;
   return (
     <div className="space-y-3" role="status" aria-live="polite">
       {label && <p className="text-sm font-medium text-text-primary">{label}</p>}
-      <ol className="space-y-2">
-        {PIPELINE_STAGES.map((s, i) => {
-          const done = i < stage;
-          const running = i === stage;
-          return (
-            <li key={s} className="flex items-center gap-3 text-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center">
-                {done ? (
-                  <Check className="h-4 w-4 text-status-success" aria-hidden />
-                ) : running ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-text-primary motion-reduce:animate-none" aria-hidden />
-                ) : (
-                  <span className="h-2 w-2 rounded-full bg-border-strong" aria-hidden />
-                )}
-              </span>
-              <span className={done ? "text-text-secondary" : running ? "font-medium text-text-primary" : "text-text-muted"}>
-                {s}
-                {running && <span className="sr-only"> (in progress)</span>}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="flex items-center gap-3 text-sm">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+          {done ? <Check className="h-4 w-4 text-status-success" aria-hidden /> : <Loader2 className="h-4 w-4 animate-spin text-text-primary motion-reduce:animate-none" aria-hidden />}
+        </span>
+        <span className="font-medium text-text-primary">
+          {done ? "Done. Opening your result…" : "Checking: brand rules, approved claims and AI review"}
+        </span>
+        {!done && startedAt && <span className="ml-auto tabular-nums text-text-muted">{secs}s</span>}
+      </div>
+      {!done && (
+        <p className="pl-9 text-[13px] text-text-muted">
+          {secs < 20
+            ? "Usually 3–15 seconds. Long documents take a little longer."
+            : "Still working. If the AI doesn't answer in time, the check finishes with the rules engine and says so."}
+        </p>
+      )}
     </div>
   );
 }

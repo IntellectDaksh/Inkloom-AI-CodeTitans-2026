@@ -1,4 +1,6 @@
 import { withStore } from "@/lib/db/withStore";
+
+export const maxDuration = 90;
 import { NextRequest, NextResponse, after } from "next/server";
 import { fireWebhooks } from "@/lib/notify/webhooks";
 import { db } from "@/lib/db";

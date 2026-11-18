@@ -30,8 +30,13 @@ function NavList({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
     b === "approvals" ? counts.pendingApprovals : b === "reviews" ? counts.inReview : 0;
 
   const me = useMe();
+  const navRef = React.useRef<HTMLElement>(null);
+  // Keep the current page's link visible in a long sidebar on short screens.
+  useEffect(() => {
+    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" });
+  }, [pathname]);
   return (
-    <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-3">
+    <nav ref={navRef} aria-label="Main" className="flex-1 overflow-y-auto px-3 py-3">
       {NAV.map((group) => (
         <div key={group.label} className="mb-4 last:mb-0">
           {collapsed ? (

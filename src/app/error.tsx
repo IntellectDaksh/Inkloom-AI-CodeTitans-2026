@@ -12,7 +12,11 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <p className="mt-2 text-sm leading-relaxed text-text-secondary">
           It has been reported automatically. Your saved work is safe. Try again, or go back to your dashboard.
         </p>
-        {error.digest && <p className="mt-2 text-xs text-text-muted">Reference: {error.digest}</p>}
+        {error.digest && (
+          <p className="mt-2 text-xs text-text-muted">
+            Reference: <button type="button" title="Copy reference" className="font-mono underline underline-offset-2" onClick={() => navigator.clipboard?.writeText(error.digest!)}>{error.digest}</button>
+          </p>
+        )}
         <div className="mt-6 flex justify-center gap-3">
           <button type="button" onClick={reset} className="h-10 rounded-lg bg-ink px-4 text-sm font-medium text-canvas hover:opacity-90">Try again</button>
           <a href="/dashboard" className="inline-flex h-10 items-center rounded-lg border border-border-default px-4 text-sm font-medium text-text-primary">Dashboard</a>

@@ -37,7 +37,7 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const email = String(f.get("email") ?? "").trim();
+    const email = String(f.get("email") ?? "").trim().toLowerCase();
     const password = String(f.get("password") ?? "");
     setBusy(true);
     setError(null);
@@ -76,7 +76,7 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
         router.refresh();
       }
     } catch (err) {
-      setError((err as Error).message || "Something went wrong. Try again.");
+      setError(friendlyAuthError((err as Error).message));
     } finally {
       setBusy(false);
     }
@@ -128,11 +128,11 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
             )}
             {mode !== "reset" && (
               <label className="block text-sm text-text-primary">Email
-                <input name="email" type="email" autoComplete="email" required spellCheck={false} className={`mt-1 ${input}`} />
+                <input name="email" type="email" inputMode="email" autoComplete="email" required spellCheck={false} autoCapitalize="none" autoFocus={mode === "login"} className={`mt-1 ${input}`} />
               </label>
             )}
             <label className="block text-sm text-text-primary">{mode === "reset" ? "New password" : "Password"}
-              <input name="password" type="password" required minLength={mode === "login" ? undefined : 8} autoComplete={mode === "login" ? "current-password" : "new-password"} className={`mt-1 ${input}`} />
+              <PasswordField name="password" minLength={mode === "login" ? undefined : 8} autoComplete={mode === "login" ? "current-password" : "new-password"} className={`mt-1 ${input}`} />
             </label>
             {mode === "reset" && (
               <label className="block text-sm text-text-primary">Confirm password
@@ -283,7 +283,13 @@ function ForgotFlow() {
           <input
             name="code"
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+              setCode(v);
+              // A full code (typed or pasted) submits on its own.
+              const form = e.currentTarget.form;
+              if (v.length === 6 && !busy) setTimeout(() => form?.requestSubmit(), 0);
+            }}
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={6}
@@ -318,4 +324,50 @@ function ForgotFlow() {
       <button type="submit" disabled={busy} className={primaryBtn}>{busy ? "Saving…" : "Save password"}</button>
     </form>
   );
+}
+
+/** Password input with show/hide and a Caps Lock warning. */
+function PasswordField({ name, minLength, autoComplete, className }: { name: string; minLength?: number; autoComplete: string; className: string }) {
+  const [show, setShow] = useState(false);
+  const [caps, setCaps] = useState(false);
+  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => setCaps(e.getModifierState?.("CapsLock") ?? false);
+  return (
+    <>
+      <span className="relative block">
+        <input
+          name={name}
+          type={show ? "text" : "password"}
+          required
+          minLength={minLength}
+          autoComplete={autoComplete}
+          onKeyUp={onKey}
+          onKeyDown={onKey}
+          onBlur={() => setCaps(false)}
+          className={`${className} pr-16`}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          aria-pressed={show}
+          aria-label={show ? "Hide password" : "Show password"}
+          className="absolute right-2 top-1/2 mt-0.5 -translate-y-1/2 rounded-md px-2 py-1 text-[12px] font-medium text-text-secondary hover:bg-panel-hover hover:text-text-primary"
+        >
+          {show ? "Hide" : "Show"}
+        </button>
+      </span>
+      {caps && <span role="status" className="mt-1 block text-[12px] text-status-red">Caps Lock is on.</span>}
+    </>
+  );
+}
+
+/** Supabase's raw auth messages, rewritten as something a person can act on. */
+function friendlyAuthError(msg = ""): string {
+  const m = msg.toLowerCase();
+  if (m.includes("invalid login credentials")) return "That email and password don't match. Check both, or use Forgot password.";
+  if (m.includes("email not confirmed")) return "Confirm your email first. Check your inbox for the link we sent.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "An account with this email already exists. Sign in instead.";
+  if (m.includes("password should be") || m.includes("weak")) return "Choose a stronger password: at least 8 characters, not a common one.";
+  if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Too many attempts. Wait a minute and try again.";
+  if (m.includes("network") || m.includes("fetch")) return "Couldn't reach the server. Check your connection and try again.";
+  return msg || "Something went wrong. Try again.";
 }

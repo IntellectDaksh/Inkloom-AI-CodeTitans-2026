@@ -168,7 +168,7 @@ export function WorkspacePicker() {
                       </span>
                       <span className="min-w-0 flex-1 text-left">
                         <span className="flex items-center gap-2">
-                          <span className="min-w-0 truncate text-[15px] font-semibold text-text-primary">{w.name}</span>
+                          <span className="min-w-0 truncate text-[15px] font-semibold text-text-primary" title={w.name}>{w.name}</span>
                           {active && (
                             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-success/15 px-2 py-0.5 text-[11px] font-medium text-status-success">
                               <Check className="h-3 w-3" aria-hidden="true" /> <span className="max-sm:sr-only">Last used</span>

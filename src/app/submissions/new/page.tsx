@@ -58,6 +58,8 @@ const src = (u: UploadItem): SourceFile => ({
 
 const stripExt = (n: string) => n.replace(/\.[^.]+$/, "");
 
+const DRAFT_KEY = "adsnitch:new-check-draft";
+
 export default function NewSubmissionPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -72,6 +74,15 @@ export default function NewSubmissionPage() {
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [stage, setStage] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | undefined>(undefined);
+  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  // Warn before closing the tab with typed copy that hasn't been checked yet.
+  useEffect(() => {
+    if (!content.trim() || running) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [content, running]);
   const [runLabel, setRunLabel] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -85,7 +96,8 @@ export default function NewSubmissionPage() {
     setMode(p.defaultInput);
   }, []);
 
-  // Copy carried over from the public live check.
+  // Copy carried over from the public live check; otherwise bring back an unsaved draft from last time.
+  const [restored, setRestored] = useState(false);
   useEffect(() => {
     try {
       const t = sessionStorage.getItem("adsnitch:pending-text");
@@ -93,9 +105,28 @@ export default function NewSubmissionPage() {
         sessionStorage.removeItem("adsnitch:pending-text");
         setMode("paste");
         setContent(t);
+        return;
+      }
+      const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null") as { title?: string; content?: string } | null;
+      if (d?.content?.trim()) {
+        setMode("paste");
+        setContent(d.content);
+        if (d.title) setTitle(d.title);
+        setRestored(true);
       }
     } catch {}
   }, []);
+
+  // Keep a local draft while typing so a refresh or closed tab doesn't lose the copy.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        if (content.trim()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, content }));
+        else localStorage.removeItem(DRAFT_KEY);
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [title, content]);
 
   // File dropped on the dashboard: rebuild it and run it through the normal extract flow once.
   useEffect(() => {
@@ -188,6 +219,8 @@ export default function NewSubmissionPage() {
   };
 
   const reset = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    setRestored(false);
     setRunning(false);
     setStage(0);
     setRunLabel("");
@@ -212,8 +245,7 @@ export default function NewSubmissionPage() {
         const d = list[i];
         setRunLabel(list.length > 1 ? `Checking ${i + 1} of ${list.length}: ${d.title}` : `Checking “${d.title}”`);
         setStage(0);
-        // The API runs every stage in one request; advance the list on a timer and finish when it returns.
-        const timer = setInterval(() => setStage((s) => Math.min(s + 1, PIPELINE_STAGES.length - 1)), 900);
+        setStartedAt(Date.now());
         try {
           const res = await fetch("/api/submissions", {
             method: "POST",
@@ -235,7 +267,7 @@ export default function NewSubmissionPage() {
             throw new Error(data.error || `The check could not finish (error ${res.status}).`);
           created.push(data.submission.id);
         } finally {
-          clearInterval(timer);
+          setStartedAt(undefined);
         }
         setStage(PIPELINE_STAGES.length);
       }
@@ -335,16 +367,45 @@ export default function NewSubmissionPage() {
                     <label htmlFor="ad-copy" className="text-sm font-medium text-text-primary">
                       Ad copy
                     </label>
-                    <span className="text-xs tabular-nums text-text-muted">{content.length.toLocaleString()} characters</span>
+                    <span className="text-xs tabular-nums text-text-muted">
+                      {wordCount.toLocaleString()} words · {content.length.toLocaleString()} characters{wordCount > 0 ? ` · ~${Math.max(1, Math.round(wordCount / 3.3))}s to read aloud` : ""}
+                    </span>
                   </div>
+                  {restored && (
+                    <p className="mb-2 flex flex-wrap items-center gap-2 text-[13px] text-text-muted" role="status">
+                      Restored your unsaved draft.
+                      <button type="button" className="font-medium text-text-primary underline underline-offset-4" onClick={() => { setContent(""); setTitle(""); setRestored(false); }}>
+                        Start fresh
+                      </button>
+                    </p>
+                  )}
                   <textarea
                     id="ad-copy"
                     rows={9}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
+                    onPaste={(e) => {
+                      // Strip invisible characters and odd spaces that come along when copying from Docs, Canva or PDFs.
+                      const raw = e.clipboardData.getData("text/plain");
+                      const clean = raw.replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\u00A0/g, " ").replace(/[ \t]+\n/g, "\n");
+                      if (clean === raw) return;
+                      e.preventDefault();
+                      const el = e.currentTarget;
+                      const nextVal = el.value.slice(0, el.selectionStart) + clean + el.value.slice(el.selectionEnd);
+                      setContent(nextVal);
+                    }}
+                    onKeyDown={(e) => {
+                      // Ctrl/Cmd + Enter moves to the next step.
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && content.trim()) {
+                        e.preventDefault();
+                        next();
+                      }
+                    }}
+                    aria-describedby="ad-copy-hint"
                     placeholder="Paste the script, caption, or page copy exactly as it will appear…"
                     className="w-full resize-y rounded-lg glass-inset p-4 font-sans text-[15px] leading-relaxed text-text-primary focus:outline-none focus:ring-2 focus:ring-blue/50"
                   />
+                  <p id="ad-copy-hint" className="mt-1.5 text-[12px] text-text-muted">Your draft is saved on this device as you type. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to continue.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-t border-border-subtle pt-4">
                   <span className="text-[13px] text-text-muted">No ad handy? Try one of these:</span>
@@ -443,7 +504,7 @@ export default function NewSubmissionPage() {
         {step === 2 && (
           <div className="glass space-y-6 rounded-2xl p-6">
             {running ? (
-              <PipelineProgress stage={stage} label={runLabel} />
+              <PipelineProgress stage={stage} label={runLabel} startedAt={startedAt} />
             ) : (
               <>
                 <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">

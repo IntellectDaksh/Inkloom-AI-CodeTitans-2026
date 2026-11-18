@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { AlertOctagon, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { VERDICT, Verdict } from "./shared";
 import { usePrefs } from "../guide/workspace";
@@ -12,6 +12,25 @@ const LINE: Record<Verdict, (open: number) => string> = {
   changes: (n) => `${n} issue${n === 1 ? "" : "s"} to fix or dismiss before this can go out.`,
   blocked: (n) => `${n} issue${n === 1 ? "" : "s"}, including at least one that breaks a hard rule. This can't be published as written.`,
 };
+
+/** Counts the score up from 0 when it first appears (skipped with reduced motion). */
+function useCountUp(target: number): number {
+  const [v, setV] = useState(target);
+  useEffect(() => {
+    const reduce = typeof window === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.motion === "off";
+    if (reduce) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - start) / 700);
+      setV(Math.round(target * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return v;
+}
 
 export function VerdictBanner({
   verdict,
@@ -30,6 +49,7 @@ export function VerdictBanner({
   /** Workspace checks from Settings that failed (localFlags). */
   notes?: string[];
 }) {
+  const shown = useCountUp(score);
   const { passScore, blockBelow } = usePrefs();
   const v = VERDICT[verdict];
   const Icon = ICON[verdict];
@@ -64,7 +84,7 @@ export function VerdictBanner({
               )}
             </span>
             <span className="text-3xl font-semibold tabular-nums text-text-primary">
-              {score}
+              {shown}
               <span className="text-sm font-normal text-text-muted">/100</span>
             </span>
           </div>

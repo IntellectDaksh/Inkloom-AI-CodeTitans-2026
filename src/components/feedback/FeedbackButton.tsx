@@ -18,7 +18,14 @@ const KINDS = [
 export function FeedbackButton({ signedInEmail }: { signedInEmail?: string | null }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<(typeof KINDS)[number]["id"]>("help");
-  const [message, setMessage] = useState("");
+  // Draft survives closing the panel or reloading, until it's sent.
+  const [message, setMessageState] = useState(() => {
+    try { return localStorage.getItem("adsnitch:feedback-draft") ?? ""; } catch { return ""; }
+  });
+  const setMessage = (v: string) => {
+    setMessageState(v);
+    try { if (v) localStorage.setItem("adsnitch:feedback-draft", v); else localStorage.removeItem("adsnitch:feedback-draft"); } catch {}
+  };
   const [email, setEmail] = useState("");
   const [state, setState] = useState<{ busy: boolean; done: boolean; error: string | null }>({ busy: false, done: false, error: null });
   const panelRef = useRef<HTMLDivElement>(null);
@@ -112,6 +119,7 @@ export function FeedbackButton({ signedInEmail }: { signedInEmail?: string | nul
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit(); } }}
                   placeholder={kind === "bug" ? "What happened, and what did you expect?" : "Tell me what you need…"}
                   className="mt-1 w-full resize-y rounded-lg border border-black/15 px-3 py-2 text-base sm:text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-[#2697bd]"
                 />

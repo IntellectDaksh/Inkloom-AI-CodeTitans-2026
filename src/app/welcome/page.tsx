@@ -71,7 +71,7 @@ function Welcome() {
             <form onSubmit={submit} className="space-y-4">
               <p className="text-[13px] text-text-muted">Signed in as {pre.email}</p>
               <label className="block text-sm text-text-primary">Full name
-                <input name="name" required maxLength={80} autoComplete="name" defaultValue={pre.name} className={input} />
+                <input name="name" required maxLength={80} autoComplete="name" autoFocus defaultValue={pre.name} className={input} />
               </label>
               <label className="block text-sm text-text-primary">Job title <span className="text-text-muted">(optional)</span>
                 <input name="jobTitle" maxLength={80} autoComplete="organization-title" placeholder="e.g. Content lead" defaultValue={pre.jobTitle} className={input} />

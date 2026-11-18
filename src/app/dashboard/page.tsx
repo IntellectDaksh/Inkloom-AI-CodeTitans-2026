@@ -85,7 +85,7 @@ function SubmissionRow({ sub }: { sub: SubmissionItem }) {
         className={`group flex items-center gap-4 rounded-xl px-3 py-3 transition-colors hover:bg-panel-hover ${focusRing}`}
       >
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-text-primary">{sub.title}</p>
+          <p className="truncate text-sm font-medium text-text-primary" title={sub.title}>{sub.title}</p>
           <p className="mt-1 truncate text-[13px] text-text-muted">
             {[sub.channel, sub.author, sub.submittedAt].filter(Boolean).join(", ")}
           </p>
@@ -450,6 +450,7 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
                   placeholder="Search by title or author…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setSearchQuery(""); }}
                   className={`h-10 w-full rounded-lg border border-border-default bg-panel pl-9 pr-3 text-base text-text-primary placeholder:text-text-muted sm:w-60 sm:text-sm ${focusRing}`}
                 />
               </div>

@@ -1,4 +1,6 @@
 import { withStore } from "@/lib/db/withStore";
+
+export const maxDuration = 90;
 import { NextRequest, NextResponse, after } from "next/server";
 import { fireWebhooks } from "@/lib/notify/webhooks";
 import { db } from "@/lib/db";
@@ -35,8 +37,6 @@ async function POST_handler(req: NextRequest) {
       sourceFile,
       brandId = SEED_IDS.BRAND_APEX,
       organizationId = SEED_IDS.ORGANISATION_UIDEAS,
-      authorId = body?.userId ?? "usr_daksh",
-      authorName = "Daksh Agrawal",
       channel = "social_media",
       submissionType = "reel_script",
       runAnalysis = true,
@@ -58,12 +58,18 @@ async function POST_handler(req: NextRequest) {
       );
     }
 
+    // The author is always the signed-in user, never a name or id sent by the browser.
+    const me = await getMe();
+    const authorId = me?.id;
+    const authorName = me?.name ?? "Author";
+
     // 1. Create submission record in DB
     const newSubmission = db.createSubmission({
       title,
       brandId,
       organizationId,
       authorId,
+      authorName,
       channel,
       submissionType,
       currentContent: content,

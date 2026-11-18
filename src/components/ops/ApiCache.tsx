@@ -67,6 +67,7 @@ function install() {
       }
     } catch {}
     const res = await orig(input, init);
+    if (res.status === 401 && u.pathname !== "/api/me") window.dispatchEvent(new Event("adsnitch:signed-out"));
     store(path, res);
     return res;
   };

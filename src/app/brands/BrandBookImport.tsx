@@ -128,7 +128,7 @@ export function BrandBookImport({ brandId, brandName, onDone }: { brandId: strin
             {drafts.truncated && " The file was long, so only the first part was read."}
           </p>
 
-          <Head k="guidelines" label="Guidelines" n={drafts.guidelines.length} />
+          {Head({ k: "guidelines", label: "Guidelines", n: drafts.guidelines.length })}
           <ul className="mt-2 space-y-2">
             {drafts.guidelines.map((g, i) => (
               <li key={i} className="flex gap-3 rounded-xl border border-border-subtle p-3">
@@ -144,7 +144,7 @@ export function BrandBookImport({ brandId, brandName, onDone }: { brandId: strin
             ))}
           </ul>
 
-          <Head k="terms" label="Terminology" n={drafts.terms.length} />
+          {Head({ k: "terms", label: "Terminology", n: drafts.terms.length })}
           <ul className="mt-2 space-y-2">
             {drafts.terms.map((t, i) => (
               <li key={i} className="flex items-start gap-3 rounded-xl border border-border-subtle p-3">
@@ -162,7 +162,7 @@ export function BrandBookImport({ brandId, brandName, onDone }: { brandId: strin
             ))}
           </ul>
 
-          <Head k="claims" label="Candidate claims" n={drafts.claims.length} />
+          {Head({ k: "claims", label: "Candidate claims", n: drafts.claims.length })}
           <p className="mt-1 text-[12px] text-text-muted">Saved as under review. A claim can&rsquo;t be used to pass an ad until proof is attached and it&rsquo;s approved.</p>
           <ul className="mt-2 space-y-2">
             {drafts.claims.map((c, i) => (

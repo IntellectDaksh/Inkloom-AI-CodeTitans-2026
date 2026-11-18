@@ -27,6 +27,7 @@ export default async function StatusPage() {
   ];
   return (
     <main className="mx-auto min-h-screen max-w-xl bg-canvas px-4 py-16 text-text-primary">
+      <meta httpEquiv="refresh" content="60" />
       <h1 className="text-[28px] font-semibold tracking-tight">Status</h1>
       <p role="status" className={`mt-4 flex items-center gap-2 rounded-xl border p-4 text-sm font-medium ${ok ? "border-status-success/30 bg-status-success/10" : "border-status-critical/30 bg-status-critical/10 text-status-critical"}`}>
         <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${ok ? "bg-status-success" : "bg-status-critical"}`} />

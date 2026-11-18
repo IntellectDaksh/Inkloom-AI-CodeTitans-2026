@@ -804,8 +804,17 @@ export default function Home() {
                     rows={6}
                     value={ownText}
                     onChange={(e) => setOwnText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && ownText.trim() && busy === null) { e.preventDefault(); runCheck(); } }}
                     placeholder="e.g. Clinically proven to double your energy in 7 days…"
                   />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12, color: "#566878", marginTop: 4 }}>
+                    <span>{ownText.trim() ? `${ownText.trim().split(/\s+/).length} words · Ctrl + Enter to check` : "Ctrl + Enter to check"}</span>
+                    {ownText && (
+                      <button type="button" onClick={() => { setOwnText(""); setOwnResult(null); setOwnError(""); }} style={{ background: "none", border: 0, padding: "4px 6px", color: "#23394a", textDecoration: "underline", cursor: "pointer", font: "inherit" }}>
+                        Clear
+                      </button>
+                    )}
+                  </div>
                   <div className="l-file-row">
                     <input
                       type="file"

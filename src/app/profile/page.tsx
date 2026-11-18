@@ -181,6 +181,7 @@ export default function ProfilePage() {
                 </label>
                 <label className="block text-sm text-text-primary">Bio
                   <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} className={`mt-1 w-full rounded-lg border border-border-default bg-panel px-3 py-2 text-sm text-text-primary ${focusRing}`} />
+                  <span className={`mt-1 block text-right text-[12px] tabular-nums ${bio.length > 450 ? "text-status-red" : "text-text-muted"}`}>{bio.length}/500</span>
                 </label>
                 <p className="text-[13px] text-text-secondary">
                   Role: <strong className="font-medium text-text-primary">{me.label}</strong>. {ROLE_HELP[me.role]} Only an admin can change it.

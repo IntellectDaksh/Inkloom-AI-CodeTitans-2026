@@ -123,6 +123,7 @@ export default function SubmissionsPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") setSearch(""); }}
               placeholder="Search by title, brand, file or author"
               autoComplete="off"
               className="h-11 w-full rounded-lg glass-inset pl-9 pr-3 font-sans text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue/50"
@@ -199,7 +200,7 @@ export default function SubmissionsPage() {
                       className="flex items-center gap-4 px-4 py-4 transition-colors hover:bg-panel-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue sm:px-5"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-text-primary">{r.title}</p>
+                        <p className="truncate text-sm font-medium text-text-primary" title={r.title}>{r.title}</p>
                         <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-text-muted">
                           <span className="inline-flex items-center gap-1.5">
                             <span className={`h-2 w-2 rounded-full ${s.dot}`} aria-hidden />
@@ -216,7 +217,7 @@ export default function SubmissionsPage() {
                           {file && (
                             <span className="inline-flex max-w-[12rem] items-center gap-1 truncate rounded-md border border-border-default bg-panel px-1.5 py-0.5 text-xs text-text-secondary">
                               <FileText className="h-3 w-3 shrink-0" aria-hidden />
-                              <span className="truncate">{file}</span>
+                              <span className="truncate" title={file}>{file}</span>
                             </span>
                           )}
                         </p>

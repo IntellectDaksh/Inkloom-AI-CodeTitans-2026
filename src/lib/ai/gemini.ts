@@ -28,6 +28,34 @@ export const GEMINI_25_FLASH_URL =
 export const GEMINI_FALLBACK_LIVE_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent';
 
+// Fastest model that works for this key goes first; a model that just failed (404, quota, timeout)
+// is skipped for 10 minutes so every request doesn't pay for the same failed round trip again.
+const MODELS = [
+  { id: 'gemini-3.5-flash-lite', url: GEMINI_FALLBACK_LIVE_URL },
+  { id: 'gemini-2.5-flash', url: GEMINI_25_FLASH_URL },
+];
+const benchedUntil = new Map<string, number>();
+const RETRYABLE = new Set([0, 404, 429, 500, 503, 504]);
+
+/** Calls Gemini models in order of preference; returns the first OK response and which model gave it. */
+export async function callGemini(
+  apiKey: string,
+  body: unknown,
+  timeoutMs: number
+): Promise<{ ok: boolean; status: number; text: string; model: string }> {
+  const now = Date.now();
+  const order = [...MODELS].sort((a, b) => Number((benchedUntil.get(a.id) ?? 0) > now) - Number((benchedUntil.get(b.id) ?? 0) > now));
+  let last = { ok: false, status: 0, text: '', model: 'none' };
+  for (const m of order) {
+    const r = await callGeminiEndpoint(m.url, apiKey, body, timeoutMs);
+    if (r.ok) return { ...r, model: m.id };
+    last = { ...r, model: m.id };
+    if (!RETRYABLE.has(r.status)) break; // 400/403: the request itself is bad, another model won't help
+    benchedUntil.set(m.id, Date.now() + 10 * 60_000);
+  }
+  return last;
+}
+
 export const SYSTEM_INSTRUCTION = `You are the AdSnitch Brand Governance Auditor.
 Your mission is to perform strict, rigorous, and impartial enterprise brand compliance reviews.
 CRITICAL RULES:
@@ -344,11 +372,12 @@ export function runDeterministicFallbackAnalysis(input: GeminiAnalysisInput): Ge
     }
   }
 
+  // No numbers here: the server computes the real score, and a second number in the text contradicts it.
   const summaryAssessment = score >= 85
-    ? `Content demonstrates strong brand alignment with a compliance score of ${score}/100. Minor adjustments recommended.`
+    ? 'Mostly in line with brand rules; check the minor notes below.'
     : score >= 60
-    ? `Content requires compliance remediation (Score: ${score}/100). Found unverified claims and tone deviations.`
-    : `Content failed compliance audit (Score: ${score}/100). Critical claims violations and prohibited terminology present.`;
+    ? 'Needs changes: some claims lack approved proof or the tone drifts from brand rules.'
+    : 'Not publishable as written: it breaks hard rules or makes claims with no approved proof.';
 
   return {
     complianceScore: score,
@@ -389,8 +418,8 @@ export async function callGeminiEndpoint(
 }
 
 // Long docs: keep the prompt bounded; channel-fit rules have already seen the full text.
-const MAX_LLM_CHARS = 40000;
-const LLM_TIMEOUT_MS = 45000;
+const MAX_LLM_CHARS = 24000;
+const LLM_TIMEOUT_MS = 25000;
 
 const CHANNEL_HINT: Partial<Record<string, string>> = {
   social_media: 'an Instagram / TikTok / LinkedIn post caption or short-form reel script, a few lines to ~2,200 characters',
@@ -468,16 +497,8 @@ Audit the content thoroughly:
     },
   };
 
-  // Try 1: Primary requested endpoint - Gemini 2.5 Flash
-  let resp = await callGeminiEndpoint(GEMINI_25_FLASH_URL, apiKey, requestBody, LLM_TIMEOUT_MS);
-  let activeModelUsed = 'gemini-2.5-flash';
-
-  // Try 2: If Gemini 2.5 Flash is 404 (model deprecated for new accounts) or 503, try active live fallback endpoint
-  if (!resp.ok && (resp.status === 404 || resp.status === 503 || resp.status === 429 || resp.status === 0)) {
-    console.info(`Gemini 2.5 Flash endpoint returned ${resp.status}; trying live model rollover (${GEMINI_FALLBACK_LIVE_URL})...`);
-    resp = await callGeminiEndpoint(GEMINI_FALLBACK_LIVE_URL, apiKey, requestBody, LLM_TIMEOUT_MS);
-    activeModelUsed = 'gemini-3.5-flash-lite';
-  }
+  const resp = await callGemini(apiKey, requestBody, LLM_TIMEOUT_MS);
+  const activeModelUsed = resp.model;
 
   if (!resp.ok) {
     console.warn(`Gemini live endpoints failed (${resp.status}). Activating deterministic fallback engine.`);

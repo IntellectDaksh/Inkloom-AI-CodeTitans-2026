@@ -477,7 +477,7 @@ function ClaimsLibrary() {
                 <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                 <input
                   id="claim-search" type="search" placeholder="Claim text, code or source…" value={query}
-                  onChange={(e) => setQuery(e.target.value)} className={`${field} w-full pl-9 placeholder:text-text-muted`}
+                  onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }} className={`${field} w-full pl-9 placeholder:text-text-muted`}
                 />
               </div>
             </div>
@@ -543,7 +543,9 @@ function ClaimsLibrary() {
           <div className="space-y-8 p-5 sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] text-text-muted">{current.brand}, {current.type}, <span translate="no">{current.code}</span></p>
+                <p className="text-[13px] text-text-muted">{current.brand}, {current.type}, <span translate="no">{current.code}</span>{" "}
+                  <button type="button" title="Copy claim code" className="ml-1 rounded px-1.5 py-0.5 text-[12px] font-medium text-text-secondary hover:bg-panel-hover hover:text-text-primary" onClick={() => navigator.clipboard?.writeText(current.code)}>Copy code</button>
+                </p>
                 {editing ? (
                   <form onSubmit={saveEdit} className="mt-2 space-y-3">
                     <label className={labelCls}>Claim wording

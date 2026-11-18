@@ -1,4 +1,6 @@
 import { withStore } from "@/lib/db/withStore";
+
+export const maxDuration = 90;
 import { NextRequest, NextResponse } from "next/server";
 import { runGovernancePipeline } from "@/lib/ai";
 import { SEED_IDS } from "@/lib/db/seed";

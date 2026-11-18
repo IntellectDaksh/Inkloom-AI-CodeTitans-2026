@@ -32,6 +32,16 @@ const TYPES: Record<string, string> = {
 const deepLink = (u?: string | null) => (!u ? null : u.startsWith("/claims") ? "/knowledge-base/claims" : u);
 
 const fmt = fmtDateTime;
+/** "5 min ago" for recent items, the full date after a week; the exact time is in the tooltip. */
+const ago = (iso: string) => {
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h ago`;
+  const d = Math.round(h / 24);
+  return d < 7 ? `${d} day${d === 1 ? "" : "s"} ago` : fmt(iso);
+};
 
 export default function NotificationsPage() {
   const prefs = usePrefs();
@@ -148,7 +158,7 @@ export default function NotificationsPage() {
                         {n.title}{!n.is_read && <span className="sr-only"> (unread)</span>}
                       </span>
                       <span className="mt-0.5 block text-[13px] leading-relaxed text-text-secondary">{n.message}</span>
-                      <span className="mt-1 block text-xs text-text-muted">{[TYPES[n.notification_type], fmt(n.created_at)].filter(Boolean).join(", ")}</span>
+                      <span className="mt-1 block text-xs text-text-muted" title={fmt(n.created_at)}>{[TYPES[n.notification_type], ago(n.created_at)].filter(Boolean).join(", ")}</span>
                     </span>
                   </>
                 );

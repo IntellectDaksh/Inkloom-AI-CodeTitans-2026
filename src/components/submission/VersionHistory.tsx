@@ -62,7 +62,12 @@ export function VersionHistory({ versions, runs, authorName }: { versions: Versi
           <tbody>
             {rows.map((r) => (
               <tr key={r.v.id} className="border-t border-border-default">
-                <td className="py-2 pr-3 font-medium text-text-primary">v{r.v.version_number}</td>
+                <td className="py-2 pr-3 font-medium text-text-primary">
+                  v{r.v.version_number}
+                  {r.v.version_number === Math.max(...rows.map((x) => x.v.version_number)) && (
+                    <span className="ml-1.5 rounded-full bg-status-success/12 px-1.5 py-0.5 text-[11px] font-medium text-status-success">Latest</span>
+                  )}
+                </td>
                 <td className="py-2 pr-3 tabular-nums">{r.run ? r.run.overall_score : "Not checked"}</td>
                 <td className={`py-2 pr-3 ${r.run ? RATING[r.run.compliance_rating]?.cls ?? "" : "text-text-muted"}`}>
                   {r.run ? RATING[r.run.compliance_rating]?.label ?? humanize(r.run.compliance_rating) : "n/a"}

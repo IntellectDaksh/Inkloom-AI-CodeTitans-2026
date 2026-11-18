@@ -28,7 +28,7 @@ const apexAd = `Apex ProWhey: 25g of protein per scoop for post-workout recovery
       const r = await runGovernancePipeline(`t_${label}_${ch}`, deck, brand, '00000000-0000-4000-a000-000000000001', ch, {
         apiKey: '', brand: label === 'Apex' ? { name: 'Apex Nutrition', industry: 'Sports Nutrition & Performance Supplements' } : { name: 'Zenith Cloud', industry: 'Enterprise cloud infrastructure SaaS' },
       });
-      assert(r.complianceScore <= 15, `deck for ${label} on ${ch} scored ${r.complianceScore}`);
+      assert(r.complianceScore <= 2, `deck for ${label} on ${ch} scored ${r.complianceScore}`);
       assert(r.findings.some(f => f.id === 'gate_off_brand'), `no off-brand finding for ${label}/${ch}`);
       assert.equal(r.status, 'rejected');
     }

@@ -4,7 +4,7 @@
  */
 
 import { inflateRawSync } from 'zlib';
-import { GEMINI_25_FLASH_URL, GEMINI_FALLBACK_LIVE_URL, callGeminiEndpoint } from './gemini';
+import { callGemini } from './gemini';
 
 export const MAX_EXTRACT_BYTES = 15 * 1024 * 1024;
 
@@ -215,10 +215,7 @@ async function geminiOcr(buf: Buffer, mime: string, apiKey: string): Promise<str
     ],
     generationConfig: { temperature: 0 },
   };
-  let resp = await callGeminiEndpoint(GEMINI_25_FLASH_URL, apiKey, body, 90000);
-  if (!resp.ok && (resp.status === 404 || resp.status === 503 || resp.status === 429)) {
-    resp = await callGeminiEndpoint(GEMINI_FALLBACK_LIVE_URL, apiKey, body, 90000);
-  }
+  const resp = await callGemini(apiKey, body, 60000);
   if (!resp.ok) {
     if (resp.status === 400 || resp.status === 403) {
       throw new ExtractError('The text reader rejected this file. Check the API key or try a smaller file.', 502);

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withStore } from "@/lib/db/withStore";
 import { extractText, ExtractError, MAX_EXTRACT_BYTES } from "@/lib/ai/extract";
 import { fileFromRequest } from "@/lib/files/staged";
-import { callGeminiEndpoint, GEMINI_25_FLASH_URL, GEMINI_FALLBACK_LIVE_URL } from "@/lib/ai/gemini";
+import { callGemini } from "@/lib/ai/gemini";
 
 export const maxDuration = 120;
 
@@ -85,8 +85,7 @@ async function POST_handler(req: NextRequest) {
     contents: [{ role: "user", parts: [{ text: `${PROMPT}\n\n=== BRAND BOOK ===\n${text.slice(0, MAX_CHARS)}` }] }],
     generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: SCHEMA },
   };
-  let resp = await callGeminiEndpoint(GEMINI_25_FLASH_URL, apiKey, body, 90000);
-  if (!resp.ok) resp = await callGeminiEndpoint(GEMINI_FALLBACK_LIVE_URL, apiKey, body, 90000);
+  const resp = await callGemini(apiKey, body, 60000);
   if (!resp.ok) {
     console.error("brandbook gemini failed", resp.status, resp.text.slice(0, 300));
     return bad("The AI service didn't respond. Try again in a minute.", 502);

@@ -183,6 +183,7 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
         <kbd className="hidden rounded border border-border-default bg-panel-hover px-1.5 py-0.5 font-sans text-xs lg:inline">
           {isMac ? "⌘" : "Ctrl"}&nbsp;K
         </kbd>
+        <kbd className="hidden rounded border border-border-default bg-panel-hover px-1.5 py-0.5 font-sans text-xs xl:inline" title="Press / to search">/</kbd>
       </button>
 
       <HelpButton />
