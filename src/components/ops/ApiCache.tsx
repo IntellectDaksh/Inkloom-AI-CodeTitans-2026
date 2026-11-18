@@ -85,7 +85,12 @@ export function ApiCache() {
           clearAll();
           userKey = id;
           // Warm the main screens right after sign-in.
-          if (id) for (const p of PREFETCH) fetch(p).catch(() => {});
+          // Warm the cache when the browser is idle, so it never competes with the page's own requests.
+          if (id) {
+            const warm = () => { for (const p of PREFETCH) fetch(p).catch(() => {}); };
+            const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+            if (ric) ric(warm, { timeout: 4000 }); else setTimeout(warm, 1500);
+          }
         }
       } catch {}
     };

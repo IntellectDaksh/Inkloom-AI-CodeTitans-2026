@@ -266,6 +266,15 @@ const cur = (): StoreCtx => als.getStore() ?? fallbackCtx;
 
 export class StoreConflictError extends Error {}
 
+// Per-instance cache of workspace documents, keyed by organisation, holding the last version seen.
+// ponytail: unbounded per instance but capped at 50 orgs (LRU by insertion); move to a shared cache if needed.
+const docCache = new Map<string, { version: number; data: InkloomDatabaseState }>();
+function rememberDoc(orgId: string, version: number, data: InkloomDatabaseState) {
+  docCache.delete(orgId);
+  docCache.set(orgId, { version, data: structuredClone(data) });
+  if (docCache.size > 50) docCache.delete(docCache.keys().next().value as string);
+}
+
 /**
  * A new organisation starts with the starter brands and claims library, but no work history:
  * reviews, approvals, findings, comments, audit trail and notifications belong to the account
@@ -298,10 +307,23 @@ export async function syncFromRemote(orgId: string | null): Promise<void> {
   }
   const sb = getSupabaseClient();
   if (!sb || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
-  const { data, error } = await sb.from('app_state').select('data, version').eq('id', orgId).maybeSingle();
-  if (error) throw new Error(`Supabase read failed: ${error.message}`);
   ctx.docId = orgId;
   ctx.remote = true;
+  // Ask only for the version first; if this instance already holds that version, skip downloading
+  // the whole document. CAS on write still guarantees correctness if anything changed in between.
+  const cached = docCache.get(orgId);
+  let data: { data: unknown; version: unknown } | null = null;
+  if (cached) {
+    const { data: v, error } = await sb.from('app_state').select('version').eq('id', orgId).maybeSingle();
+    if (error) throw new Error(`Supabase read failed: ${error.message}`);
+    if (v && Number(v.version) === cached.version) data = { data: structuredClone(cached.data), version: cached.version };
+  }
+  if (!data) {
+    const { data: full, error } = await sb.from('app_state').select('data, version').eq('id', orgId).maybeSingle();
+    if (error) throw new Error(`Supabase read failed: ${error.message}`);
+    data = full;
+    if (full?.data) rememberDoc(orgId, Number(full.version) || 0, full.data as InkloomDatabaseState);
+  }
   if (data?.data) {
     ctx.version = Number(data.version) || 0;
     ctx.state = backfillSeed(data.data as InkloomDatabaseState);
@@ -322,6 +344,7 @@ export async function flushToRemote(): Promise<void> {
   if (error) throw new Error(`Supabase write failed: ${error.message}`);
   if (data === null || data === undefined) throw new StoreConflictError('Someone else saved at the same time.');
   ctx.version = Number(data);
+  rememberDoc(ctx.docId, ctx.version, ctx.state);
   ctx.dirty = false;
   if (ctx.newAudit.length) {
     const rows = ctx.newAudit.map((e) => ({

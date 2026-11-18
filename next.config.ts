@@ -37,8 +37,16 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  // Only ship the icons each page actually uses from lucide-react.
+  experimental: { optimizePackageImports: ["lucide-react"] },
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      // Logos, landing art and icons never change in place: let browsers and the CDN keep them for a year.
+      { source: "/:file(.*\.(?:svg|png|jpg|jpeg|webp|ico|woff2))", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+      // Status checks can be shared for a few seconds instead of hitting the database on every poll.
+      { source: "/api/health", headers: [{ key: "Cache-Control", value: "public, s-maxage=15, stale-while-revalidate=30" }] },
+    ];
   },
   turbopack: {
     rules: {

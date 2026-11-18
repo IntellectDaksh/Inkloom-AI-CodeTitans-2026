@@ -151,7 +151,7 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
             {mode === "register" && (
               <label className="flex items-start gap-2 text-[13px] leading-snug text-text-secondary">
                 <input name="terms" type="checkbox" required className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]" />
-                <span>I agree to the <a href="/terms" target="_blank" className="underline">Terms</a> and <a href="/privacy" target="_blank" className="underline">Privacy Policy</a>, and understand AdSnitch is a review aid, not legal advice.</span>
+                <span>I agree to the <a href="/terms" target="_blank" rel="noopener" className="underline">Terms</a> and <a href="/privacy" target="_blank" rel="noopener" className="underline">Privacy Policy</a>, and understand AdSnitch is a review aid, not legal advice.</span>
               </label>
             )}
             {error && <p role="alert" className="text-[13px] text-status-red">{error}</p>}

@@ -3,11 +3,13 @@
 import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header, HeaderBreadcrumb } from "./Header";
-import { CommandK } from "../ui/CommandK";
+import dynamic from "next/dynamic";
 import { PageMotion } from "./Motion";
 import { FloatingLayer } from "./FloatingLayer";
-import { WorkspacePicker } from "../guide/WorkspacePicker";
-import { DemoOverlay } from "../tour/DemoOverlay";
+// Overlays that aren't needed for first paint load in their own chunks, after the page is interactive.
+const CommandK = dynamic(() => import("../ui/CommandK").then((m) => m.CommandK), { ssr: false });
+const WorkspacePicker = dynamic(() => import("../guide/WorkspacePicker").then((m) => m.WorkspacePicker), { ssr: false });
+const DemoOverlay = dynamic(() => import("../tour/DemoOverlay").then((m) => m.DemoOverlay), { ssr: false });
 import { useMe, usePrefs, setPrefs, readPrefs } from "../guide/workspace";
 import { FeedbackButton } from "../feedback/FeedbackButton";
 
@@ -82,6 +84,24 @@ export function AppLayout({
     };
   }, []);
 
+  // "g" then a letter jumps between main pages: d dashboard, c check an ad, r reviews, a approvals, l claims, s settings.
+  React.useEffect(() => {
+    const go: Record<string, string> = { d: "/dashboard", c: "/submissions/new", r: "/submissions", a: "/approvals", l: "/knowledge-base/claims", s: "/settings" };
+    let armed = 0;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.metaKey || e.ctrlKey || e.altKey || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      if (e.key === "[") { setPrefs({ sidebarCollapsed: !readPrefs().sidebarCollapsed }); return; }
+      if (e.key === "g") { armed = Date.now(); return; }
+      if (armed && Date.now() - armed < 1200 && go[e.key]) {
+        armed = 0;
+        window.location.assign(go[e.key]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Back-to-top appears once you've scrolled a screen down.
   const [showTop, setShowTop] = useState(false);
   React.useEffect(() => {
@@ -92,6 +112,9 @@ export function AppLayout({
 
   return (
     <div className="relative isolate flex min-h-screen bg-canvas text-text-primary overflow-x-clip">
+      <a href="#main-content" className="sr-only z-[80] rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
+        Skip to content
+      </a>
       <div className="atmosphere" aria-hidden="true">
         <i />
         <i />
@@ -154,7 +177,7 @@ export function AppLayout({
           onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
         />
 
-        <main
+        <main id="main-content" tabIndex={-1}
           className={`flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-10 w-full min-w-0 ${
             fullWidth ? "max-w-none" : "app-width max-w-7xl mx-auto"
           } ${className}`}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useCountUp } from "@/components/submission/VerdictBanner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Download, Search, UploadCloud, FilePlus2 } from "lucide-react";
@@ -190,6 +191,13 @@ export default function DashboardPage() {
   const [submissions, setSubmissions] = useState<SubmissionItem[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  // Restore the last filter after hydration so server and client render the same first frame.
+  useEffect(() => {
+    try {
+      const f = localStorage.getItem("adsnitch:dash-filter");
+      if (f) setFilterStatus(f);
+    } catch {}
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
@@ -384,7 +392,7 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
               <Link href={s.href} className={`block rounded-2xl p-5 ${focusRing}`}>
                 <p className="pr-6 text-[13px] text-text-muted">{s.label}</p>
                 <p className="mt-2 text-2xl font-semibold tabular-nums text-text-primary">
-                  {submissions === null ? <span className="inline-block h-7 w-12 animate-pulse rounded bg-panel-hover align-middle" /> : s.value}
+                  {submissions === null ? <span className="inline-block h-7 w-12 animate-pulse rounded bg-panel-hover align-middle" /> : typeof s.value === "number" ? <CountUp value={s.value} /> : s.value}
                 </p>
                 <p className="mt-1 text-xs text-text-muted">View list</p>
               </Link>
@@ -459,7 +467,7 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
                   <button
                     key={f.id}
                     aria-pressed={filterStatus === f.id}
-                    onClick={() => setFilterStatus(f.id)}
+                    onClick={() => { setFilterStatus(f.id); try { localStorage.setItem("adsnitch:dash-filter", f.id); } catch {} }}
                     className={`whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${focusRing} ${
                       filterStatus === f.id ? "bg-panel-elevated text-text-primary" : "text-text-muted hover:text-text-primary"
                     }`}
@@ -498,4 +506,9 @@ footer{margin-top:24px;font-size:12px;color:#8a99a6}</style></head><body>
       </div>
     </AppLayout>
   );
+}
+
+/** Stat numbers count up once when the dashboard loads. */
+function CountUp({ value }: { value: number }) {
+  return <>{useCountUp(value)}</>;
 }

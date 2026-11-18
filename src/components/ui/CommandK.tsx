@@ -350,6 +350,10 @@ export function CommandK({
               <kbd className="text-xs px-1.5 py-0.5 rounded bg-panel border border-border-subtle text-text-primary">/</kbd>
               <span>open from any page</span>
             </span>
+            <span className="hidden items-center gap-1 md:flex">
+              <kbd className="text-xs px-1.5 py-0.5 rounded bg-panel border border-border-subtle text-text-primary">g</kbd>
+              <span>then d / c / r / a / l / s to jump</span>
+            </span>
           </div>
 
           <span className="flex items-center gap-1">

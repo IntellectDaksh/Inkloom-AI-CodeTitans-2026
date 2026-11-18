@@ -33,34 +33,33 @@ export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts =
   return async (...args: A) => {
     if (opts.apiKey) return withApiKey(handler, args);
     const sb = await supabaseServer();
-    const { data: { user: sessionUser } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
+    // No Supabase auth cookie means no session: skip the auth server round trip for anonymous calls.
+    const hasSession = /(?:^|;\s*)sb-[^=]*-auth-token/.test((args[0] as Request)?.headers?.get?.("cookie") ?? "");
+    const { data: { user: sessionUser } } = hasSession
+      ? await sb.auth.getUser().catch(() => ({ data: { user: null } }))
+      : { data: { user: null } };
     // A session that still owes its two-factor code gets no data access.
     const mfaPending = !!sessionUser && (await needsMfa(sb));
     if (mfaPending && !opts.public) return NextResponse.json({ success: false, error: "Enter your two-factor code to continue.", mfa: true }, { status: 401 });
     const user = mfaPending ? null : sessionUser;
     if (!user && !opts.public) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
 
-    if (opts.limit) {
-      const req = args[0] as Request;
-      const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
-      const key = `${opts.name ?? "api"}:${user ? `u:${user.id}` : `ip:${ip}`}`;
-      if (!(await rateLimit(key, user ? opts.limit[1] : opts.limit[0], 3600))) {
-        return NextResponse.json(
-          { success: false, error: user ? "Hourly limit reached. Try again later." : "Free check limit reached. Create a free account for more checks." },
-          { status: 429 },
-        );
-      }
+    // Rate limit and organisation lookup are independent: run them together to save a round trip.
+    const req = args[0] as Request;
+    const ip = req?.headers?.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+    const [allowed, org] = await Promise.all([
+      opts.limit ? rateLimit(`${opts.name ?? "api"}:${user ? `u:${user.id}` : `ip:${ip}`}`, user ? opts.limit[1] : opts.limit[0], 3600) : Promise.resolve(true),
+      user ? orgOf(user.id).then((o) => ({ ok: true as const, o }), () => ({ ok: false as const, o: null })) : Promise.resolve({ ok: true as const, o: null }),
+    ]);
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: user ? "Hourly limit reached. Try again later." : "Free check limit reached. Create a free account for more checks." },
+        { status: 429 },
+      );
     }
-
-    let orgId: string | null = null;
-    if (user) {
-      try {
-        orgId = await orgOf(user.id);
-      } catch {
-        return NextResponse.json({ success: false, error: "The database is unreachable right now. Try again in a moment." }, { status: 503 });
-      }
-      if (!orgId) return NextResponse.json({ success: false, error: "Your account has no workspace yet. Sign out and in again." }, { status: 403 });
-    }
+    if (!org.ok) return NextResponse.json({ success: false, error: "The database is unreachable right now. Try again in a moment." }, { status: 503 });
+    const orgId: string | null = org.o;
+    if (user && !orgId) return NextResponse.json({ success: false, error: "Your account has no workspace yet. Sign out and in again." }, { status: 403 });
 
     return runLoop(handler, args, orgId, user?.id ?? null);
   };

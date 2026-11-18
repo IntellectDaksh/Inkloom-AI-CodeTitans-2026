@@ -188,6 +188,11 @@ export default function ProfilePage() {
                 </p>
                 <Msg m={msg.profile ?? null} />
                 <button type="submit" disabled={busy === "profile"} className={primary}>{busy === "profile" ? "Saving…" : "Save profile"}</button>
+                {(name !== me.name || bio !== (me.bio ?? "")) && busy !== "profile" && (
+                  <span className="ml-3 inline-flex items-center gap-1.5 text-[12px] text-text-muted" role="status">
+                    <span className="h-1.5 w-1.5 rounded-full bg-status-amber" aria-hidden="true" /> Unsaved changes
+                  </span>
+                )}
               </form>
             </section>
 

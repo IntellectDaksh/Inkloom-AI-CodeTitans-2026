@@ -52,6 +52,7 @@ function NavList({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
               return (
                 <li key={item.href}>
                   <Link
+                    prefetch={false}
                     href={item.href}
                     data-tour={`nav-${item.href}`}
                     onClick={onNavigate}

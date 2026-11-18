@@ -20,10 +20,16 @@ export async function supabaseServer() {
 }
 
 /** Service-role client. Server only, bypasses RLS: callers must authorise first. */
+const makeAdmin = (key: string) =>
+  createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, { auth: { persistSession: false, autoRefreshToken: false } });
+let adminClient: ReturnType<typeof makeAdmin> | null = null;
+/** One shared service-role client per server instance (it holds no user session, so reuse is safe). */
 export function supabaseAdmin() {
+  if (adminClient) return adminClient;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  adminClient = makeAdmin(key);
+  return adminClient;
 }
 
 export interface Me {

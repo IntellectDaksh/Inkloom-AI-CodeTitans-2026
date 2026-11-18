@@ -112,7 +112,7 @@ export default function TeamPage() {
             <h2 id="people-h" className="text-base font-semibold text-text-primary">People</h2>
             <div className="flex flex-wrap gap-2">
               <label className="sr-only" htmlFor="m-q">Search members</label>
-              <input id="m-q" type="search" placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} className={`${inputCls} h-9 w-56`} style={inputStyle} />
+              <input id="m-q" type="search" placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") setQ(""); }} className={`${inputCls} h-9 w-56`} style={inputStyle} />
               <label className="sr-only" htmlFor="m-role">Filter by role</label>
               <select id="m-role" value={roleF} onChange={(e) => setRoleF(e.target.value as Role | "")} className={`${inputCls} h-9`} style={inputStyle}>
                 <option value="">All roles</option>

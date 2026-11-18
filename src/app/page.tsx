@@ -606,6 +606,24 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
+  // Highlight the nav link for the section you're reading.
+  useEffect(() => {
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('.nav-center a[href^="#"]')];
+    const ids = links.map((a) => a.getAttribute("href")!.slice(1));
+    const sections = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          links.forEach((a) => (a.getAttribute("href") === `#${e.target.id}` ? a.setAttribute("data-active", "") : a.removeAttribute("data-active")));
+        }
+      },
+      { rootMargin: "-45% 0px -50% 0px" }
+    );
+    sections.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
   return (
     <div className="site" id="top">
       <FloatingLayer density="page" />

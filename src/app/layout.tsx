@@ -18,6 +18,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
+      <head>
+        {/* Open the font connections early; the stylesheet itself is requested from globals.css. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+      </head>
       <body className="min-h-full flex flex-col">
         <Suspense fallback={null}>
           <RouteProgress />

@@ -90,6 +90,13 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
         : [{ label: title ?? "AdSnitch" }];
   const heading = crumbs[crumbs.length - 1].label;
   const unread = (visible ?? []).filter((n) => !(n.isRead ?? n.is_read)).length;
+  // Bell wiggles once when the unread count goes up (not on first load).
+  const prevUnread = useRef<number | null>(null);
+  const [ring, setRing] = useState(0);
+  useEffect(() => {
+    if (prevUnread.current !== null && unread > prevUnread.current) setRing((r) => r + 1);
+    prevUnread.current = unread;
+  }, [unread]);
 
   // Sound / desktop alerts for unread notifications newer than the last ones this browser has seen.
   useEffect(() => {
@@ -197,9 +204,9 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
           aria-expanded={isNotifOpen}
           className={`relative flex h-10 w-10 items-center justify-center rounded-lg border border-border-default bg-panel text-text-secondary hover:bg-panel-hover hover:text-text-primary ${focusRing}`}
         >
-          <Bell className="h-4 w-4" aria-hidden="true" />
+          <Bell key={ring} className={`h-4 w-4 ${ring ? "ui-shake" : ""}`} aria-hidden="true" />
           {unread > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold leading-none text-canvas ring-2 ring-canvas" aria-hidden="true">
+            <span key={unread} className="ui-badge absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold leading-none text-canvas ring-2 ring-canvas" aria-hidden="true">
               {unread > 9 ? "9+" : unread}
             </span>
           )}

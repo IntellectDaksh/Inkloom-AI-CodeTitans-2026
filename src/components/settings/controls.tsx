@@ -110,7 +110,7 @@ export function Toggle({
         aria-checked={checked}
         aria-describedby={hint ? `${id}-h` : undefined}
         disabled={disabled}
-        onClick={() => onChange(!checked)}
+        onClick={() => { navigator.vibrate?.(8); onChange(!checked); }}
         className={`set-anim relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
           checked ? "bg-blue" : "bg-border-strong"
         } ${focusRing}`}

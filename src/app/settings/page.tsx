@@ -109,7 +109,9 @@ export default function SettingsPage() {
   // Selected tab lives in ?tab= so refresh and back/forward restore it.
   useEffect(() => {
     const sync = () => {
-      const t = new URLSearchParams(window.location.search).get("tab");
+      // No ?tab= → reopen the section you were last in on this device.
+      let t = new URLSearchParams(window.location.search).get("tab");
+      if (!t) { try { t = localStorage.getItem("adsnitch:settings-tab"); } catch {} }
       setActive(ALL_SECTIONS.some((s) => s.id === t) ? t! : "workspace");
     };
     sync();
@@ -121,6 +123,7 @@ export default function SettingsPage() {
     if (focus) tabRefs.current[id]?.focus();
     if (id === active) return;
     setActive(id);
+    try { localStorage.setItem("adsnitch:settings-tab", id); } catch {}
     const url = new URL(window.location.href);
     url.searchParams.set("tab", id);
     window.history.pushState(null, "", url);
@@ -258,7 +261,7 @@ export default function SettingsPage() {
                 </button>
               )}
             </div>
-            {q && shown.length === 0 && <p className="px-1 pb-2 text-[13px] text-text-muted">No setting matches that.</p>}
+            {q && <p className="px-1 pb-2 text-[13px] text-text-muted" aria-live="polite">{shown.length === 0 ? "No setting matches that." : `${shown.length} section${shown.length === 1 ? "" : "s"} match`}</p>}
             <div role="tablist" aria-label="Settings sections" aria-orientation="vertical" onKeyDown={onTabKey} className="flex gap-1 lg:sticky lg:top-24 lg:flex-col">
               {shown.map(({ id, label, icon: Icon }) => {
                 const on = active === id;

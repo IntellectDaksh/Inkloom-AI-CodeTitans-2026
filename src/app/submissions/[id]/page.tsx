@@ -1,7 +1,7 @@
 "use client";
 
 import { fmtDateTime } from "@/components/settings/format";
-import React, { use, useCallback, useEffect, useMemo, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, CheckCircle2, Copy, Download, Edit3, Eye, FileText, GitCompare, RefreshCw, Send, Sparkles, X } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -72,9 +72,10 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   const [draft, setDraft] = useState("");
   const [view, setView] = useState<"annotated" | "diff">("annotated");
   // "What this page tells you" can be hidden once you know the page; remembered on this device.
-  const [hideGuide, setHideGuide] = useState(() => {
-    try { return localStorage.getItem("adsnitch:hide-result-guide") === "1"; } catch { return false; }
-  });
+  const [hideGuide, setHideGuide] = useState(false);
+  useEffect(() => {
+    try { if (localStorage.getItem("adsnitch:hide-result-guide") === "1") setHideGuide(true); } catch {}
+  }, []);
   const dismissGuide = () => {
     setHideGuide(true);
     try { localStorage.setItem("adsnitch:hide-result-guide", "1"); } catch {}
@@ -189,6 +190,24 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
         ?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" })
     );
   };
+
+  // j / k step through open issues (and highlight them in the ad), like a reading list.
+  const stepRef = useRef({ openFindings, selectedId, select });
+  stepRef.current = { openFindings, selectedId, select };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.metaKey || e.ctrlKey || e.altKey || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      if (e.key !== "j" && e.key !== "k") return;
+      const { openFindings: list, selectedId: cur, select: pick } = stepRef.current;
+      if (!list.length) return;
+      const i = list.findIndex((f) => f.id === cur);
+      const n = e.key === "j" ? (i + 1) % list.length : (i - 1 + list.length) % list.length;
+      pick(list[n].id, "card");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ---- actions (same endpoints as before) ----
   const reRun = async (text: string) => {

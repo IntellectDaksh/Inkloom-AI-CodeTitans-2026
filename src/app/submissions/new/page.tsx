@@ -98,6 +98,7 @@ export default function NewSubmissionPage() {
 
   // Copy carried over from the public live check; otherwise bring back an unsaved draft from last time.
   const [restored, setRestored] = useState(false);
+  const [savedAt, setSavedAt] = useState(0);
   useEffect(() => {
     try {
       const t = sessionStorage.getItem("adsnitch:pending-text");
@@ -121,7 +122,7 @@ export default function NewSubmissionPage() {
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        if (content.trim()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, content }));
+        if (content.trim()) { localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, content })); setSavedAt(Date.now()); }
         else localStorage.removeItem(DRAFT_KEY);
       } catch {}
     }, 400);
@@ -405,7 +406,7 @@ export default function NewSubmissionPage() {
                     placeholder="Paste the script, caption, or page copy exactly as it will appear…"
                     className="w-full resize-y rounded-lg glass-inset p-4 font-sans text-[15px] leading-relaxed text-text-primary focus:outline-none focus:ring-2 focus:ring-blue/50"
                   />
-                  <p id="ad-copy-hint" className="mt-1.5 text-[12px] text-text-muted">Your draft is saved on this device as you type. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to continue.</p>
+                  <p id="ad-copy-hint" className="mt-1.5 text-[12px] text-text-muted">{savedAt ? <span className="text-status-success">Draft saved.</span> : "Your draft is saved on this device as you type."} <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to continue.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-t border-border-subtle pt-4">
                   <span className="text-[13px] text-text-muted">No ad handy? Try one of these:</span>

@@ -64,7 +64,7 @@ export function HighlightedCopy({
                   aria-label={`Line ${n + 1}, ${s.text}: ${SEVERITY[sevOf(s.finding.severity)].label} issue. Show details.`}
                   className={`rounded border px-1 py-0.5 text-left font-medium transition-shadow focus-visible:outline-2 focus-visible:outline-blue cursor-pointer ${
                     SEVERITY[sevOf(s.finding.severity)].mark
-                  } ${selectedId === s.finding.id ? "ring-2 ring-ink ring-offset-1 ring-offset-canvas" : ""}`}
+                  } ${selectedId === s.finding.id ? "ui-pulse ring-2 ring-ink ring-offset-1 ring-offset-canvas" : ""}`}
                 >
                   {s.text}
                 </button>

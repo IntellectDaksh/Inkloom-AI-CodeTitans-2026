@@ -84,7 +84,7 @@ export function PipelineProgress({ stage, label, startedAt }: { stage: number; l
   return (
     <div className="space-y-3" role="status" aria-live="polite">
       {label && <p className="text-sm font-medium text-text-primary">{label}</p>}
-      <div className="flex items-center gap-3 text-sm">
+      <div className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm ${done ? "" : "ui-sheen"}`}>
         <span className="flex h-6 w-6 shrink-0 items-center justify-center">
           {done ? <Check className="h-4 w-4 text-status-success" aria-hidden /> : <Loader2 className="h-4 w-4 animate-spin text-text-primary motion-reduce:animate-none" aria-hidden />}
         </span>

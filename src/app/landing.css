@@ -8299,3 +8299,7 @@ footer#footer::before {
 @media (max-width: 900px) {
   footer#footer { padding-top: 190px !important; }
 }
+
+/* Performance: the browser skips layout and paint for sections far below the fold until you scroll near them. */
+.pipeline-section, #proof, #who, #trust, #faq, .final-section { content-visibility: auto; contain-intrinsic-size: auto 900px; }
+.nav-center a[data-active] { color: #0b1620 !important; text-decoration: underline; text-decoration-color: #e5535d; text-decoration-thickness: 2px; text-underline-offset: 6px; }

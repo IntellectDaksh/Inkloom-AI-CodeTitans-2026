@@ -75,7 +75,9 @@ export default function SubmissionsPage() {
     load();
     const qs = new URLSearchParams(window.location.search);
     setCreated(Number(qs.get("created")) || 0);
-    const st = qs.get("status");
+    // A link's ?status= wins; otherwise reopen the filter you used last on this device.
+    let st = qs.get("status");
+    if (!st) { try { st = localStorage.getItem("adsnitch:reviews-filter"); } catch {} }
     if (st && FILTERS.some((f) => f.id === st)) setFilter(st);
   }, []);
 
@@ -135,7 +137,7 @@ export default function SubmissionsPage() {
                 key={f.id}
                 type="button"
                 aria-pressed={filter === f.id}
-                onClick={() => setFilter(f.id)}
+                onClick={() => { setFilter(f.id); try { localStorage.setItem("adsnitch:reviews-filter", f.id); } catch {} }}
                 className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-blue cursor-pointer ${
                   filter === f.id ? "border-ink bg-ink text-ghost" : "border-border-default bg-panel text-text-secondary hover:text-text-primary"
                 }`}

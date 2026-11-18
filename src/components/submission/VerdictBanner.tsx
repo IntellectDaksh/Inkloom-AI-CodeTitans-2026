@@ -14,7 +14,7 @@ const LINE: Record<Verdict, (open: number) => string> = {
 };
 
 /** Counts the score up from 0 when it first appears (skipped with reduced motion). */
-function useCountUp(target: number): number {
+export function useCountUp(target: number): number {
   const [v, setV] = useState(target);
   useEffect(() => {
     const reduce = typeof window === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.motion === "off";
