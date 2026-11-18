@@ -21,6 +21,7 @@ async function POST_handler(req: NextRequest) {
       SEED_IDS.BRAND_APEX,
       SEED_IDS.ORGANISATION_UIDEAS,
       "general",
+      { noBrand: true },
     );
     return NextResponse.json({ success: true, report });
   } catch (err) {

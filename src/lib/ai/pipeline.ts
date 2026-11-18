@@ -493,6 +493,8 @@ export interface GovernancePipelineOptions {
   repo?: BrandKnowledgeRepository;
   /** Brand the copy is checked for; looked up from the store when omitted. */
   brand?: BrandProfile;
+  /** No real brand selected (public live check): don't judge brand fit, only claims, rules and document type. */
+  noBrand?: boolean;
   style?: { language?: 'en' | 'hi'; tone?: 'plain' | 'formal' };
 }
 
@@ -599,6 +601,14 @@ export function enforceGates(
       `This is a ${kind.replace(/_/g, ' ')}, not ${channel.replace(/_/g, ' ')} copy. ${gate.channelReason ?? ''}`.trim(),
       'Write the actual copy that will run on this channel and check that.'
     );
+  } else if (!gate && docSignals >= 3) {
+    // No AI verdict (rules-only check): three or more deck/brochure sections is enough to call it a document, not an ad.
+    add(
+      'gate_wrong_type',
+      opening,
+      'This reads like a pitch deck or company document (sections such as About us, Services, Pricing, Contact), not ad copy.',
+      'Write the actual copy that will run on this channel and check that.'
+    );
   }
 }
 
@@ -665,7 +675,7 @@ export async function runGovernancePipeline(
   // STAGE 4: LLM Contextual Analysis (Gemini 2.5 Flash / Fallback)
   // --------------------------------------------------------------------------
   const stage4Start = performance.now();
-  const brandProfile = options?.brand ?? (await lookupBrand(brandId));
+  const brandProfile = options?.noBrand ? undefined : options?.brand ?? (await lookupBrand(brandId));
   const geminiInput = {
     submissionId,
     channel: resolvedChannel,
