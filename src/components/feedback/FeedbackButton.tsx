@@ -116,6 +116,7 @@ export function FeedbackButton({ signedInEmail }: { signedInEmail?: string | nul
                   required
                   minLength={5}
                   maxLength={5000}
+                  aria-describedby="fb-count"
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -123,6 +124,7 @@ export function FeedbackButton({ signedInEmail }: { signedInEmail?: string | nul
                   placeholder={kind === "bug" ? "What happened, and what did you expect?" : "Tell me what you need…"}
                   className="mt-1 w-full resize-y rounded-lg border border-black/15 px-3 py-2 text-base sm:text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-[#2697bd]"
                 />
+                {message.length > 4000 && <span id="fb-count" className="mt-1 block text-right text-[11px] text-[#c0392b]">{message.length}/5000</span>}
               </label>
               {!signedInEmail && (
                 <label className="block text-[13px] font-medium">

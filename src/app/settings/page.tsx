@@ -247,7 +247,7 @@ export default function SettingsPage() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && shown[0]) { selectTab(shown[0].id); setQuery(""); } }}
+                onKeyDown={(e) => { if (e.key === "Enter" && shown[0]) { selectTab(shown[0].id); setQuery(""); } if (e.key === "Escape") setQuery(""); }}
                 placeholder="Search settings…"
                 aria-label="Search settings"
                 className={`h-10 w-full rounded-lg border border-border-default bg-panel pl-9 pr-8 text-sm text-text-primary placeholder:text-text-muted ${focusRing}`}

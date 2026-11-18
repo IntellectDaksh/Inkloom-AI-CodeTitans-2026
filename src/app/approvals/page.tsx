@@ -150,7 +150,13 @@ export default function ApprovalsPage() {
   };
 
   const scoped = (items ?? []).filter((i) => !mine || i.assigneeId === me.userId);
-  const list = scoped.filter((i) => i.status === tab);
+  // Pending work: overdue first, then soonest due, then the rest in their usual order.
+  const dueRank = (d: string | null) => (d ? new Date(d).getTime() : Infinity);
+  const list = scoped
+    .filter((i) => i.status === tab)
+    .map((i, n) => ({ i, n }))
+    .sort((a, b) => (tab === "pending" ? dueRank(a.i.dueDate) - dueRank(b.i.dueDate) || a.n - b.n : a.n - b.n))
+    .map(({ i }) => i);
   const counts = Object.fromEntries(TABS.map((t) => [t.id, scoped.filter((i) => i.status === t.id).length])) as Record<Tab, number>;
   const today = todayIso();
   const canAssign = REVIEW_ROLES.includes(me.role);

@@ -1088,3 +1088,13 @@ hr { border: 0; height: 1px; background: rgba(16,45,64,.1); }
 @media (forced-colors: active) { :focus-visible { outline: 2px solid CanvasText; } }
 html { scrollbar-gutter: stable; }
 body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+/* Phones: 16px inputs stop iOS from zooming the page when a field is focused. */
+@media (max-width: 640px) { input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px; } }
+html { scroll-padding-top: 80px; }
+abbr[title] { text-decoration: underline dotted; cursor: help; }
+mark { border-radius: 4px; padding: 0 2px; }
+button, [role="tab"], [role="button"] { -webkit-user-select: none; user-select: none; }
+img[alt=""], svg { -webkit-user-drag: none; }
+input:disabled, select:disabled, textarea:disabled { opacity: 0.6; }
+select { cursor: pointer; }
+summary:focus-visible { outline: 2px solid var(--color-blue, #2697bd); outline-offset: 2px; border-radius: 6px; }

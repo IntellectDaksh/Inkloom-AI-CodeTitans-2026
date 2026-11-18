@@ -46,6 +46,7 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
     try {
       if (mode === "login") {
         const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (!error) { try { localStorage.setItem("adsnitch:last-email", email); } catch {} }
         if (error) throw error;
         // No explicit ?next: go to the account's chosen start page (Settings > Workspace).
         let to = next;
@@ -87,6 +88,14 @@ export function AuthForm({ mode, next: rawNext, error: initialError }: { mode: M
     const { error } = await supabaseBrowser().auth.signInWithOAuth({ provider: "google", options: { redirectTo: callback(next) } });
     if (error) setError(error.message);
   }
+
+  // Prefill the last email used on this device (after hydration, so server and client HTML match).
+  useEffect(() => {
+    if (mode !== "login") return;
+    const el = document.querySelector<HTMLInputElement>('form input[name="email"]');
+    const last = lastEmail();
+    if (el && !el.value && last) el.value = last;
+  }, [mode]);
 
   const c = COPY[mode];
   const social = mode === "login" || mode === "register";
@@ -370,4 +379,9 @@ function friendlyAuthError(msg = ""): string {
   if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Too many attempts. Wait a minute and try again.";
   if (m.includes("network") || m.includes("fetch")) return "Couldn't reach the server. Check your connection and try again.";
   return msg || "Something went wrong. Try again.";
+}
+
+/** Email used for the last successful sign-in on this device, to save retyping it. */
+function lastEmail(): string | undefined {
+  try { return localStorage.getItem("adsnitch:last-email") ?? undefined; } catch { return undefined; }
 }

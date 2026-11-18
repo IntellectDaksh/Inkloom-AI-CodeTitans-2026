@@ -190,7 +190,7 @@ export default function TeamPage() {
             <p className="mt-1 text-[13px] text-text-muted">They get an email, set a password, and land in this workspace with the role you pick.</p>
             <form onSubmit={invite} className="mt-4 flex flex-col gap-3 sm:flex-row">
               <label className="sr-only" htmlFor="inv-email">Email</label>
-              <input id="inv-email" type="email" required autoComplete="off" spellCheck={false} placeholder="name@company.com" value={invEmail} onChange={(e) => setInvEmail(e.target.value)} className={`${inputCls} flex-1`} style={inputStyle} />
+              <input id="inv-email" type="email" required autoComplete="off" spellCheck={false} placeholder="name@company.com" value={invEmail} onChange={(e) => setInvEmail(e.target.value.trim().toLowerCase())} inputMode="email" autoCapitalize="none" className={`${inputCls} flex-1`} style={inputStyle} />
               <label className="sr-only" htmlFor="inv-role">Role</label>
               <select id="inv-role" value={invRole} onChange={(e) => setInvRole(e.target.value as Role)} className={inputCls} style={inputStyle}>
                 {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}

@@ -346,6 +346,10 @@ export function CommandK({
               </kbd>
               <span>select</span>
             </span>
+            <span className="hidden items-center gap-1 sm:flex">
+              <kbd className="text-xs px-1.5 py-0.5 rounded bg-panel border border-border-subtle text-text-primary">/</kbd>
+              <span>open from any page</span>
+            </span>
           </div>
 
           <span className="flex items-center gap-1">

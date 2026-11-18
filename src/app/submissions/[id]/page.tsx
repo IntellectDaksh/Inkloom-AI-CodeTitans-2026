@@ -366,7 +366,7 @@ function SubmissionReviewInner({ params }: { params: Promise<{ id: string }> }) 
   };
   const download = () => {
     const url = URL.createObjectURL(new Blob([markdown()], { type: "text/markdown" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: `${submission.title.replace(/[^\w-]+/g, "-")}-review.md` });
+    const a = Object.assign(document.createElement("a"), { href: url, download: `${submission.title.replace(/[^\w-]+/g, "-")}-review-${new Date().toISOString().slice(0, 10)}.md` });
     a.click();
     URL.revokeObjectURL(url);
   };

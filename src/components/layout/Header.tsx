@@ -198,7 +198,11 @@ export function Header({ title, breadcrumbs, onBrandChange, onOpenCommandK, onTo
           className={`relative flex h-10 w-10 items-center justify-center rounded-lg border border-border-default bg-panel text-text-secondary hover:bg-panel-hover hover:text-text-primary ${focusRing}`}
         >
           <Bell className="h-4 w-4" aria-hidden="true" />
-          {unread > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-ink ring-2 ring-canvas" aria-hidden="true" />}
+          {unread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold leading-none text-canvas ring-2 ring-canvas" aria-hidden="true">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
         </button>
         {isNotifOpen && (
           <div className="glass-strong absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-xl p-1">
