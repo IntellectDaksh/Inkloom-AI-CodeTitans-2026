@@ -7,7 +7,15 @@ import { getHealth } from "@/app/api/health/health";
 export const metadata: Metadata = { title: "Status · AdSnitch", description: "Current service status." };
 
 /** Errors in the last 24h: a count only, nothing about what they were. Null when the database can't be read. */
+let errCache: { at: number; n: number | null } | null = null;
 async function errorCount24h(): Promise<number | null> {
+  if (errCache && Date.now() - errCache.at < 30_000) return errCache.n;
+  const n = await countErrors();
+  errCache = { at: Date.now(), n };
+  return n;
+}
+
+async function countErrors(): Promise<number | null> {
   try {
     const { count, error } = await supabaseAdmin().from("error_events").select("id", { count: "exact", head: true }).gte("occurred_at", new Date(Date.now() - 86_400_000).toISOString());
     return error ? null : count ?? 0;

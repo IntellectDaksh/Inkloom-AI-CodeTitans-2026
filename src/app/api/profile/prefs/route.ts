@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMe, supabaseServer } from "@/lib/auth/server";
+import { getMe, supabaseServer, forgetProfile } from "@/lib/auth/server";
 
 const MAX = 8000;
 
@@ -17,6 +17,7 @@ export async function PUT(req: NextRequest) {
   }
   if (!prefs || typeof prefs !== "object" || Array.isArray(prefs)) return NextResponse.json({ success: false, error: "Send an object." }, { status: 400 });
   const { error } = await (await supabaseServer()).from("profiles").update({ prefs }).eq("id", me.id);
+  forgetProfile(me.id);
   if (error) return NextResponse.json({ success: false, error: "Could not save preferences." }, { status: 500 });
   return NextResponse.json({ success: true });
 }

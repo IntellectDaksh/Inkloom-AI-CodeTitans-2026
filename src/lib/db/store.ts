@@ -259,6 +259,8 @@ interface StoreCtx {
   ephemeral: boolean;
   /** Audit events created during this request, mirrored to the append-only audit_log table on save. */
   newAudit: AuditEvent[];
+  /** The document exactly as loaded, to skip writes that change nothing. */
+  loadedJson?: string;
 }
 const als = new AsyncLocalStorage<StoreCtx>();
 const fallbackCtx: StoreCtx = { state: null, remote: false, dirty: false, docId: null, version: 0, ephemeral: false, newAudit: [] };
@@ -326,6 +328,7 @@ export async function syncFromRemote(orgId: string | null): Promise<void> {
   }
   if (data?.data) {
     ctx.version = Number(data.version) || 0;
+    ctx.loadedJson = JSON.stringify(data.data);
     ctx.state = backfillSeed(data.data as InkloomDatabaseState);
     ctx.dirty = false;
   } else {
@@ -340,6 +343,11 @@ export async function flushToRemote(): Promise<void> {
   if (ctx.ephemeral || !ctx.remote || !ctx.dirty || !ctx.state || !ctx.docId) return;
   const sb = getSupabaseClient();
   if (!sb) return;
+  // Marked dirty but byte-for-byte unchanged (e.g. a read that re-ran an idempotent migration): skip the write.
+  if (ctx.loadedJson && !ctx.newAudit.length && JSON.stringify(ctx.state) === ctx.loadedJson) {
+    ctx.dirty = false;
+    return;
+  }
   const { data, error } = await sb.rpc('app_state_cas', { p_id: ctx.docId, p_version: ctx.version, p_data: ctx.state });
   if (error) throw new Error(`Supabase write failed: ${error.message}`);
   if (data === null || data === undefined) throw new StoreConflictError('Someone else saved at the same time.');
@@ -362,6 +370,12 @@ export async function flushToRemote(): Promise<void> {
 /** Organisation whose document this request loaded (null outside a request or when signed out). */
 export function currentOrgId(): string | null {
   return cur().docId;
+}
+
+/** Version of the loaded document and whether this request changed it (for response memoisation). */
+export function docState(): { version: number; dirty: boolean } {
+  const c = cur();
+  return { version: c.version, dirty: c.dirty };
 }
 
 export function isRemoteStoreActive(): boolean {

@@ -75,4 +75,4 @@ async function GET_handler(req: NextRequest) {
   }
 }
 
-export const GET = withStore(GET_handler, { name: "search", limit: [0, 1200] });
+export const GET = withStore(GET_handler, { memo: true, name: "search", limit: [0, 1200] });

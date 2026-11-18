@@ -8,7 +8,16 @@ export interface Health {
 }
 
 /** Public liveness. Booleans only: never echoes keys, URLs or error text. */
+// Status checks are polled; one database probe per 10s per instance is plenty.
+let lastHealth: { at: number; value: Health } | null = null;
 export async function getHealth(): Promise<Health> {
+  if (lastHealth && Date.now() - lastHealth.at < 10_000) return lastHealth.value;
+  const value = await probeHealth();
+  lastHealth = { at: Date.now(), value };
+  return value;
+}
+
+async function probeHealth(): Promise<Health> {
   let database = false;
   try {
     const { error } = await supabaseAdmin().from("organizations").select("id").limit(1);

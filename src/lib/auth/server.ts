@@ -58,13 +58,65 @@ export async function needsMfa(sb: Awaited<ReturnType<typeof supabaseServer>>): 
   }
 }
 
+// ---------------------------------------------------------------------------
+// Per-instance caches. Every API call used to ask Supabase Auth who the user is and re-read their
+// profile; now both are reused for a few seconds. Keyed by the session cookie / user id, cleared
+// when a profile changes (forgetProfile), so roles and org switches show up immediately here.
+// ponytail: per instance and short-lived; a revoked session is honoured for at most USER_TTL_MS.
+// ---------------------------------------------------------------------------
+const USER_TTL_MS = 20_000;
+const PROFILE_TTL_MS = 10_000;
+type AuthUser = { id: string; email?: string | null };
+const userCache = new Map<string, { user: AuthUser | null; exp: number }>();
+const profileCache = new Map<string, { row: ProfileRow | null; exp: number }>();
+export interface ProfileRow {
+  full_name: string | null; bio: string | null; avatar_url: string | null; role: string | null;
+  organization_id: string | null; job_title: string | null; profile_completed_at: string | null; prefs: Record<string, unknown> | null;
+}
+const trim = <K, V>(m: Map<K, V>) => { if (m.size > 500) m.delete(m.keys().next().value as K); };
+
+/** The signed-in user for this request's session cookie (cached briefly), or null. */
+export async function sessionUser(sb?: Awaited<ReturnType<typeof supabaseServer>>): Promise<AuthUser | null> {
+  const store = await cookies();
+  const token = store.getAll().filter((c) => /^sb-.*-auth-token/.test(c.name)).map((c) => c.value).join("|");
+  if (!token) return null;
+  const hit = userCache.get(token);
+  if (hit && hit.exp > Date.now()) return hit.user;
+  const client = sb ?? (await supabaseServer());
+  const { data } = await client.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = data.user ? { id: data.user.id, email: data.user.email } : null;
+  userCache.set(token, { user, exp: Date.now() + USER_TTL_MS });
+  trim(userCache);
+  return user;
+}
+
+/** A user's profile row (service role, filtered to that id), cached briefly. */
+export async function profileRow(userId: string): Promise<ProfileRow | null> {
+  const hit = profileCache.get(userId);
+  if (hit && hit.exp > Date.now()) return hit.row;
+  const { data } = await supabaseAdmin()
+    .from("profiles")
+    .select("full_name, bio, avatar_url, role, organization_id, job_title, profile_completed_at, prefs")
+    .eq("id", userId)
+    .maybeSingle();
+  const row = (data as ProfileRow | null) ?? null;
+  profileCache.set(userId, { row, exp: Date.now() + PROFILE_TTL_MS });
+  trim(profileCache);
+  return row;
+}
+
+/** Call after any write to a profile so this instance stops serving the old copy. */
+export function forgetProfile(userId: string): void {
+  profileCache.delete(userId);
+}
+
 export async function getMe(): Promise<Me | null> {
   const sb = await supabaseServer();
-  const { data: { user } } = await sb.auth.getUser();
+  const user = await sessionUser(sb);
   if (!user) return null;
   // Two-factor users count as signed out for every API until the code step is done.
   if (await needsMfa(sb)) return null;
-  const { data: p } = await sb.from("profiles").select("full_name, bio, avatar_url, role, organization_id, job_title, profile_completed_at, prefs").eq("id", user.id).maybeSingle();
+  const p = await profileRow(user.id);
   return {
     id: user.id,
     email: user.email ?? "",
@@ -72,13 +124,15 @@ export async function getMe(): Promise<Me | null> {
     bio: p?.bio ?? "",
     avatarUrl: p?.avatar_url ?? null,
     role: (p?.role as AppRole) ?? "creator",
-    organizationId: (p?.organization_id as string) ?? "",
+    organizationId: p?.organization_id ?? "",
     profileComplete: !!p?.profile_completed_at,
-    jobTitle: (p?.job_title as string) ?? "",
-    prefs: (p?.prefs as Record<string, unknown>) ?? {},
+    jobTitle: p?.job_title ?? "",
+    prefs: p?.prefs ?? {},
     isOwner: (process.env.OWNER_EMAILS ?? "").toLowerCase().split(",").map((x) => x.trim()).includes((user.email ?? "").toLowerCase()),
   };
 }
+
+const keyTouched = new Map<string, number>();
 
 export const API_KEY_RE = /^ask_live_[A-Za-z0-9_-]{32}$/;
 
@@ -94,6 +148,9 @@ export async function apiKeyFromRequest(req: Request): Promise<{ id: string; org
   const admin = supabaseAdmin();
   const { data } = await admin.from("api_keys").select("id, organization_id").eq("key_hash", await hashApiKey(key)).is("revoked_at", null).maybeSingle();
   if (!data) return null;
-  await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
+  if ((keyTouched.get(data.id) ?? 0) < Date.now() - 5 * 60_000) {
+    keyTouched.set(data.id, Date.now());
+    await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
+  }
   return { id: data.id as string, organizationId: data.organization_id as string };
 }

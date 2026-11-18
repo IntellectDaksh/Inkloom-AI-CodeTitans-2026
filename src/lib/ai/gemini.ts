@@ -490,6 +490,7 @@ Audit the content thoroughly:
     ],
     generationConfig: {
       temperature: 0,
+      maxOutputTokens: 6144, // caps latency and cost; a full audit of a long ad fits well inside
       topP: 0.1,
       seed: 7,
       responseMimeType: 'application/json',

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { getMe, supabaseAdmin } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
-import { WEBHOOK_EVENTS, validateWebhookUrl, resolvesToPublic, fireWebhooks, type WebhookEvent } from "@/lib/notify/webhooks";
+import { WEBHOOK_EVENTS, validateWebhookUrl, resolvesToPublic, fireWebhooks, forgetNoHooks, type WebhookEvent } from "@/lib/notify/webhooks";
 
 const COLS = "id, url, events, created_at";
 const MAX_PER_ORG = 10;
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
 
   const secret = `whsec_${randomBytes(24).toString("base64url")}`;
   const { data, error } = await sb.from("webhooks").insert({ organization_id: me.organizationId, url, events, secret }).select(COLS).single();
+  forgetNoHooks(me.organizationId);
   if (error) return NextResponse.json({ success: false, error: "Could not save the webhook." }, { status: 500 });
   return NextResponse.json({ success: true, webhook: data, secret });
 }

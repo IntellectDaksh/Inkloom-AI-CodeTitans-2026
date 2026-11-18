@@ -43,7 +43,7 @@ async function owner() {
 
 export async function GET() {
   if (!(await owner())) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
-  const { data, error } = await supabaseAdmin().from("feedback").select("*").order("created_at", { ascending: false }).limit(300);
+  const { data, error } = await supabaseAdmin().from("feedback").select("id, created_at, kind, message, email, page, status").order("created_at", { ascending: false }).limit(300);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   return NextResponse.json({ success: true, items: data });
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMe, supabaseAdmin } from "@/lib/auth/server";
+import { getMe, supabaseAdmin, forgetProfile } from "@/lib/auth/server";
 
 /** Make another organisation the caller's current one. Membership is checked here, never trusted from the client. */
 export async function POST(req: NextRequest) {
@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   const { data: m } = await admin.from("memberships").select("role").eq("user_id", me.id).eq("organization_id", organizationId).maybeSingle();
   if (!m) return NextResponse.json({ success: false, error: "You are not a member of that organisation." }, { status: 403 });
   const { error } = await admin.from("profiles").update({ organization_id: organizationId, role: m.role }).eq("id", me.id);
+  forgetProfile(me.id);
   if (error) return NextResponse.json({ success: false, error: "Could not switch. Try again." }, { status: 500 });
   return NextResponse.json({ success: true });
 }

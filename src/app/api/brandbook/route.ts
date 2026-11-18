@@ -83,7 +83,7 @@ async function POST_handler(req: NextRequest) {
 
   const body = {
     contents: [{ role: "user", parts: [{ text: `${PROMPT}\n\n=== BRAND BOOK ===\n${text.slice(0, MAX_CHARS)}` }] }],
-    generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: SCHEMA },
+    generationConfig: { temperature: 0, maxOutputTokens: 8192, responseMimeType: "application/json", responseSchema: SCHEMA },
   };
   const resp = await callGemini(apiKey, body, 60000);
   if (!resp.ok) {

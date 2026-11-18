@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withStore } from "@/lib/db/withStore";
 import { db } from "@/lib/db";
-import { getMe, supabaseAdmin } from "@/lib/auth/server";
+import { getMe, supabaseAdmin, forgetProfile } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { teamAudit } from "./audit";
 
@@ -52,6 +52,7 @@ async function moveToPersonalOrg(userId: string, name: string) {
   const { error: oErr } = await admin.from("organizations").insert({ id, name: `${name}'s company`, created_by: userId });
   if (oErr) throw new Error(oErr.message);
   const { error } = await admin.from("profiles").update({ organization_id: id, role: "admin" }).eq("id", userId);
+  forgetProfile(userId);
   if (error) {
     await admin.from("organizations").delete().eq("id", id);
     throw new Error(error.message);

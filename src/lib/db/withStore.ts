@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { flushToRemote, runWithStore, StoreConflictError, syncFromRemote } from "./store";
-import { apiKeyFromRequest, needsMfa, supabaseAdmin, supabaseServer } from "@/lib/auth/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { docState, flushToRemote, runWithStore, StoreConflictError, syncFromRemote } from "./store";
+import { apiKeyFromRequest, needsMfa, profileRow, sessionUser, supabaseServer } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { reportError } from "@/lib/ops/errors";
 
@@ -9,6 +9,8 @@ type Handler<A extends unknown[]> = (...args: A) => Promise<Response> | Response
 interface Opts {
   /** Allow signed-out callers (they get seed data, never persisted). */
   public?: boolean;
+  /** Cache this GET's JSON per user until the organisation's data changes (version-keyed). */
+  memo?: boolean;
   /** Per-hour request budget for this route: [signed-out, signed-in]. */
   limit?: [number, number];
   name?: string;
@@ -17,11 +19,11 @@ interface Opts {
 }
 
 const MAX_ATTEMPTS = 3;
+const memoCache = new Map<string, string>();
 
 /** Organisation id of the signed-in user, from public.profiles (service role, so RLS can't hide it). */
 async function orgOf(userId: string): Promise<string | null> {
-  const { data } = await supabaseAdmin().from("profiles").select("organization_id").eq("id", userId).maybeSingle();
-  return (data?.organization_id as string) ?? null;
+  return (await profileRow(userId))?.organization_id ?? null;
 }
 
 /**
@@ -33,15 +35,11 @@ export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts =
   return async (...args: A) => {
     if (opts.apiKey) return withApiKey(handler, args);
     const sb = await supabaseServer();
-    // No Supabase auth cookie means no session: skip the auth server round trip for anonymous calls.
-    const hasSession = /(?:^|;\s*)sb-[^=]*-auth-token/.test((args[0] as Request)?.headers?.get?.("cookie") ?? "");
-    const { data: { user: sessionUser } } = hasSession
-      ? await sb.auth.getUser().catch(() => ({ data: { user: null } }))
-      : { data: { user: null } };
+    const sessionUserRow = await sessionUser(sb);
     // A session that still owes its two-factor code gets no data access.
-    const mfaPending = !!sessionUser && (await needsMfa(sb));
+    const mfaPending = !!sessionUserRow && (await needsMfa(sb));
     if (mfaPending && !opts.public) return NextResponse.json({ success: false, error: "Enter your two-factor code to continue.", mfa: true }, { status: 401 });
-    const user = mfaPending ? null : sessionUser;
+    const user = mfaPending ? null : sessionUserRow;
     if (!user && !opts.public) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
 
     // Rate limit and organisation lookup are independent: run them together to save a round trip.
@@ -61,7 +59,7 @@ export function withStore<A extends unknown[]>(handler: Handler<A>, opts: Opts =
     const orgId: string | null = org.o;
     if (user && !orgId) return NextResponse.json({ success: false, error: "Your account has no workspace yet. Sign out and in again." }, { status: 403 });
 
-    return runLoop(handler, args, orgId, user?.id ?? null);
+    return runLoop(handler, args, orgId, user?.id ?? null, !!opts.memo);
   };
 }
 
@@ -79,7 +77,7 @@ async function withApiKey<A extends unknown[]>(handler: Handler<A>, args: A): Pr
   return runLoop(handler, args, key.organizationId, null);
 }
 
-async function runLoop<A extends unknown[]>(handler: Handler<A>, args: A, orgId: string | null, userId: string | null): Promise<Response> {
+async function runLoop<A extends unknown[]>(handler: Handler<A>, args: A, orgId: string | null, userId: string | null, memo = false): Promise<Response> {
     // Buffer the body once so a retry after a write conflict can replay the request.
     // (NextRequest.clone() throws inside Next's request proxy, so rebuild instead.)
     const original = args[0] instanceof Request ? (args[0] as NextRequest) : null;
@@ -93,11 +91,19 @@ async function runLoop<A extends unknown[]>(handler: Handler<A>, args: A, orgId:
         } catch {
           return NextResponse.json({ success: false, error: "The database is unreachable right now. Try again in a moment." }, { status: 503 });
         }
+        // Memoised GETs: the same user asking the same question of the same data version gets the saved answer.
+        const memoKey = memo && original?.method === "GET" && orgId ? `${orgId}:${docState().version}:${userId}:${Math.floor(Date.now() / 300_000)}:${original.url}` : null;
+        const hit = memoKey ? memoCache.get(memoKey) : undefined;
+        if (hit) return new NextResponse(hit, { status: 200, headers: { "Content-Type": "application/json", "X-Memo": "hit" } });
         const res = await handler(...callArgs);
+        if (memoKey && res.status === 200 && !docState().dirty) {
+          memoCache.set(memoKey, await res.clone().text());
+          if (memoCache.size > 300) memoCache.delete(memoCache.keys().next().value as string);
+        }
         // Handlers catch their own errors and answer 500; record those so failures aren't silent.
         if (res.status >= 500) {
           const msg = await res.clone().json().then((j: { error?: string }) => j?.error).catch(() => null);
-          await reportError({ source: "server", message: msg || `HTTP ${res.status}`, route: original ? `${original.method} ${new URL(original.url).pathname}` : null, userId, organizationId: orgId });
+          after(() => reportError({ source: "server", message: msg || `HTTP ${res.status}`, route: original ? `${original.method} ${new URL(original.url).pathname}` : null, userId, organizationId: orgId }));
         }
         try {
           await flushToRemote();

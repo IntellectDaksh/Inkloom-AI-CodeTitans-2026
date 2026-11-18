@@ -60,7 +60,9 @@ export function refreshMe(): Promise<void> {
 }
 
 export function useMe(): Persona | null {
-  const [me, set] = useState<Persona | null>(current.id ? current : null);
+  // Always start empty so the first client render matches the server HTML (parts of the page hydrate
+  // at different times, and the user may already be loaded by then); fill in right after.
+  const [me, set] = useState<Persona | null>(null);
   useEffect(() => {
     const on = () => set(current.id ? current : null);
     window.addEventListener(ME_EVT, on);
@@ -79,8 +81,10 @@ export const ROLE_HELP: Record<Role, string> = {
 };
 /** The signed-in user (prefs arg kept for older callers). */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function personaOf(_p?: Prefs): Persona {
-  return current;
+export function personaOf(p?: Prefs): Persona {
+  // On the first render usePrefs() still returns DEFAULTS (same as the server HTML), so answer
+  // "signed out" there too; the real user appears on the next render. Prevents hydration mismatches.
+  return p === DEFAULTS ? SIGNED_OUT : current;
 }
 
 export interface Prefs {

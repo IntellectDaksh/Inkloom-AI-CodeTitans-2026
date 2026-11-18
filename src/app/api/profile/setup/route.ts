@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMe, supabaseAdmin } from "@/lib/auth/server";
+import { getMe, supabaseAdmin, forgetProfile } from "@/lib/auth/server";
 
 // GET: what the setup form should prefill. POST: save the first-run profile and mark it complete.
 export async function GET() {
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     .from("profiles")
     .update({ full_name: name, job_title: jobTitle, terms_accepted_at: now, profile_completed_at: now })
     .eq("id", me.id);
+  forgetProfile(me.id);
   if (error) return NextResponse.json({ success: false, error: "Could not save your profile. Try again." }, { status: 500 });
   return NextResponse.json({ success: true });
 }

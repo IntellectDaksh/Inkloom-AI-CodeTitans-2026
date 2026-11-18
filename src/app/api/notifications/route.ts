@@ -11,6 +11,8 @@ async function sessionUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
+const lastExpirySync = new Map<string, number>();
+
 /** Raise one alert per approved claim whose proof lapses within 30 days, from live claim data. */
 function syncExpiryAlerts(userId: string, tenant: string | null) {
   const existing = db.listNotifications(userId);
@@ -48,8 +50,13 @@ async function GET_handler(req: NextRequest) {
     if (!userId) return NextResponse.json({ success: false, error: "Sign in to do this." }, { status: 401 });
 
     const me = await getMe();
-    syncExpiryAlerts(userId, me?.organizationId ?? null);
-    const notifications = db.listNotifications(userId);
+    // Expiry alerts change at most daily; re-scan claims at most every 5 minutes per user, not on every 20s poll.
+    if ((lastExpirySync.get(userId) ?? 0) < Date.now() - 5 * 60_000) {
+      lastExpirySync.set(userId, Date.now());
+      syncExpiryAlerts(userId, me?.organizationId ?? null);
+    }
+    // Newest 100 is all the bell and page show; older ones stay stored but aren't sent on every poll.
+    const notifications = db.listNotifications(userId).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 100);
     return NextResponse.json({ success: true, notifications });
   } catch (err) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });

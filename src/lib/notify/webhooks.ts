@@ -63,12 +63,21 @@ export interface WebhookPayload {
   note?: string;
 }
 
+const noHooksUntil = new Map<string, number>();
+/** Call when a webhook is added so the "no webhooks" shortcut stops applying. */
+export function forgetNoHooks(orgId: string) { noHooksUntil.delete(orgId); }
+
 /** Posts the event to every org webhook subscribed to it. 5s timeout each; failures go to error_events. Never throws. */
 export async function fireWebhooks(orgId: string, event: WebhookEvent, p: WebhookPayload): Promise<void> {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_SECRET_KEY) return;
   let hooks: { id: string; url: string; secret: string }[] = [];
   try {
+    if ((noHooksUntil.get(orgId) ?? 0) > Date.now()) return;
     const { data, error } = await supabaseAdmin().from("webhooks").select("id, url, secret").eq("organization_id", orgId).contains("events", [event]);
+    if (!error && !data?.length) {
+      const { count } = await supabaseAdmin().from("webhooks").select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+      if (!count) noHooksUntil.set(orgId, Date.now() + 60_000);
+    }
     if (error) throw new Error(error.message);
     hooks = data ?? [];
   } catch (e) {

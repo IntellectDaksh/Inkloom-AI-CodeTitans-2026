@@ -3,12 +3,12 @@
  * Text formats are read locally; DOCX is unzipped with Node built-ins; PDF and images go to Gemini OCR.
  */
 
-import { inflateRawSync } from 'zlib';
+import { inflateRawSync, inflateSync } from 'zlib';
 import { callGemini } from './gemini';
 
 export const MAX_EXTRACT_BYTES = 15 * 1024 * 1024;
 
-export type ExtractMethod = 'plain' | 'docx' | 'gemini-ocr';
+export type ExtractMethod = 'plain' | 'docx' | 'pdf-text' | 'gemini-ocr';
 
 export interface ExtractResult {
   text: string;
@@ -213,7 +213,7 @@ async function geminiOcr(buf: Buffer, mime: string, apiKey: string): Promise<str
         parts: [{ inline_data: { mime_type: mime, data: buf.toString('base64') } }, { text: OCR_PROMPT }],
       },
     ],
-    generationConfig: { temperature: 0 },
+    generationConfig: { temperature: 0, maxOutputTokens: 8192 },
   };
   const resp = await callGemini(apiKey, body, 60000);
   if (!resp.ok) {
@@ -230,6 +230,64 @@ async function geminiOcr(buf: Buffer, mime: string, apiKey: string): Promise<str
   }
   const text = parts.map(p => p.text ?? '').join('');
   return text.trim() === 'NO_TEXT_FOUND' ? '' : text.replace(/^```\w*\n?|```\s*$/g, '');
+}
+
+/**
+ * Best-effort reader for a PDF's own text layer: inflates content streams and collects the strings
+ * drawn by text operators (Tj, TJ, ', "). Returns null when the result doesn't look like real prose
+ * (scans, hex/CID-encoded fonts), so the caller falls back to OCR.
+ * ponytail: no font-encoding maps, so custom-encoded PDFs always go to OCR; add a real parser if that's common.
+ */
+export function pdfTextLayer(buf: Buffer): string | null {
+  const raw = buf.toString('latin1');
+  // Identity-H (CID) fonts store glyph ids, not characters: unreadable without font tables, so bail early.
+  if (raw.includes('/Identity-H')) return null;
+  const pages: string[] = [];
+  const streamRe = /stream\r?\n/g;
+  let m: RegExpExecArray | null;
+  let budget = 400; // streams to inspect, keeps huge PDFs cheap
+  while ((m = streamRe.exec(raw)) && budget-- > 0) {
+    const start = m.index + m[0].length;
+    const end = raw.indexOf('endstream', start);
+    if (end < 0) break;
+    const dict = raw.slice(Math.max(0, m.index - 300), m.index);
+    if (/\/Subtype\s*\/Image|\/Length1|\/FontFile/.test(dict)) { streamRe.lastIndex = end; continue; }
+    let body = buf.subarray(start, end);
+    if (/\/FlateDecode/.test(dict)) {
+      try { body = inflateSync(body); } catch { streamRe.lastIndex = end; continue; }
+    } else if (/\/Filter/.test(dict)) { streamRe.lastIndex = end; continue; }
+    const content = body.toString('latin1');
+    if (!/\bBT\b/.test(content)) { streamRe.lastIndex = end; continue; }
+    const lines: string[] = [];
+    let line = '';
+    const opRe = /\((?:\\.|[^\\)])*\)\s*(?:Tj|'|")|\[((?:\((?:\\.|[^\\)])*\)|[^\]])*)\]\s*TJ|\bT\*|\bTd\b|\bTD\b|\bET\b/g;
+    for (const op of content.matchAll(opRe)) {
+      const tok = op[0];
+      if (/^(T\*|Td|TD|ET)$/.test(tok.trim())) { if (line.trim()) lines.push(line.trim()); line = ''; continue; }
+      const parts = tok.startsWith('[') ? [...tok.matchAll(/\((?:\\.|[^\\)])*\)|-?\d+(?:\.\d+)?/g)].map((x) => x[0]) : [tok.slice(0, tok.lastIndexOf(')') + 1)];
+      for (const p of parts) {
+        if (p.startsWith('(')) line += unescapePdf(p.slice(1, -1));
+        else if (Number(p) < -200) line += ' '; // big negative kerning = word gap
+      }
+    }
+    if (line.trim()) lines.push(line.trim());
+    if (lines.length) pages.push(lines.join('\n'));
+    streamRe.lastIndex = end;
+  }
+  const text = pages.join(`\n${PAGE_BREAK}\n`);
+  const plain = text.replace(new RegExp(PAGE_BREAK, 'g'), '');
+  const letters = (plain.match(/[A-Za-z\u00C0-\u024F]/g) || []).length;
+  const words = plain.split(/\s+/).filter((w) => /[A-Za-z]{2,}/.test(w)).length;
+  // Looks like prose: enough words, and mostly letters/spaces rather than glyph-code noise.
+  if (words < 25 || letters / Math.max(1, plain.replace(/\s/g, '').length) < 0.6) return null;
+  return text;
+}
+
+function unescapePdf(s: string): string {
+  return s.replace(/\\([nrtbf()\\]|[0-7]{1,3})/g, (_, c: string) => {
+    if (/^[0-7]+$/.test(c)) return String.fromCharCode(parseInt(c, 8));
+    return ({ n: '\n', r: '', t: ' ', b: '', f: '', '(': '(', ')': ')', '\\': '\\' } as Record<string, string>)[c] ?? c;
+  });
 }
 
 export async function extractText(
@@ -280,6 +338,17 @@ export async function extractText(
       if (entry.kind === 'pdf') {
         if (buf.subarray(0, 5).toString('latin1') !== '%PDF-') throw new ExtractError('This file is not a valid PDF.', 400);
         pages = countPdfPages(buf);
+      }
+      // PDFs exported from Docs, Word, Canva etc. carry a real text layer: read it locally in
+      // milliseconds and only fall back to AI for scans, images and unusual font encodings.
+      if (entry.kind === 'pdf') {
+        const local = pdfTextLayer(buf);
+        if (local) {
+          method = 'pdf-text';
+          text = tidy(stripPageNoise(local));
+          warnings.push('Text was read from the PDF. Watermarks, page numbers and repeated headers/footers were removed.');
+          break;
+        }
       }
       if (!apiKey) {
         throw new ExtractError('Reading PDFs and images needs a GEMINI_API_KEY on the server. Paste the text instead.', 503);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/auth/server";
+import { supabaseServer, forgetProfile } from "@/lib/auth/server";
 
 // GET: has this account seen the first-run demo? POST: mark it seen (idempotent).
 export async function GET() {
@@ -17,6 +17,7 @@ export async function POST() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ success: false, error: "Not signed in" }, { status: 401 });
   const { error } = await sb.from("profiles").update({ demo_seen_at: new Date().toISOString() }).eq("id", user.id).is("demo_seen_at", null);
+  forgetProfile(user.id);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

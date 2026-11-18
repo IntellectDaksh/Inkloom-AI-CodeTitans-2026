@@ -151,4 +151,4 @@ async function GET_handler(req: NextRequest) {
   }
 }
 
-export const GET = withStore(GET_handler);
+export const GET = withStore(GET_handler, { memo: true });

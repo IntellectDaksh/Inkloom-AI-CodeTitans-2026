@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMe, supabaseAdmin } from "@/lib/auth/server";
+import { getMe, supabaseAdmin, forgetProfile } from "@/lib/auth/server";
 import { BUCKET } from "@/lib/files/server";
 import { rateLimit } from "@/lib/rateLimit";
 
@@ -37,6 +37,7 @@ export async function DELETE(req: NextRequest) {
       const { data: other } = await admin.from("memberships").select("organization_id, role").eq("user_id", m.id).neq("organization_id", orgId).order("created_at").limit(1).maybeSingle();
       if (other) {
         const { error } = await admin.from("profiles").update({ organization_id: other.organization_id, role: other.role }).eq("id", m.id);
+        forgetProfile(m.id);
         if (error) throw new Error(error.message);
         continue;
       }
@@ -45,6 +46,7 @@ export async function DELETE(req: NextRequest) {
       const { error: oErr } = await admin.from("organizations").insert({ id, name: `${name}'s company`, created_by: m.id });
       if (oErr) throw new Error(oErr.message);
       const { error: pErr } = await admin.from("profiles").update({ organization_id: id, role: "admin" }).eq("id", m.id);
+      forgetProfile(m.id);
       if (pErr) {
         await admin.from("organizations").delete().eq("id", id);
         throw new Error(pErr.message);

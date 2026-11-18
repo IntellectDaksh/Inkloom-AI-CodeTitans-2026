@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMe, supabaseServer } from "@/lib/auth/server";
+import { getMe, supabaseServer, forgetProfile } from "@/lib/auth/server";
 
 // GET: every profile (team list). PATCH: edit your own name / bio / avatar.
 export async function GET() {
@@ -34,6 +34,7 @@ export async function PATCH(req: NextRequest) {
   if (!Object.keys(patch).length) return NextResponse.json({ success: false, error: "Nothing to update." }, { status: 400 });
   const sb = await supabaseServer();
   const { error } = await sb.from("profiles").update(patch).eq("id", me.id);
+  forgetProfile(me.id);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   return NextResponse.json({ success: true, me: await getMe() });
 }
